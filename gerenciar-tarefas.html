@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciar Tarefas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Gerenciar Tarefas</h1>
+            <div id="gerenciar-clock" style="font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
+        </div>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        <div id="gerenciar-tarefas-lista" style="width: 100%; min-height: 120px;">
+            <!-- Lista de tarefas será exibida aqui -->
+        </div>
+
+        <!-- Popup de criação de multa -->
+        <div id="popup-multa" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.35); z-index: 1000; align-items: center; justify-content: center;">
+            <div id="popup-multa-content" style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
+                <!-- Conteúdo dinâmico -->
+            </div>
+        </div>
+
+
+        <button class="btn-rounded" id="btn-criar-tarefa" style="width: 220px; max-width: 90vw; font-size: 1.1rem; margin: 32px auto 0 auto; display: block;">Criar tarefa</button>
+        <!-- Popup de criação de tarefa -->
+        <div id="popup-tarefa" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.35); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
+                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Criar Nova Tarefa</h2>
+                <input id="tarefa-nome" class="input-rounded" type="text" placeholder="Nome da Tarefa">
+                <input id="tarefa-inicio" class="input-rounded" type="time" placeholder="Horário de início">
+                <input id="tarefa-fim" class="input-rounded" type="time" placeholder="Horário final">
+                <input id="tarefa-valor" class="input-rounded" type="number" min="0" step="0.01" placeholder="Valor">
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button class="btn-rounded" id="btn-salvar-tarefa" style="width: 120px;">Salvar</button>
+                    <button class="btn-rounded" id="btn-cancelar-tarefa" style="width: 120px; background: #eee; color: #1976d2;">Cancelar</button>
+                </div>
+                <div id="tarefa-erro" style="color: #d32f2f; min-height: 20px; text-align: center;"></div>
+            </div>
+        </div>
+        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
+    </div>
+    <script>
+    // Função para exibir lista de tarefas com botão opções
+    function renderGerenciarTarefas() {
+        const lista = document.getElementById('gerenciar-tarefas-lista');
+        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
+        if (!tarefas.length) {
+            lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa cadastrada no momento.</p>';
+            return;
+        }
+        lista.innerHTML = tarefas.map((t, i) => `
+            <div style=\"display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;\">
+                <span style=\"color: #1976d2; font-size: 1.1rem; font-weight: 500;\">${t.nome}</span>
+                <button class=\"btn-rounded btn-opcoes-tarefa\" data-index=\"${i}\" style=\"width: 110px; max-width: 90vw; font-size: 1rem; margin-left: 18px;\">Opções</button>
+            </div>
+        `).join('');
+        // Adiciona eventos aos botões de opções
+        document.querySelectorAll('.btn-opcoes-tarefa').forEach(btn => {
+            btn.onclick = function() {
+                abrirPopupOpcoesTarefa(this.getAttribute('data-index'));
+            };
+        });
+    // Popup de opções de tarefa
+    function abrirPopupOpcoesTarefa(idx) {
+        const tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
+        const tarefa = tarefas[idx];
+        let popup = document.getElementById('popup-opcoes-tarefa');
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = 'popup-opcoes-tarefa';
+            popup.style.position = 'fixed';
+            popup.style.top = '0';
+            popup.style.left = '0';
+            popup.style.width = '100vw';
+            popup.style.height = '100vh';
+            popup.style.background = 'rgba(0,0,0,0.35)';
+            popup.style.zIndex = '2000';
+            popup.style.display = 'flex';
+            popup.style.alignItems = 'center';
+            popup.style.justifyContent = 'center';
+            popup.innerHTML = '';
+            document.body.appendChild(popup);
+        }
+        popup.innerHTML = `
+            <div style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
+                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Opções da Tarefa</h2>
+                <div style="color: #1976d2; font-weight: bold; text-align: center; font-size: 1.1rem;">${tarefa.nome}</div>
+                <button id="btn-direcionar-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem;">Direcionar tarefa</button>
+                <button id="btn-excluir-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #d32f2f; color: #fff;">Excluir Tarefa</button>
+                <button id="btn-fechar-popup-opcoes" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #eee; color: #1976d2;">Fechar</button>
+            </div>
+        `;
+        popup.style.display = 'flex';
+        document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popup.style.display = 'none'; };
+        document.getElementById('btn-direcionar-tarefa').onclick = () => {
+            let membros = JSON.parse(localStorage.getItem('usuarios') || '[]');
+            // Adicionando verificação e mensagem mais informativa caso não haja membros
+            if (!membros.length) {
+                alert('Nenhum membro cadastrado. Por favor, adicione membros antes de direcionar tarefas.');
+                return;
+            }
+            let selectHtml = '<select id="select-membro" class="input-rounded" style="margin-bottom: 18px;">' + membros.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('') + '</select>';
+            popup.querySelector('div').innerHTML = `
+                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Direcionar tarefa</h2>
+                <div style="color: #1976d2; font-weight: bold; text-align: center; font-size: 1.1rem;">${tarefa.nome}</div>
+                <label style="margin-bottom: 8px;">Escolha o membro:</label>
+                ${selectHtml}
+                <button id="btn-confirmar-direcionar" class="btn-rounded" style="width: 100%; font-size: 1.1rem;">Confirmar</button>
+                <button id="btn-cancelar-direcionar" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #eee; color: #1976d2;">Cancelar</button>
+            `;
+            document.getElementById('btn-cancelar-direcionar').onclick = () => { popup.style.display = 'none'; };
+            document.getElementById('btn-confirmar-direcionar').onclick = () => {
+                const membro = document.getElementById('select-membro').value;
+                let minhas = JSON.parse(localStorage.getItem('minhasTarefas_' + membro) || '[]');
+                minhas.push(tarefa);
+                localStorage.setItem('minhasTarefas_' + membro, JSON.stringify(minhas));
+                tarefas.splice(idx, 1);
+                localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
+                popup.querySelector('div').innerHTML = `<div style="color: #1976d2; font-size: 1.2rem; text-align: center; margin: 32px 0;">Tarefa direcionada para <b>${membro}</b>!</div><button id="btn-fechar-direcionada" class="btn-rounded" style="width: 120px; margin: 0 auto; display: block;">Fechar</button>`;
+                document.getElementById('btn-fechar-direcionada').onclick = () => { popup.style.display = 'none'; };
+                renderGerenciarTarefas();
+            };
+        };
+    }
+    }
+    window.addEventListener('storage', renderGerenciarTarefas);
+    window.addEventListener('focus', renderGerenciarTarefas);
+    renderGerenciarTarefas();
+    setInterval(renderGerenciarTarefas, 2000);
+    const btnCriarTarefa = document.getElementById('btn-criar-tarefa');
+    const popupTarefa = document.getElementById('popup-tarefa');
+    const btnSalvarTarefa = document.getElementById('btn-salvar-tarefa');
+    const btnCancelarTarefa = document.getElementById('btn-cancelar-tarefa');
+    const tarefaErro = document.getElementById('tarefa-erro');
+    btnCriarTarefa.onclick = () => {
+        document.getElementById('tarefa-nome').value = '';
+        document.getElementById('tarefa-inicio').value = '';
+        document.getElementById('tarefa-fim').value = '';
+        document.getElementById('tarefa-valor').value = '';
+        tarefaErro.textContent = '';
+        popupTarefa.style.display = 'flex';
+    };
+    btnCancelarTarefa.onclick = () => {
+        popupTarefa.style.display = 'none';
+    };
+    // Salvar tarefa no localStorage
+    btnSalvarTarefa.onclick = () => {
+        const nome = document.getElementById('tarefa-nome').value.trim();
+        const inicio = document.getElementById('tarefa-inicio').value;
+        const fim = document.getElementById('tarefa-fim').value;
+        const valor = document.getElementById('tarefa-valor').value;
+        if (!nome || !inicio || !fim || !valor) {
+            tarefaErro.textContent = 'Preencha todos os campos.';
+            return;
+        }
+        const tarefa = { nome, inicio, fim, valor };
+        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
+        tarefas.push(tarefa);
+        localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
+
+        // Sincronizar tarefas com membros
+        let membros = JSON.parse(localStorage.getItem('usuarios') || '[]');
+        membros.forEach(membro => {
+            let minhasTarefas = JSON.parse(localStorage.getItem('minhasTarefas_' + membro.nome) || '[]');
+            minhasTarefas.push(tarefa);
+            localStorage.setItem('minhasTarefas_' + membro.nome, JSON.stringify(minhasTarefas));
+        });
+
+        popupTarefa.style.display = 'none';
+        tarefaErro.textContent = '';
+        renderGerenciarTarefas();
+    };
+    // Relógio horário de Brasília
+    function startBrasiliaClockGerenciar() {
+        function updateClock() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
+            const h = String(brasilia.getHours()).padStart(2, '0');
+            const m = String(brasilia.getMinutes()).padStart(2, '0');
+            const s = String(brasilia.getSeconds()).padStart(2, '0');
+            document.getElementById('gerenciar-clock').textContent = `${h}:${m}:${s} (Brasília)`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+    startBrasiliaClockGerenciar();
+    </script>
+</body>
+</html>

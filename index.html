@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>familia flores</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/firebase-firestore.js"></script>
+</head>
+<body>
+    <div id="login-container" class="center-box">
+        <h1>familia flores</h1>
+        <input type="text" id="login-username" placeholder="Nome de usuário" class="input-rounded">
+        <input type="password" id="login-password" placeholder="Senha" class="input-rounded">
+        <button onclick="login()" class="btn-rounded">Entrar</button>
+        <div id="auth-message"></div>
+        <a href="#" id="show-register" onclick="showRegister()">cadastre-se</a>
+    </div>
+
+    <div id="profile-container" class="center-box" style="display: none; padding: 32px 32px; max-width: 700px; align-items: flex-start;">
+        <div class="profile-layout">
+            <div class="profile-foto-col">
+                <img id="profile-foto" src="" alt="Foto" class="profile-foto-large">
+                <div class="profile-info">
+                    <span id="profile-nome" class="profile-nome"></span>
+                    <span id="profile-status" class="profile-status"></span>
+                </div>
+                <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
+                <div id="admin-links" class="admin-links-vertical">
+                    <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
+                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
+                    <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
+                    <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
+                </div>
+            </div>
+            <div class="profile-menu-horizontal">
+                <a href="#" onclick="tarefasDisponiveis()" class="profile-link">Tarefas disponíveis</a>
+                <a href="#" onclick="minhasTarefas()" class="profile-link">Minhas tarefas</a>
+                <a href="#" onclick="tarefasConcluidas()" class="profile-link">Tarefas concluídas</a>
+                <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>
+                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
+                <a href="#" onclick="sairPerfil()" class="profile-link sair">Sair</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="register-container" class="center-box" style="display: none;">
+        <h1>Cadastro</h1>
+        <form id="register-form" onsubmit="event.preventDefault(); register();">
+            <input type="text" id="register-nome" placeholder="Nome" class="input-rounded">
+            <input type="text" id="register-sobrenome" placeholder="Sobrenome" class="input-rounded">
+            <input type="number" id="register-idade" placeholder="Idade" class="input-rounded" min="0">
+            <input type="file" id="register-foto" accept="image/*" class="input-rounded">
+            <input type="password" id="register-password" placeholder="Senha" class="input-rounded">
+            <button type="submit" class="btn-rounded">Cadastrar</button>
+        </form>
+        <div id="register-message"></div>
+        <a href="#" onclick="showLogin()">voltar ao login</a>
+    </div>
+
+    <script>
+    // Firestore referência
+    const db = firebase.firestore();
+
+    // --- Navegação entre telas ---
+    function showRegister() {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('register-container').style.display = 'flex';
+    }
+    function showLogin() {
+        document.getElementById('register-container').style.display = 'none';
+        document.getElementById('login-container').style.display = 'flex';
+    }
+
+    // --- Autenticação ---
+    async function register() {
+        const nome = document.getElementById('register-nome').value.trim();
+        const sobrenome = document.getElementById('register-sobrenome').value.trim();
+        const idade = document.getElementById('register-idade').value;
+        const fotoInput = document.getElementById('register-foto');
+        const password = document.getElementById('register-password').value;
+        const msg = document.getElementById('register-message');
+        msg.innerText = '';
+        if (!nome || !password) {
+            msg.innerText = 'Preencha nome e senha.';
+            return;
+        }
+        try {
+            const userRef = db.collection('users').doc(nome);
+            const docSnap = await userRef.get();
+            if (docSnap.exists) {
+                msg.innerText = 'Nome já cadastrado.';
+                return;
+            }
+            let fotoURL = '';
+            const clearFields = () => {
+                document.getElementById('register-nome').value = '';
+                document.getElementById('register-sobrenome').value = '';
+                document.getElementById('register-idade').value = '';
+                document.getElementById('register-foto').value = '';
+                document.getElementById('register-password').value = '';
+            };
+            if (fotoInput.files && fotoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    fotoURL = e.target.result;
+                    try {
+                        await userRef.set({ nome, sobrenome, idade, foto: fotoURL, password });
+                        msg.innerText = 'Cadastro realizado com sucesso!';
+                        clearFields();
+                    } catch (err) {
+                        msg.innerText = 'Erro ao salvar usuário: ' + err.message;
+                    }
+                };
+                reader.onerror = function(e) {
+                    msg.innerText = 'Erro ao ler a foto.';
+                };
+                reader.readAsDataURL(fotoInput.files[0]);
+            } else {
+                try {
+                    await userRef.set({ nome, sobrenome, idade, foto: '', password });
+                    msg.innerText = 'Cadastro realizado com sucesso!';
+                    clearFields();
+                } catch (err) {
+                    msg.innerText = 'Erro ao salvar usuário: ' + err.message;
+                }
+            }
+        } catch (e) {
+            msg.innerText = 'Erro ao acessar o banco de dados: ' + (e.message || e);
+        }
+    }
+
+    async function login() {
+        const usernameInput = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        if (!usernameInput || !password) {
+            document.getElementById('auth-message').innerText = 'Preencha todos os campos.';
+            return;
+        }
+        try {
+            const usersSnapshot = await db.collection('users').get();
+            let foundUser = null;
+            usersSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.nome && data.nome.trim().toLowerCase() === usernameInput.toLowerCase()) {
+                    foundUser = { id: doc.id, ...data };
+                }
+            });
+            if (!foundUser) {
+                document.getElementById('auth-message').innerText = 'Usuário não encontrado.';
+                return;
+            }
+            if (foundUser.password === password) {
+                document.getElementById('auth-message').innerText = '';
+                localStorage.setItem('usuarioLogado', JSON.stringify(foundUser));
+                showProfile(foundUser);
+            } else {
+                document.getElementById('auth-message').innerText = 'Senha incorreta.';
+            }
+        } catch (e) {
+            document.getElementById('auth-message').innerText = 'Erro ao acessar o banco de dados.';
+        }
+    }
+
+    function sairPerfil() {
+        document.getElementById('profile-container').style.display = 'none';
+        document.getElementById('login-container').style.display = 'flex';
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        localStorage.removeItem('usuarioLogado');
+    }
+
+    function showProfile(user) {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('register-container').style.display = 'none';
+        document.getElementById('profile-container').style.display = 'flex';
+        document.getElementById('profile-nome').innerText = user.nome || '';
+        document.getElementById('profile-foto').src = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome || 'U') + '&background=1976d2&color=fff&size=128';
+        let status = 'Membro';
+        let isAdmin = false;
+        if (user.nome && user.nome.toLowerCase() === 'thiago') {
+            status = 'Administrador';
+            isAdmin = true;
+        }
+        document.getElementById('profile-status').innerText = status;
+        document.getElementById('admin-links').style.display = isAdmin ? 'flex' : 'none';
+        startBrasiliaClock();
+    }
+
+    // Relógio horário de Brasília
+    function startBrasiliaClock() {
+        function updateClock() {
+            const now = new Date();
+            // Horário de Brasília (GMT-3, sem considerar horário de verão)
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
+            const h = String(brasilia.getHours()).padStart(2, '0');
+            const m = String(brasilia.getMinutes()).padStart(2, '0');
+            const s = String(brasilia.getSeconds()).padStart(2, '0');
+            document.getElementById('profile-clock').textContent = `${h}:${m}:${s} (Brasília)`;
+        }
+        updateClock();
+        if (window._clockInterval) clearInterval(window._clockInterval);
+        window._clockInterval = setInterval(updateClock, 1000);
+    }
+
+    // --- Navegação para páginas ---
+    function tarefasDisponiveis() { window.location.href = 'tarefas-disponiveis.html'; }
+    function minhasTarefas() { window.location.href = 'minhas-tarefas.html'; }
+    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; }
+    function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; }
+    function carteira() { window.location.href = 'carteira.html'; }
+    function editarPerfil() { window.location.href = 'editar-perfil.html'; }
+    function gerenciarTarefas() { window.location.href = 'gerenciar-tarefas.html'; }
+    function gerenciarMultas() { window.location.href = 'multas.html'; }
+    function gerenciarCarteira() { window.location.href = 'gerenciar-carteira.html'; }
+    function tornarAdmin() { window.location.href = 'tornar-administrador.html'; }
+
+    // --- Manter usuário logado ao atualizar ---
+    window.addEventListener('DOMContentLoaded', function() {
+        const usuarioSalvo = localStorage.getItem('usuarioLogado');
+        if (usuarioSalvo) {
+            try {
+                const user = JSON.parse(usuarioSalvo);
+                showProfile(user);
+            } catch (e) {
+                localStorage.removeItem('usuarioLogado');
+            }
+        }
+    });
+    </script>
+</body>
+</html>

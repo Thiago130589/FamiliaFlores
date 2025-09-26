@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Tarefas Disponíveis</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: flex-start;">
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Tarefas Disponíveis</h1>
+            <div id="tarefas-clock" style="font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
+        </div>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        <div id="tarefas-lista" style="width: 100%; min-height: 200px;"></div>
+        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
+    </div>
+    <script>
+    // Relógio horário de Brasília
+    function startBrasiliaClockTarefas() {
+        function updateClock() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
+            const h = String(brasilia.getHours()).padStart(2, '0');
+            const m = String(brasilia.getMinutes()).padStart(2, '0');
+            const s = String(brasilia.getSeconds()).padStart(2, '0');
+            document.getElementById('tarefas-clock').textContent = `${h}:${m}:${s} (Brasília)`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+    startBrasiliaClockTarefas();
+
+    // Exibir tarefas disponíveis
+    function renderTarefasDisponiveis() {
+        const lista = document.getElementById('tarefas-lista');
+        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
+        if (!tarefas.length) {
+            lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa disponível no momento.</p>';
+            return;
+        }
+        lista.innerHTML = tarefas.map((t, i) => `
+            <div style="background: #f3f3f3; border-radius: 12px; margin: 12px 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px;">
+                <strong style="color: #1976d2; font-size: 1.1rem;">${t.nome}</strong>
+                <span>Início: <b>${t.inicio}</b> &nbsp;|&nbsp; Fim: <b>${t.fim}</b></span>
+                <span>Valor: <b>R$ ${parseFloat(t.valor).toFixed(2)}</b></span>
+            </div>
+        `).join('');
+    }
+    window.addEventListener('storage', renderTarefasDisponiveis);
+    window.addEventListener('focus', renderTarefasDisponiveis);
+    renderTarefasDisponiveis();
+    setInterval(renderTarefasDisponiveis, 2000);
+    </script>
+</body>
+</html>

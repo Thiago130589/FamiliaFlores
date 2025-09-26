@@ -1,0 +1,15 @@
+{
+  "name": "estrutura",
+  "version": "1.0.0",
+  "description": "Este projeto contém a estrutura básica para um jogo web.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/core": "^7.4.3"
+  }
+}
