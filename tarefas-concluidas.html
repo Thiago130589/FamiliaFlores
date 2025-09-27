@@ -1,28 +1,29 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefas Concluídas</title>
-    <link rel="stylesheet" href="style.css"> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefas Concluídas</title>
+    <link rel="stylesheet" href="style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box">
-        <h1 style="color: #4CAF50;">Tarefas Concluídas e Pagas</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+    <div class="center-box">
+        <h1 style="color: #4CAF50;">Tarefas Concluídas e Pagas</h1>
+        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
 
-        <div id="tarefas-concluidas-list" style="width: 100%;">
-            <p>Carregando histórico...</p>
-        </div>
+        <div id="tarefas-concluidas-list" style="width: 100%;">
+            <p id="loading-message">Carregando histórico...</p>
+        </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
-    </div>
+        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+    </div>
     
     <script>
-        const db = firebase.firestore();
+        // Utiliza a variável global 'db' definida em firebase-init.js
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
         function voltarAoPerfil() {
             window.location.href = 'index.html';
@@ -35,6 +36,7 @@
             try {
                 const obj = JSON.parse(storedValue);
                 if (obj && obj.nome) {
+                    // Admin é 'thiago' OU tem a flag 'isAdmin: true'
                     const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'thiago');
                     return { nome: String(obj.nome).trim(), isAdmin: isUserAdmin };
                 }
@@ -46,7 +48,7 @@
 
         async function loadTarefasConcluidas() {
             const lista = document.getElementById('tarefas-concluidas-list');
-            lista.innerHTML = '';
+            lista.innerHTML = '<p id="loading-message">Carregando histórico...</p>';
             
             const userInfo = getUsuarioInfo();
             const userName = userInfo.nome;
@@ -58,27 +60,38 @@
             }
 
             try {
-                let query = db.collection('tarefasConcluidas');
+                let query = firestore.collection('tarefasConcluidas');
 
                 // Filtra apenas as tarefas do usuário, se não for Admin
                 if (!isAdmin) {
+                    // O filtro só funciona se 'atribuidaPara' for uma string com o nome
                     query = query.where('atribuidaPara', '==', userName);
                 }
                 
                 const snapshot = await query.get();
                 
+                lista.innerHTML = ''; // Limpa a mensagem de carregamento
+
                 if (snapshot.empty) {
-                    lista.innerHTML = '<p>Não há tarefas concluídas e pagas no seu histórico.</p>';
+                    lista.innerHTML = `<p>Não há tarefas concluídas e pagas ${isAdmin ? 'de nenhum usuário' : 'no seu histórico'}.</p>`;
                     return;
                 }
 
                 snapshot.forEach(doc => {
                     const tarefa = doc.data();
+                    
+                    // Checagem extra de segurança para membros
+                    if (!isAdmin && tarefa.atribuidaPara !== userName) return;
+                    
                     const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-concluida';
+                    elemento.className = 'tarefa-card-concluida'; // Classe para estilização
                     
-                    const dataPagamento = tarefa.dataPagamento ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') : 'N/A';
+                    // Formata a data de pagamento
+                    const dataPagamento = tarefa.dataPagamento 
+                        ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') 
+                        : 'N/A';
                     
+                    // Informação extra para o Admin
                     let infoAdmin = '';
                     if(isAdmin) {
                         infoAdmin = `<span style="font-weight: bold; color: #1976d2;">Usuário: ${tarefa.atribuidaPara}</span> | `;
@@ -87,16 +100,17 @@
                     elemento.innerHTML = `
                         <div class="tarefa-details-concluida">
                             <span class="tarefa-nome">${tarefa.nome}</span>
-                            <span class="tarefa-info">${infoAdmin}R$ ${parseFloat(tarefa.valor).toFixed(2)} | Paga em: ${dataPagamento}</span>
+                            <span class="tarefa-info">${infoAdmin}R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')} | Paga em: ${dataPagamento}</span>
                         </div>
-                        <span style="color: #4CAF50; font-weight: bold;">PAGO</span>
+                        <span style="color: #4CAF50; font-weight: bold; font-size: 1.1rem;">PAGO</span>
                     `;
                     lista.appendChild(elemento);
                 });
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas concluídas:", error);
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas.</p>`;
+                // Nota: O Admin pode precisar de um índice composto para este filtro no Firebase Console se for usar em produção.
+                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas. ${!isAdmin ? 'Tente novamente.' : 'O administrador pode precisar criar um índice para o filtro.'}</p>`;
             }
         }
 
