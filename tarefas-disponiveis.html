@@ -1,182 +1,172 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Tarefas Disponíveis</title>
-    <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <title>Tarefas Disponíveis</title>
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Tarefas Disponíveis</h1>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        
-        <div id="tarefas-disponiveis-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
-        </div>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Tarefas Disponíveis</h1>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div id="tarefas-disponiveis-lista" style="width: 100%; min-height: 120px;">
+            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
+        </div>
 
-        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
-    </div>
+        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
+    </div>
 
-    <script>
-    let usuarioAtual = null;
+    <script>
+    let usuarioAtual = null;
 
-    // ************************************************************
-    // 🌟 CORREÇÃO APLICADA AQUI 🌟
-    // Agora a função força a extração apenas do nome, resolvendo o problema 
-    // de salvar o objeto JSON completo no Firestore.
-    // ************************************************************
-    /**
-     * Retorna APENAS o nome do usuário logado, como uma string simples,
-     * para ser usado no campo atribuidaPara do Firestore.
-     * @returns {string | null} O nome do usuário.
-     */
-    function getUsuarioAtual() {
-        const storedValue = localStorage.getItem('usuarioLogado');
-        if (!storedValue) return null;
-        
-        // Tenta TRATAR como JSON (caso tenha sido salvo como o objeto completo)
-        try {
-            const obj = JSON.parse(storedValue);
-            
-            // Verifica se o JSON tem a propriedade 'nome'
-            if (obj && obj.nome && typeof obj.nome === 'string') {
-                return obj.nome.trim(); // Retorna SÓ A STRING do nome.
-            }
-            
-        } catch (e) {
-            // Se falhar, é porque o valor é uma string simples (o que queremos)
-        }
-        
-        // Retorna o valor como string (o caso ideal)
-        if (typeof storedValue === 'string') {
-            return storedValue.trim();
-        }
-        
-        return null; 
-    }
-    // ************************************************************
+    /**
+     * Retorna o nome do usuário logado (string simples) para ser usado em consultas e atribuições.
+     * @returns {string | null} O nome do usuário.
+     */
+    function getUsuarioAtual() {
+        const storedValue = localStorage.getItem('usuarioLogado');
+        if (!storedValue) return null;
+        
+        try {
+            const obj = JSON.parse(storedValue);
+            // Se for o objeto completo, retorna APENAS o nome
+            if (obj && obj.nome && typeof obj.nome === 'string') {
+                return obj.nome.trim(); 
+            }
+            
+        } catch (e) {
+            // Se a conversão JSON falhar, o valor já é a string pura (o que queremos)
+            if (typeof storedValue === 'string') {
+                return storedValue.trim();
+            }
+        }
+        
+        return null; 
+    }
 
-    /**
-     * Função para exibir a lista de tarefas disponíveis.
-     */
-    async function renderTarefasDisponiveis() {
-        const lista = document.getElementById('tarefas-disponiveis-lista');
-        usuarioAtual = getUsuarioAtual(); // Usa a função corrigida
+    /**
+     * Função para exibir a lista de tarefas disponíveis.
+     */
+    async function renderTarefasDisponiveis() {
+        const lista = document.getElementById('tarefas-disponiveis-lista');
+        // Armazena o nome simples do usuário
+        usuarioAtual = getUsuarioAtual(); 
 
-        if (!usuarioAtual) {
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
-            return;
-        }
+        if (!usuarioAtual) {
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            return;
+        }
 
-        if (typeof db === 'undefined') {
-             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
-             return;
-        }
+        if (typeof db === 'undefined') {
+             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
+             return;
+        }
 
-        try {
-            const snapshot = await db.collection('tarefasDisponiveis').get();
-            let tarefas = [];
-            snapshot.forEach(doc => {
-                 tarefas.push({ id: doc.id, ...doc.data() });
-            });
+        try {
+            const snapshot = await db.collection('tarefasDisponiveis').get();
+            let tarefas = [];
+            snapshot.forEach(doc => {
+                 tarefas.push({ id: doc.id, ...doc.data() });
+            });
 
-            if (tarefas.length === 0) {
-                lista.innerHTML = '<p style="color: #888; text-align: center;">Não há tarefas disponíveis no momento.</p>';
-                return;
-            }
-            
-            // Renderização da lista
-            lista.innerHTML = tarefas.map((t) => {
-                // Formata a data (DD/MM/YYYY) para exibição
-                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+            if (tarefas.length === 0) {
+                lista.innerHTML = '<p style="color: #888; text-align: center;">Não há tarefas disponíveis no momento.</p>';
+                return;
+            }
+            
+            // Renderização da lista
+            lista.innerHTML = tarefas.map((t) => {
+                // Formata a data (DD/MM/YYYY) para exibição
+                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
 
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                        <div>
-                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                            <br>
-                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
-                        </div>
-                        <button class="btn-rounded btn-pegar-tarefa" data-id="${t.id}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #4CAF50; color: #fff;">Pegar Tarefa</button>
-                    </div>
-                `;
-            }).join('');
-            
-            // Adiciona evento aos botões "Pegar Tarefa"
-            document.querySelectorAll('.btn-pegar-tarefa').forEach(btn => {
-                btn.onclick = function() {
-                    const id = this.getAttribute('data-id');
-                    pegarTarefa(id);
-                };
-            });
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                        <div>
+                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
+                        </div>
+                        <button class="btn-rounded btn-pegar-tarefa" data-id="${t.id}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #4CAF50; color: #fff;">Pegar Tarefa</button>
+                    </div>
+                `;
+            }).join('');
+            
+            // Adiciona evento aos botões "Pegar Tarefa"
+            document.querySelectorAll('.btn-pegar-tarefa').forEach(btn => {
+                btn.onclick = function() {
+                    const id = this.getAttribute('data-id');
+                    pegarTarefa(id);
+                };
+            });
 
-        } catch (error) {
-            console.error("Erro ao carregar tarefas disponíveis:", error);
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas.</p>';
-        }
-    }
+        } catch (error) {
+            console.error("Erro ao carregar tarefas disponíveis:", error);
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas.</p>';
+        }
+    }
 
-    /**
-     * Move a tarefa da coleção "Disponiveis" para "Atribuidas"
-     */
-    async function pegarTarefa(tarefaId) {
-        if (!confirm('Deseja realmente pegar esta tarefa?')) {
-            return;
-        }
+    /**
+     * Move a tarefa da coleção "Disponiveis" para "Atribuidas"
+     */
+    async function pegarTarefa(tarefaId) {
+        if (!confirm('Deseja realmente pegar esta tarefa?')) {
+            return;
+        }
 
-        // Já tem o nome do usuário garantido pela getUsuarioAtual()
-        if (!usuarioAtual) {
-            alert("Erro: Usuário não identificado. Faça login novamente.");
-            window.location.href = 'index.html'; 
-            return;
-        }
+        if (!usuarioAtual) {
+            alert("Erro: Usuário não identificado. Faça login novamente.");
+            window.location.href = 'index.html'; 
+            return;
+        }
 
-        try {
-            let tarefaParaMover = null;
-            const tarefaRef = db.collection('tarefasDisponiveis').doc(tarefaId);
+        try {
+            let tarefaParaMover = null;
+            const tarefaRef = db.collection('tarefasDisponiveis').doc(tarefaId);
 
-            await db.runTransaction(async (transaction) => {
-                const doc = await transaction.get(tarefaRef);
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(tarefaRef);
 
-                if (!doc.exists) {
-                    throw new Error("Tarefa não existe ou já foi pega.");
-                }
+                if (!doc.exists) {
+                    throw new Error("Tarefa não existe ou já foi pega.");
+                }
 
-                // 1. Obtém os dados da tarefa disponível
-                const tarefaOriginal = doc.data();
+                // 1. Obtém os dados da tarefa disponível
+                const tarefaOriginal = doc.data();
 
-                // 2. Cria a nova tarefa atribuída
-                const tarefaAtribuida = {
-                    ...tarefaOriginal,
-                    status: 'atribuida', 
-                    atribuidaPara: usuarioAtual, // ATRIBUI APENAS A STRING DO NOME!
-                    dataAtribuicao: new Date().toISOString() 
-                };
-                
-                // 3. Move a tarefa (cria em 'tarefasAtribuidas' e deleta de 'tarefasDisponiveis')
-                await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
-                await transaction.delete(tarefaRef);
+                // 2. Cria a nova tarefa atribuída
+                const tarefaAtribuida = {
+                    ...tarefaOriginal,
+                    status: 'atribuida', 
+                    atribuidaPara: usuarioAtual, // CORRIGIDO: Salva apenas a string do nome!
+                    dataAtribuicao: new Date().toISOString() 
+                };
+                
+                // 3. Move a tarefa (cria em 'tarefasAtribuidas' e deleta de 'tarefasDisponiveis')
+                // Usa .doc() sem ID para gerar um ID automático
+                await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida); 
+                await transaction.delete(tarefaRef);
 
-                tarefaParaMover = tarefaAtribuida;
-            });
-            
-            alert(`Tarefa "${tarefaParaMover.nome}" pega com sucesso e movida para "Minhas Tarefas"!`);
-            renderTarefasDisponiveis(); // Atualiza a lista
-        } catch (error) {
-            console.error("Erro ao pegar a tarefa:", error);
-            alert(`Não foi possível pegar a tarefa. Detalhes: ${error.message}`);
-        }
-    }
+                tarefaParaMover = tarefaAtribuida;
+            });
+            
+            alert(`Tarefa "${tarefaParaMover.nome}" pega com sucesso e movida para "Minhas Tarefas"!`);
+            renderTarefasDisponiveis(); // Atualiza a lista
+        } catch (error) {
+            console.error("Erro ao pegar a tarefa:", error);
+            alert(`Não foi possível pegar a tarefa. Detalhes: ${error.message}`);
+        }
+    }
 
-    // Inicialização principal
-    window.addEventListener('DOMContentLoaded', () => {
-        renderTarefasDisponiveis();
-    });
-    </script>
+    // Inicialização principal
+    window.addEventListener('DOMContentLoaded', () => {
+        renderTarefasDisponiveis();
+    });
+    </script>
 </body>
 </html>
