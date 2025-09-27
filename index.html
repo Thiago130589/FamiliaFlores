@@ -14,7 +14,7 @@
 <body>
     <div id="login-container" class="center-box">
         <h1>familia flores</h1>
-                <form id="login-form" onsubmit="event.preventDefault(); login();"> 
+        <form id="login-form" onsubmit="event.preventDefault(); login();"> 
             <input type="text" id="login-username" placeholder="Nome de usuário" class="input-rounded">
             <input type="password" id="login-password" placeholder="Senha" class="input-rounded">
             <button type="submit" class="btn-rounded">Entrar</button>
@@ -76,8 +76,8 @@
     </div>
 
     <script>
-    // Garantir que o db esteja definido (lido de firebase-init.js)
-    const db = firebase.firestore(); 
+    // CORRIGIDO: Removida a linha 'const db = firebase.firestore();' para evitar o erro de declaração duplicada.
+    // Presume-se que 'db' está agora disponível globalmente via 'js/firebase-init.js'.
 
     // --- Navegação entre telas ---
     function showRegister() {
@@ -103,7 +103,9 @@
             return;
         }
         try {
-            const userRef = db.collection('users').doc(nome);
+            // CORREÇÃO: Utiliza 'firebase.firestore()' diretamente no caso de 'db' não estar no escopo global
+            const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+            const userRef = firestore.collection('users').doc(nome);
             const docSnap = await userRef.get();
             if (docSnap.exists) {
                 msg.innerText = 'Nome já cadastrado.';
@@ -161,7 +163,7 @@
         }
     }
 
-    // --- Autenticação: LOGIN (REVISADO) ---
+    // --- Autenticação: LOGIN ---
     async function login() {
         const usernameInput = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
@@ -173,16 +175,12 @@
             return;
         }
         
-        // Verifica se a variável do Firestore está disponível
-        if (!db) {
-            msgElement.innerText = 'Erro de inicialização do Banco de Dados.';
-            console.error("Firestore DB não inicializado.");
-            return;
-        }
+        // CORREÇÃO: Utiliza 'firebase.firestore()' diretamente no caso de 'db' não estar no escopo global
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
         try {
             // Busca o usuário pelo nome (que é o ID do documento, ex: 'Thiago' ou 'Lucas')
-            const userRef = db.collection('users').doc(usernameInput);
+            const userRef = firestore.collection('users').doc(usernameInput);
             const docSnap = await userRef.get();
 
             if (!docSnap.exists) {
