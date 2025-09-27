@@ -41,7 +41,7 @@
 
     <script>
     let popupOpcoesTarefa = null;
-    let tarefasDisponiveisCache = [];
+    let tarefasCache = []; // Cache unificado: disponíveis + atribuídas
 
     /**
      * BUSCA MEMBROS NO FIRESTORE
@@ -55,7 +55,6 @@
             snapshot.forEach(doc => {
                 const userData = doc.data();
                 if (userData.nome) { 
-                    // Certificamos que estamos pegando o nome e o ID corretamente
                     membros.push({ 
                         nome: userData.nome, 
                         id: doc.id 
@@ -69,9 +68,55 @@
         }
     }
 
+    /**
+     * 🌟 NOVA LÓGICA DE STATUS E COR PARA ADMIN
+     * Determina o status visual da tarefa para o painel de Gerenciamento.
+     * @param {object} tarefa
+     * @returns {{statusTexto: string, corBotao: string, podeDirecionar: boolean, podeRemoverAtribuicao: boolean}}
+     */
+    function determinarStatusECor(tarefa) {
+        let statusTexto = 'Disponível';
+        let corBotao = '#1976d2'; // Azul (Disponível)
+        let podeDirecionar = true;
+        let podeRemoverAtribuicao = false;
+
+        // Se a tarefa já foi atribuída (está na coleção tarefasAtribuidas)
+        if (tarefa.status === 'atribuida' || tarefa.atribuidaPara) {
+            
+            podeDirecionar = false; // Não pode direcionar, já está atribuída
+            podeRemoverAtribuicao = true; // Pode remover a atribuição
+            
+            // Verifica o prazo
+            if (tarefa.fim) {
+                // Junta a data de atribuição (apenas a data) com o horário de fim
+                const dataBase = tarefa.dataAtribuicao ? new Date(tarefa.dataAtribuicao.substring(0, 10)) : new Date();
+                const [h, m] = tarefa.fim.split(':').map(Number);
+                const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
+                
+                const agora = new Date();
+                
+                if (agora > dataFim) {
+                    // Prazo ultrapassado
+                    statusTexto = `ATRASADA | Com: ${tarefa.atribuidaPara}`;
+                    corBotao = '#d32f2f'; // Vermelho (Atrasada)
+                } else {
+                    // Dentro do prazo
+                    statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
+                    corBotao = '#4CAF50'; // Verde (Em andamento)
+                }
+            } else {
+                 // Atribuída, mas sem prazo de fim
+                statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
+                corBotao = '#4CAF50';
+            }
+        }
+        
+        return { statusTexto, corBotao, podeDirecionar, podeRemoverAtribuicao };
+    }
+
 
     /**
-     * Função para exibir lista de tarefas lidas do FIRESTORE.
+     * Função para exibir a lista de TODAS as tarefas (Disponíveis e Atribuídas).
      */
     async function renderGerenciarTarefas() {
         const lista = document.getElementById('gerenciar-tarefas-lista');
@@ -81,31 +126,53 @@
         }
 
         try {
-            // 1. LER as tarefas da coleção 'tarefasDisponiveis' do FIRESTORE
-            const snapshot = await db.collection('tarefasDisponiveis').get();
+            // 1. LER tarefas disponíveis
+            const dispSnapshot = await db.collection('tarefasDisponiveis').get();
+            const dispTarefas = []; 
+            dispSnapshot.forEach(doc => {
+                 // Usa o doc.id como ID da tarefa na cache
+                dispTarefas.push({ id: doc.id, ...doc.data() });
+            });
             
-            tarefasDisponiveisCache = []; 
-            snapshot.forEach(doc => {
-                tarefasDisponiveisCache.push({ id: doc.id, ...doc.data() });
+            // 2. LER tarefas atribuídas
+            const atribSnapshot = await db.collection('tarefasAtribuidas').get();
+            const atribTarefas = []; 
+            atribSnapshot.forEach(doc => {
+                 // Adiciona um campo 'adminId' para identificar o doc na coleção 'atribuidas'
+                 // O ID do documento na coleção 'atribuidas' é diferente do ID original em 'disponiveis', mas o nome é o mesmo.
+                atribTarefas.push({ id: doc.id, adminId: doc.id, ...doc.data() });
             });
 
-            if (!tarefasDisponiveisCache.length) {
+            // 3. COMBINAR todas as tarefas
+            tarefasCache = [...dispTarefas, ...atribTarefas];
+
+            if (!tarefasCache.length) {
                 lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa cadastrada no momento.</p>';
                 return;
             }
             
-            // 2. RENDERIZAR a lista com o botão "Opções"
-            lista.innerHTML = tarefasDisponiveisCache.map((t) => `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                    <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                    <button class="btn-rounded btn-opcoes-tarefa" data-id="${t.id}" style="width: 110px; max-width: 90vw; font-size: 1rem; margin-left: 18px;">Opções</button>
-                </div>
-            `).join('');
+            // 4. RENDERIZAR a lista com as cores de status
+            lista.innerHTML = tarefasCache.map((t) => {
+                const { statusTexto, corBotao } = determinarStatusECor(t);
+
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                        <div>
+                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">${statusTexto}</span>
+                        </div>
+                        <button class="btn-rounded btn-opcoes-tarefa" data-id="${t.id}" data-collection="${t.atribuidaPara ? 'tarefasAtribuidas' : 'tarefasDisponiveis'}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: ${corBotao}; color: #fff;">Opções</button>
+                    </div>
+                `;
+            }).join('');
             
-            // 3. Adiciona eventos aos botões de opções
+            // 5. Adiciona eventos aos botões de opções
             document.querySelectorAll('.btn-opcoes-tarefa').forEach(btn => {
                 btn.onclick = function() {
-                    abrirPopupOpcoesTarefa(this.getAttribute('data-id'));
+                    const id = this.getAttribute('data-id');
+                    const collection = this.getAttribute('data-collection');
+                    abrirPopupOpcoesTarefa(id, collection);
                 };
             });
 
@@ -118,9 +185,23 @@
     /**
      * Lógica de Direcionamento/Exclusão
      */
-    async function abrirPopupOpcoesTarefa(tarefaId) {
-        const tarefa = tarefasDisponiveisCache.find(t => t.id === tarefaId);
-        if (!tarefa) return; 
+    async function abrirPopupOpcoesTarefa(tarefaId, collection) {
+        // Encontra a tarefa correta (pelo ID) no cache
+        const tarefa = tarefasCache.find(t => t.id === tarefaId && (collection === 'tarefasDisponiveis' ? !t.atribuidaPara : t.atribuidaPara));
+        if (!tarefa) {
+             // Se for uma tarefa atribuída, o ID é o adminId (ID do documento na coleção atribuídas)
+             const atribuida = tarefasCache.find(t => t.adminId === tarefaId && t.atribuidaPara);
+             if (atribuida) {
+                 abrirPopupOpcoesTarefa(atribuida.adminId, 'tarefasAtribuidas');
+                 return;
+             }
+             alert("Tarefa não encontrada no cache.");
+             return;
+        }
+
+        const { statusTexto, podeDirecionar, podeRemoverAtribuicao } = determinarStatusECor(tarefa);
+        const isAtribuida = !podeDirecionar;
+        const colecaoAtual = isAtribuida ? 'tarefasAtribuidas' : 'tarefasDisponiveis';
 
         // Cria o popup apenas na primeira vez
         if (!popupOpcoesTarefa) {
@@ -131,11 +212,11 @@
         }
         
         // Conteúdo do popup de opções
-        // Adicionamos um container para a lista de membros que será carregada
-        popupOpcoesTarefa.innerHTML = `
-            <div id="popup-opcoes-content" style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
-                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Opções da Tarefa: ${tarefa.nome}</h2>
-                
+        let direcionamentoHTML = '';
+        let acoesHTML = '';
+
+        if (podeDirecionar) {
+            direcionamentoHTML = `
                 <div id="direcionar-container">
                     <h3 style="margin: 0 0 10px 0; color: #333; font-size: 1.1rem;">Direcionar para:</h3>
                     <select id="membros-select" class="input-rounded" style="width: 100%;">
@@ -143,8 +224,28 @@
                     </select>
                     <button id="btn-confirmar-direcionamento" class="btn-rounded" style="width: 100%; margin-top: 10px; background: #4CAF50; color: #fff; opacity: 0.5;" disabled>Confirmar Direcionamento</button>
                 </div>
+            `;
+        } else {
+            direcionamentoHTML = `
+                <div style="text-align: center; color: #1976d2; font-weight: bold; margin-bottom: 10px;">
+                    ${statusTexto}
+                </div>
+            `;
+            
+            if (podeRemoverAtribuicao) {
+                 acoesHTML += `<button id="btn-remover-atribuicao" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #FF9800; color: #fff;">Retirar Atribuição</button>`;
+            }
+        }
 
-                <button id="btn-excluir-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #d32f2f; color: #fff;">Excluir Tarefa</button>
+        acoesHTML += `<button id="btn-excluir-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #d32f2f; color: #fff;">Excluir Tarefa</button>`;
+
+        popupOpcoesTarefa.innerHTML = `
+            <div id="popup-opcoes-content" style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
+                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Opções da Tarefa: ${tarefa.nome}</h2>
+                
+                ${direcionamentoHTML}
+
+                ${acoesHTML}
                 <button id="btn-fechar-popup-opcoes" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #eee; color: #1976d2;">Fechar</button>
                 <div id="direcionamento-mensagem" style="color: #d32f2f; text-align: center;"></div>
             </div>
@@ -152,74 +253,119 @@
 
         popupOpcoesTarefa.style.display = 'flex';
         
-        const membrosSelect = document.getElementById('membros-select');
-        const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
         const msgDiv = document.getElementById('direcionamento-mensagem');
-
         document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
 
-        // 🌟 Lógica de CARREGAMENTO e EXIBIÇÃO dos Membros (Corrigido)
-        const membros = await carregarMembrosFirestore();
-        membrosSelect.innerHTML = ''; // Limpa o "Carregando membros..."
+        // 🌟 Lógica de DIRECIONAMENTO (só se for tarefa disponível)
+        if (podeDirecionar) {
+            const membrosSelect = document.getElementById('membros-select');
+            const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
 
-        if (membros.length === 0) {
-            membrosSelect.innerHTML = '<option value="" disabled>Nenhum membro cadastrado</option>';
-            btnConfirmar.disabled = true;
-            btnConfirmar.style.opacity = 0.5;
-        } else {
-            membrosSelect.innerHTML = '<option value="" selected disabled>Selecione um membro</option>';
-            membros.forEach(membro => {
-                membrosSelect.innerHTML += `<option value="${membro.nome}">${membro.nome}</option>`;
-            });
-            btnConfirmar.disabled = false;
-            btnConfirmar.style.opacity = 1;
+            const membros = await carregarMembrosFirestore();
+            membrosSelect.innerHTML = ''; 
+
+            if (membros.length === 0) {
+                membrosSelect.innerHTML = '<option value="" disabled>Nenhum membro cadastrado</option>';
+                btnConfirmar.disabled = true;
+                btnConfirmar.style.opacity = 0.5;
+            } else {
+                membrosSelect.innerHTML = '<option value="" selected disabled>Selecione um membro</option>';
+                membros.forEach(membro => {
+                    membrosSelect.innerHTML += `<option value="${membro.nome}">${membro.nome}</option>`;
+                });
+                btnConfirmar.disabled = false;
+                btnConfirmar.style.opacity = 1;
+            }
+
+            btnConfirmar.onclick = async () => {
+                const membroSelecionado = membrosSelect.value;
+                if (!membroSelecionado) {
+                    msgDiv.textContent = 'Selecione um membro para direcionar.';
+                    return;
+                }
+
+                if (!confirm(`Confirmar direcionamento da tarefa "${tarefa.nome}" para ${membroSelecionado}?`)) {
+                    return;
+                }
+
+                try {
+                    const tarefaAtribuida = {
+                        ...tarefa,
+                        status: 'atribuida', 
+                        atribuidaPara: membroSelecionado, 
+                        // dataAtribuicao precisa ser um timestamp ou string para cálculo de prazo
+                        dataAtribuicao: new Date().toISOString() 
+                    };
+                    
+                    // Remove o ID antigo para não salvar como campo. O Firestore criará um novo.
+                    delete tarefaAtribuida.id; 
+
+                    await db.runTransaction(async (transaction) => {
+                        // Adiciona na coleção de tarefas atribuídas
+                        await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
+                        // Remove da coleção de tarefas disponíveis
+                        await transaction.delete(db.collection('tarefasDisponiveis').doc(tarefaId));
+                    });
+                    
+                    alert(`Tarefa "${tarefa.nome}" direcionada para ${membroSelecionado} com sucesso!`);
+                    popupOpcoesTarefa.style.display = 'none';
+                    renderGerenciarTarefas();
+                } catch (error) {
+                    console.error("Erro ao direcionar a tarefa:", error);
+                    msgDiv.textContent = `Erro ao direcionar a tarefa: ${error.message}`;
+                }
+            };
         }
 
-        // 🌟 Lógica de DIRECIONAMENTO
-        btnConfirmar.onclick = async () => {
-            const membroSelecionado = membrosSelect.value;
-            if (!membroSelecionado) {
-                msgDiv.textContent = 'Selecione um membro para direcionar.';
-                return;
-            }
 
-            if (!confirm(`Confirmar direcionamento da tarefa "${tarefa.nome}" para ${membroSelecionado}?`)) {
-                return;
-            }
-
-            try {
-                // Prepara a tarefa para a nova coleção
-                const tarefaAtribuida = {
-                    ...tarefa,
-                    status: 'atribuida', 
-                    atribuidaPara: membroSelecionado, 
-                    dataAtribuicao: new Date().toISOString()
-                };
-
-                await db.runTransaction(async (transaction) => {
-                    // Adiciona na coleção de tarefas atribuídas
-                    await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
-                    // Remove da coleção de tarefas disponíveis
-                    await transaction.delete(db.collection('tarefasDisponiveis').doc(tarefaId));
-                });
+        // 🌟 Lógica de REMOÇÃO DE ATRIBUIÇÃO (só se for tarefa atribuída)
+        if (podeRemoverAtribuicao) {
+            document.getElementById('btn-remover-atribuicao').onclick = async () => {
+                if (!confirm(`Tem certeza que deseja remover a atribuição da tarefa "${tarefa.nome}" de ${tarefa.atribuidaPara} e torná-la DISPONÍVEL novamente?`)) {
+                    return;
+                }
                 
-                alert(`Tarefa "${tarefa.nome}" direcionada para ${membroSelecionado} com sucesso!`);
-                popupOpcoesTarefa.style.display = 'none';
-                renderGerenciarTarefas();
-            } catch (error) {
-                console.error("Erro ao direcionar a tarefa:", error);
-                msgDiv.textContent = `Erro ao direcionar a tarefa: ${error.message}`;
-            }
-        };
+                try {
+                    // Prepara a tarefa para voltar à coleção de disponíveis
+                    const tarefaDisponivel = {
+                        nome: tarefa.nome,
+                        inicio: tarefa.inicio,
+                        fim: tarefa.fim,
+                        valor: tarefa.valor,
+                        criadaEm: tarefa.criadaEm,
+                        // Remove campos específicos de atribuição
+                    };
 
-        // Lógica de Exclusão (Mantida)
+                    await db.runTransaction(async (transaction) => {
+                        // Adiciona na coleção de tarefas disponíveis
+                        // Nota: Um novo ID será criado na coleção de disponíveis.
+                        await transaction.set(db.collection('tarefasDisponiveis').doc(), tarefaDisponivel);
+                        // Remove da coleção de tarefas atribuídas (usa o ID do documento nessa coleção)
+                        await transaction.delete(db.collection('tarefasAtribuidas').doc(tarefaId));
+                    });
+
+                    alert(`Atribuição da tarefa "${tarefa.nome}" removida com sucesso!`);
+                    popupOpcoesTarefa.style.display = 'none';
+                    renderGerenciarTarefas();
+
+                } catch (error) {
+                    console.error("Erro ao remover atribuição:", error);
+                    msgDiv.textContent = `Erro ao remover atribuição: ${error.message}`;
+                }
+            };
+        }
+
+
+        // Lógica de Exclusão (Funciona para as duas coleções)
         document.getElementById('btn-excluir-tarefa').onclick = async () => {
-             if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
+             if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}" permanentemente?`)) {
                  try {
-                     await db.collection('tarefasDisponiveis').doc(tarefaId).delete();
+                     // Usa o ID do documento na coleção correta
+                     await db.collection(colecaoAtual).doc(tarefaId).delete(); 
+                     
                      popupOpcoesTarefa.style.display = 'none';
                      renderGerenciarTarefas();
-                     alert(`Tarefa "${tarefa.nome}" excluída.`);
+                     alert(`Tarefa "${tarefa.nome}" excluída de ${colecaoAtual}.`);
                  } catch (error) {
                      console.error("Erro ao excluir tarefa do Firestore:", error);
                      alert(`Erro ao excluir tarefa. Detalhes: ${error.message}`);
@@ -235,7 +381,6 @@
     const tarefaErro = document.getElementById('tarefa-erro');
     
     document.getElementById('btn-criar-tarefa').onclick = () => {
-        // Limpa os campos antes de abrir
         document.getElementById('tarefa-nome').value = '';
         document.getElementById('tarefa-inicio').value = '';
         document.getElementById('tarefa-fim').value = '';
@@ -248,7 +393,7 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar nova tarefa (FIRESTORE) (Mantida)
+    // Salvar nova tarefa (FIRESTORE)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -297,7 +442,7 @@
         setInterval(updateClock, 1000);
     }
 
-    // Inicialização principal (Mantida)
+    // Inicialização principal
     window.addEventListener('DOMContentLoaded', () => {
         startBrasiliaClockGerenciar();
         
