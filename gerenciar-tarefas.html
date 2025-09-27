@@ -44,7 +44,7 @@
     let tarefasDisponiveisCache = [];
 
     /**
-     * BUSCA MEMBROS NO FIRESTORE (Não alterada, apenas para contexto de Direcionamento)
+     * BUSCA MEMBROS NO FIRESTORE
      * @returns {Promise<Array<{nome: string, id: string}>>} Lista de membros.
      */
     async function carregarMembrosFirestore() {
@@ -55,6 +55,7 @@
             snapshot.forEach(doc => {
                 const userData = doc.data();
                 if (userData.nome) { 
+                    // Certificamos que estamos pegando o nome e o ID corretamente
                     membros.push({ 
                         nome: userData.nome, 
                         id: doc.id 
@@ -93,7 +94,7 @@
                 return;
             }
             
-            // 2. RENDERIZAR a lista
+            // 2. RENDERIZAR a lista com o botão "Opções"
             lista.innerHTML = tarefasDisponiveisCache.map((t) => `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
                     <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
@@ -115,11 +116,9 @@
     }
 
     /**
-     * Lógica de Direcionamento/Exclusão (Não alterada, mas incluída para completude)
+     * Lógica de Direcionamento/Exclusão
      */
     async function abrirPopupOpcoesTarefa(tarefaId) {
-        // ... (o código completo desta função que você tem é longo, mas está correto)
-        // Eu vou omiti-lo aqui para brevidade, mas ele deve estar na sua página!
         const tarefa = tarefasDisponiveisCache.find(t => t.id === tarefaId);
         if (!tarefa) return; 
 
@@ -131,48 +130,106 @@
             document.body.appendChild(popupOpcoesTarefa);
         }
         
-        // Conteúdo inicial do popup de opções
+        // Conteúdo do popup de opções
+        // Adicionamos um container para a lista de membros que será carregada
         popupOpcoesTarefa.innerHTML = `
             <div id="popup-opcoes-content" style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
-                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Opções da Tarefa</h2>
-                <div style="color: #1976d2; font-weight: bold; text-align: center; font-size: 1.1rem;">${tarefa.nome}</div>
-                <button id="btn-direcionar-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem;">Direcionar tarefa</button>
+                <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Opções da Tarefa: ${tarefa.nome}</h2>
+                
+                <div id="direcionar-container">
+                    <h3 style="margin: 0 0 10px 0; color: #333; font-size: 1.1rem;">Direcionar para:</h3>
+                    <select id="membros-select" class="input-rounded" style="width: 100%;">
+                        <option value="">Carregando membros...</option>
+                    </select>
+                    <button id="btn-confirmar-direcionamento" class="btn-rounded" style="width: 100%; margin-top: 10px; background: #4CAF50; color: #fff; opacity: 0.5;" disabled>Confirmar Direcionamento</button>
+                </div>
+
                 <button id="btn-excluir-tarefa" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #d32f2f; color: #fff;">Excluir Tarefa</button>
                 <button id="btn-fechar-popup-opcoes" class="btn-rounded" style="width: 100%; font-size: 1.1rem; background: #eee; color: #1976d2;">Fechar</button>
+                <div id="direcionamento-mensagem" style="color: #d32f2f; text-align: center;"></div>
             </div>
         `;
 
         popupOpcoesTarefa.style.display = 'flex';
-        const popupContent = document.getElementById('popup-opcoes-content');
+        
+        const membrosSelect = document.getElementById('membros-select');
+        const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
+        const msgDiv = document.getElementById('direcionamento-mensagem');
+
         document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
 
-        // Lógica de Direcionamento (simplificada aqui, mas usa o Firestore)
-        document.getElementById('btn-direcionar-tarefa').onclick = async () => {
-             // ... lógica completa de direcionamento que usa carregarMembrosFirestore() ...
-            alert('Aguarde: Lógica completa de Direcionamento em execução...');
-             // Para o teste rápido, feche o popup
-             popupOpcoesTarefa.style.display = 'none';
-             renderGerenciarTarefas();
+        // 🌟 Lógica de CARREGAMENTO e EXIBIÇÃO dos Membros (Corrigido)
+        const membros = await carregarMembrosFirestore();
+        membrosSelect.innerHTML = ''; // Limpa o "Carregando membros..."
+
+        if (membros.length === 0) {
+            membrosSelect.innerHTML = '<option value="" disabled>Nenhum membro cadastrado</option>';
+            btnConfirmar.disabled = true;
+            btnConfirmar.style.opacity = 0.5;
+        } else {
+            membrosSelect.innerHTML = '<option value="" selected disabled>Selecione um membro</option>';
+            membros.forEach(membro => {
+                membrosSelect.innerHTML += `<option value="${membro.nome}">${membro.nome}</option>`;
+            });
+            btnConfirmar.disabled = false;
+            btnConfirmar.style.opacity = 1;
+        }
+
+        // 🌟 Lógica de DIRECIONAMENTO
+        btnConfirmar.onclick = async () => {
+            const membroSelecionado = membrosSelect.value;
+            if (!membroSelecionado) {
+                msgDiv.textContent = 'Selecione um membro para direcionar.';
+                return;
+            }
+
+            if (!confirm(`Confirmar direcionamento da tarefa "${tarefa.nome}" para ${membroSelecionado}?`)) {
+                return;
+            }
+
+            try {
+                // Prepara a tarefa para a nova coleção
+                const tarefaAtribuida = {
+                    ...tarefa,
+                    status: 'atribuida', 
+                    atribuidaPara: membroSelecionado, 
+                    dataAtribuicao: new Date().toISOString()
+                };
+
+                await db.runTransaction(async (transaction) => {
+                    // Adiciona na coleção de tarefas atribuídas
+                    await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
+                    // Remove da coleção de tarefas disponíveis
+                    await transaction.delete(db.collection('tarefasDisponiveis').doc(tarefaId));
+                });
+                
+                alert(`Tarefa "${tarefa.nome}" direcionada para ${membroSelecionado} com sucesso!`);
+                popupOpcoesTarefa.style.display = 'none';
+                renderGerenciarTarefas();
+            } catch (error) {
+                console.error("Erro ao direcionar a tarefa:", error);
+                msgDiv.textContent = `Erro ao direcionar a tarefa: ${error.message}`;
+            }
         };
 
-        // Lógica de Exclusão
+        // Lógica de Exclusão (Mantida)
         document.getElementById('btn-excluir-tarefa').onclick = async () => {
-            if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
-                try {
-                    await db.collection('tarefasDisponiveis').doc(tarefaId).delete();
-                    popupOpcoesTarefa.style.display = 'none';
-                    renderGerenciarTarefas();
-                    alert(`Tarefa "${tarefa.nome}" excluída.`);
-                } catch (error) {
-                    console.error("Erro ao excluir tarefa do Firestore:", error);
-                    alert(`Erro ao excluir tarefa. Detalhes: ${error.message}`);
-                    popupOpcoesTarefa.style.display = 'none';
-                }
-            }
+             if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
+                 try {
+                     await db.collection('tarefasDisponiveis').doc(tarefaId).delete();
+                     popupOpcoesTarefa.style.display = 'none';
+                     renderGerenciarTarefas();
+                     alert(`Tarefa "${tarefa.nome}" excluída.`);
+                 } catch (error) {
+                     console.error("Erro ao excluir tarefa do Firestore:", error);
+                     alert(`Erro ao excluir tarefa. Detalhes: ${error.message}`);
+                     popupOpcoesTarefa.style.display = 'none';
+                 }
+             }
         };
     }
     
-    // Configuração do Popup de Criação de Tarefa
+    // Configuração do Popup de Criação de Tarefa (Mantida)
     const popupTarefa = document.getElementById('popup-tarefa');
     const btnSalvarTarefa = document.getElementById('btn-salvar-tarefa');
     const tarefaErro = document.getElementById('tarefa-erro');
@@ -191,7 +248,7 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar nova tarefa (FIRESTORE)
+    // Salvar nova tarefa (FIRESTORE) (Mantida)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -225,7 +282,7 @@
     };
     
     
-    // Relógio horário de Brasília
+    // Relógio horário de Brasília (Mantido)
     function startBrasiliaClockGerenciar() {
         function updateClock() {
             const now = new Date();
@@ -240,7 +297,7 @@
         setInterval(updateClock, 1000);
     }
 
-    // Inicialização principal
+    // Inicialização principal (Mantida)
     window.addEventListener('DOMContentLoaded', () => {
         startBrasiliaClockGerenciar();
         
