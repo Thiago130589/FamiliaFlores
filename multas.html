@@ -4,138 +4,280 @@
     <meta charset="UTF-8">
     <title>Multas</title>
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-            <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Multas</h1>
-            <div id="multas-clock" style="font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
+    <div class="center-box large-box">
+        <div class="header-container">
+            <h1 class="main-title">Multas</h1>
+            <div id="multas-clock" class="brasilia-clock"></div>
         </div>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        <div id="multas-lista" style="width: 100%; min-height: 120px;"></div>
-        <button id="btn-adicionar-multa" class="btn-rounded" style="width: 220px; max-width: 90vw; font-size: 1.1rem; margin: 32px auto 0 auto; display: block;">Adicionar multa</button>
-        <!-- Popup de criação de multa -->
-        <div id="popup-multa" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.35); z-index: 1000; align-items: center; justify-content: center;">
-            <div style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
-                <h2 style="color: #d32f2f; margin: 0 0 12px 0; text-align: center;">Adicionar Multa</h2>
-                <label>Nome do membro:</label>
-                <select id="multa-membro" class="input-rounded"></select>
-                <label>Motivo:</label>
+        <hr class="divider">
+        <div id="multas-lista" class="multas-lista">
+            <p class="empty-message">Carregando multas...</p>
+        </div>
+        <button id="btn-adicionar-multa" class="btn-rounded btn-primary wide-button">Adicionar multa</button>
+        
+        <div id="popup-multa" class="modal-overlay" style="display:none;">
+            <div class="modal-content">
+                <h2 class="modal-title error-color">Adicionar Multa</h2>
+                
+                <label class="input-label">Nome do membro:</label>
+                <select id="multa-membro" class="input-rounded"></select> 
+                
+                <label class="input-label">Motivo:</label>
                 <input id="multa-motivo" class="input-rounded" type="text" placeholder="Motivo da multa">
-                <label>Valor:</label>
+                
+                <label class="input-label">Valor:</label>
                 <input id="multa-valor" class="input-rounded" type="number" min="0" step="0.01" placeholder="Valor da multa">
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button class="btn-rounded" id="btn-finalizar-multa" style="width: 120px;">Finalizar</button>
-                    <button class="btn-rounded" id="btn-cancelar-multa" style="width: 120px; background: #eee; color: #1976d2;">Cancelar</button>
+                
+                <div class="modal-actions">
+                    <button class="btn-rounded btn-primary" id="btn-finalizar-multa">Finalizar</button>
+                    <button class="btn-rounded btn-secondary" id="btn-cancelar-multa">Cancelar</button>
                 </div>
-                <div id="multa-erro" style="color: #d32f2f; min-height: 20px; text-align: center;"></div>
+                <div id="multa-erro" class="error-message"></div>
             </div>
         </div>
-        <!-- Popup de confirmação de remoção -->
-        <div id="popup-remover-multa" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.35); z-index: 2000; align-items: center; justify-content: center;">
-            <div style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
-                <div id="remover-multa-msg" style="color: #d32f2f; text-align: center; margin-bottom: 18px;"></div>
-                <div style="display: flex; gap: 12px; justify-content: center;">
-                    <button class="btn-rounded" id="btn-confirmar-remover-multa" style="width: 120px; background: #d32f2f; color: #fff;">Remover</button>
-                    <button class="btn-rounded" id="btn-cancelar-remover-multa" style="width: 120px; background: #eee; color: #1976d2;">Cancelar</button>
+        
+        <div id="popup-remover-multa" class="modal-overlay z-higher" style="display:none;">
+            <div class="modal-content">
+                <div id="remover-multa-msg" class="modal-message error-color"></div>
+                <div class="modal-actions centered-actions">
+                    <button class="btn-rounded btn-danger" id="btn-confirmar-remover-multa">Remover</button>
+                    <button class="btn-rounded btn-secondary" id="btn-cancelar-remover-multa">Cancelar</button>
                 </div>
             </div>
         </div>
-        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center; display: block;">Voltar ao perfil</a>
+        
+        <a href="index.html" class="btn-rounded wide-button btn-secondary-text">Voltar ao perfil</a>
     </div>
     <script>
-    // Relógio horário de Brasília
-    function startBrasiliaClockMultas() {
-        function updateClock() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
-            const h = String(brasilia.getHours()).padStart(2, '0');
-            const m = String(brasilia.getMinutes()).padStart(2, '0');
-            const s = String(brasilia.getSeconds()).padStart(2, '0');
-            document.getElementById('multas-clock').textContent = `${h}:${m}:${s} (Brasília)`;
-        }
-        updateClock();
-        setInterval(updateClock, 1000);
-    }
-    startBrasiliaClockMultas();
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-    // Renderizar lista de multas
-    function renderMultas() {
-        const lista = document.getElementById('multas-lista');
-        let membros = JSON.parse(localStorage.getItem('usuarios') || '[]');
-        let temMulta = false;
-        let html = '';
-        membros.forEach(m => {
-            let carteira = JSON.parse(localStorage.getItem('carteira_' + m.nome) || '[]');
-            let multas = carteira.map((item, idx) => ({...item, idx})).filter(item => item.valor < 0);
-            if (multas.length) {
-                temMulta = true;
-                html += `<div style=\"margin-bottom: 18px;\"><b style=\"color:#1976d2;\">${m.nome}</b><ul style=\"margin: 8px 0 0 0; padding-left: 18px; color: #d32f2f;\">`;
-                multas.forEach((multa, i) => {
-                    const valor = (-multa.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    const data = new Date(multa.data).toLocaleDateString('pt-BR');
-                    html += `<li>Motivo: <b>${multa.motivo}</b> | Valor: <b style=\"color:#d32f2f;\">${valor}</b> | Data: ${data} <button class=\"btn-rounded btn-remover-multa\" data-membro=\"${m.nome}\" data-idx=\"${multa.idx}\" style=\"margin-left: 12px; background: #d32f2f; color: #fff; font-size: 0.95rem; padding: 2px 10px;\">Remover</button></li>`;
-                });
-                html += `</ul></div>`;
+        // Variável global para armazenar temporariamente o nome do membro e o índice da multa a ser removida
+        let multaParaRemover = { membro: null, indice: null, valor: null };
+
+        // --- RELÓGIO (Mantido da versão anterior) ---
+        function startBrasiliaClockMultas() {
+            function updateClock() {
+                const now = new Date();
+                const options = { 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                    timeZone: 'America/Sao_Paulo' 
+                };
+                const timeString = now.toLocaleTimeString('pt-BR', options);
+                document.getElementById('multas-clock').textContent = `${timeString} (Brasília)`;
             }
-        });
-        if (!temMulta) {
-            html = `<div style=\"color: #888; text-align: center; margin: 24px 0;\">Nenhuma multa registrada.</div>`;
+            updateClock();
+            setInterval(updateClock, 1000);
         }
-        lista.innerHTML = html;
-        // Eventos de remover multa
-        document.querySelectorAll('.btn-remover-multa').forEach(btn => {
-            btn.onclick = function() {
-                const membro = this.getAttribute('data-membro');
-                const idx = parseInt(this.getAttribute('data-idx'));
-                abrirPopupRemoverMulta(membro, idx);
-            };
-        });
-    }
-    // Adicionar multa
-    document.getElementById('btn-adicionar-multa').onclick = () => {
-        let membros = JSON.parse(localStorage.getItem('usuarios') || '[]');
-        const select = document.getElementById('multa-membro');
-        select.innerHTML = membros.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
-        document.getElementById('multa-motivo').value = '';
-        document.getElementById('multa-valor').value = '';
-        document.getElementById('multa-erro').textContent = '';
-        document.getElementById('popup-multa').style.display = 'flex';
-    };
-    document.getElementById('btn-cancelar-multa').onclick = () => {
-        document.getElementById('popup-multa').style.display = 'none';
-    };
-    document.getElementById('btn-finalizar-multa').onclick = () => {
-        const membro = document.getElementById('multa-membro').value;
-        const motivo = document.getElementById('multa-motivo').value.trim();
-        const valor = document.getElementById('multa-valor').value;
-        if (!membro || !motivo || !valor) {
-            document.getElementById('multa-erro').textContent = 'Preencha todos os campos.';
-            return;
+
+        // --- RENDERIZAÇÃO DE MULTAS (Agora usando Firestore) ---
+        async function renderMultas() {
+            const lista = document.getElementById('multas-lista');
+            lista.innerHTML = '<p class="empty-message">Carregando multas...</p>';
+            let temMulta = false;
+            let html = '';
+
+            try {
+                // Busca todos os usuários
+                const usersSnapshot = await firestore.collection('users').get();
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    
+                    // Verifica o campo 'multas' ou simula o filtro de 'carteira'
+                    const multas = userData.multas || [];
+
+                    if (multas.length > 0) {
+                        temMulta = true;
+                        html += `
+                            <div class="member-multas-section">
+                                <b class="member-name-multa">${userName}</b>
+                                <ul class="multa-list-ul">`;
+                        
+                        multas.forEach((multa, i) => {
+                            // Valor da multa é sempre positivo para exibição, mas armazenado como negativo
+                            const valorAbsoluto = Math.abs(parseFloat(multa.valor || 0));
+                            const valor = valorAbsoluto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            
+                            const dataHora = new Date(multa.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                            
+                            html += `
+                                <li class="multa-list-item">
+                                    <span class="multa-motivo">Motivo: <b>${multa.motivo}</b></span> 
+                                    <span class="multa-valor">Valor: <b>${valor}</b></span> 
+                                    <span class="multa-data">Data/Hora: ${dataHora}</span>
+                                    <button class="btn-rounded btn-remover-multa btn-danger small-btn" 
+                                            data-membro="${userName}" 
+                                            data-idx="${i}"
+                                            data-valor="${valorAbsoluto}">
+                                            Remover
+                                    </button>
+                                </li>`;
+                        });
+                        html += `</ul></div>`;
+                    }
+                });
+
+                if (!temMulta) {
+                    html = `<div class="empty-message">Nenhuma multa registrada.</div>`;
+                }
+                
+                lista.innerHTML = html;
+                
+                // Adiciona eventos de clique para o botão remover
+                document.querySelectorAll('.btn-remover-multa').forEach(btn => {
+                    btn.onclick = function() {
+                        const membro = this.getAttribute('data-membro');
+                        const idx = parseInt(this.getAttribute('data-idx'));
+                        const valor = parseFloat(this.getAttribute('data-valor'));
+                        abrirPopupRemoverMulta(membro, idx, valor);
+                    };
+                });
+
+            } catch (error) {
+                console.error("Erro ao carregar multas:", error);
+                lista.innerHTML = `<p class="error-message">Erro ao carregar a lista de multas.</p>`;
+            }
         }
-        let carteira = JSON.parse(localStorage.getItem('carteira_' + membro) || '[]');
-        carteira.push({ motivo, valor: -Math.abs(parseFloat(valor)), data: new Date().toISOString() });
-        localStorage.setItem('carteira_' + membro, JSON.stringify(carteira));
-        document.getElementById('popup-multa').style.display = 'none';
-        renderMultas();
-    };
-    // Remover multa
-    function abrirPopupRemoverMulta(membro, idx) {
-        document.getElementById('remover-multa-msg').innerHTML = `Deseja remover esta multa de <b>${membro}</b>?`;
-        document.getElementById('popup-remover-multa').style.display = 'flex';
-        document.getElementById('btn-confirmar-remover-multa').onclick = () => {
-            let carteira = JSON.parse(localStorage.getItem('carteira_' + membro) || '[]');
-            carteira = carteira.filter((item, i) => i !== idx);
-            localStorage.setItem('carteira_' + membro, JSON.stringify(carteira));
-            document.getElementById('popup-remover-multa').style.display = 'none';
-            renderMultas();
+
+        // --- ADICIONAR MULTA (Usando Firestore) ---
+        document.getElementById('btn-adicionar-multa').onclick = async () => {
+            document.getElementById('multa-erro').textContent = '';
+            
+            try {
+                // Popula o select com todos os usuários do Firestore
+                const usersSnapshot = await firestore.collection('users').get();
+                const select = document.getElementById('multa-membro');
+                select.innerHTML = '';
+                
+                if (usersSnapshot.empty) {
+                    document.getElementById('multa-erro').textContent = 'Nenhum usuário encontrado.';
+                    return;
+                }
+                
+                usersSnapshot.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = doc.id;
+                    select.appendChild(option);
+                });
+
+                document.getElementById('multa-motivo').value = '';
+                document.getElementById('multa-valor').value = '';
+                document.getElementById('popup-multa').style.display = 'flex';
+                
+            } catch (error) {
+                console.error("Erro ao carregar membros:", error);
+                document.getElementById('multa-erro').textContent = 'Erro ao carregar a lista de membros.';
+            }
         };
+
+        document.getElementById('btn-cancelar-multa').onclick = () => {
+            document.getElementById('popup-multa').style.display = 'none';
+        };
+
+        document.getElementById('btn-finalizar-multa').onclick = async () => {
+            const membro = document.getElementById('multa-membro').value;
+            const motivo = document.getElementById('multa-motivo').value.trim();
+            const valorInput = document.getElementById('multa-valor').value;
+            const erroEl = document.getElementById('multa-erro');
+
+            if (!membro || !motivo || !valorInput) {
+                erroEl.textContent = 'Preencha todos os campos.';
+                return;
+            }
+            
+            const valor = parseFloat(valorInput);
+            if (isNaN(valor) || valor <= 0) {
+                erroEl.textContent = 'O valor deve ser um número positivo válido.';
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection('users').doc(membro);
+                
+                // Prepara a nova multa
+                const novaMulta = { 
+                    motivo: motivo, 
+                    // Armazena valor como negativo e usa a data e hora atual
+                    valor: -valor, 
+                    data: new Date().toISOString() 
+                };
+
+                // 1. Adiciona a multa na lista 'multas' do usuário
+                await userRef.update({
+                    multas: firebase.firestore.FieldValue.arrayUnion(novaMulta),
+                    // 2. Diminui o saldo do usuário (se houver campo 'saldo')
+                    saldo: firebase.firestore.FieldValue.increment(-valor)
+                });
+                
+                document.getElementById('popup-multa').style.display = 'none';
+                renderMultas(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro ao adicionar multa:", error);
+                // Dica: Se o erro for "No document to update", o usuário não existe ou o campo 'saldo' não existe.
+                erroEl.textContent = 'Erro ao salvar multa. Verifique se o usuário possui os campos necessários no Firestore.';
+            }
+        };
+
+        // --- REMOVER MULTA (Usando Firestore) ---
+        function abrirPopupRemoverMulta(membro, idx, valor) {
+            multaParaRemover = { membro: membro, indice: idx, valor: valor };
+            document.getElementById('remover-multa-msg').innerHTML = `Deseja remover a multa de <b>R$ ${valor.toFixed(2).replace('.', ',')}</b> de <b>${membro}</b>?`;
+            document.getElementById('popup-remover-multa').style.display = 'flex';
+        }
+        
         document.getElementById('btn-cancelar-remover-multa').onclick = () => {
             document.getElementById('popup-remover-multa').style.display = 'none';
         };
-    }
-    renderMultas();
+
+        document.getElementById('btn-confirmar-remover-multa').onclick = async () => {
+            const { membro, indice, valor } = multaParaRemover;
+            
+            if (!membro || indice === null) return;
+
+            try {
+                const userRef = firestore.collection('users').doc(membro);
+                const userDoc = await userRef.get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    let multas = userData.multas || [];
+                    
+                    if (indice >= 0 && indice < multas.length) {
+                        const multaRemovida = multas[indice];
+                        
+                        // NOTA: arrayRemove remove o valor exato, mas se duas multas forem idênticas, ambas podem ser removidas.
+                        // Usaremos o arrayUnion inverso (remove o item que foi adicionado)
+                        
+                        // 1. Remove a multa exata da lista 'multas'
+                        await userRef.update({
+                            multas: firebase.firestore.FieldValue.arrayRemove(multaRemovida),
+                            // 2. Adiciona o valor de volta ao saldo (Inverte a operação anterior)
+                            saldo: firebase.firestore.FieldValue.increment(valor)
+                        });
+
+                        document.getElementById('popup-remover-multa').style.display = 'none';
+                        renderMultas(); // Recarrega a lista
+                    }
+                }
+            } catch (error) {
+                console.error("Erro ao remover multa:", error);
+                alert('Erro ao remover multa. Tente novamente.');
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            startBrasiliaClockMultas();
+            renderMultas();
+        });
     </script>
 </body>
 </html>
