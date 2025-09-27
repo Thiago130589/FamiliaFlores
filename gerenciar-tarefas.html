@@ -35,8 +35,16 @@
         </div>
     </div>
 
+    <div id="options-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" id="options-content">
+            <button onclick="hideOptionsModal()" class="btn-rounded btn-red" style="margin-top: 15px;">Fechar</button>
+        </div>
+    </div>
+
     <script>
-        const db = firebase.firestore();
+        // A variável db é global devido ao firebase-init.js. 
+        // Aqui, declaramos localmente para garantir o acesso no escopo.
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
         // --------------------------------------------------------
         // FUNÇÕES GERAIS E NAVEGAÇÃO
@@ -66,6 +74,15 @@
         function hideCriarTarefa() {
             document.getElementById('criar-tarefa-modal').style.display = 'none';
         }
+        
+        function showOptionsModal() {
+            document.getElementById('options-modal').style.display = 'flex';
+        }
+
+        function hideOptionsModal() {
+            document.getElementById('options-modal').style.display = 'none';
+        }
+
 
         // --------------------------------------------------------
         // CRIAÇÃO DE TAREFA
@@ -92,14 +109,64 @@
                     criadaEm: new Date().toISOString()
                 };
 
-                await db.collection('tarefasDisponiveis').add(novaTarefa);
+                await firestore.collection('tarefasDisponiveis').add(novaTarefa);
                 alert('Tarefa criada e disponibilizada com sucesso!');
                 hideCriarTarefa();
+                // Limpa os campos após salvar
+                document.getElementById('nova-tarefa-nome').value = '';
+                document.getElementById('nova-tarefa-inicio').value = '09:00';
+                document.getElementById('nova-tarefa-fim').value = '10:00';
+                document.getElementById('nova-tarefa-valor').value = '';
+
                 loadTarefas(); // Recarrega a lista para mostrar a nova tarefa
             } catch (e) {
                 console.error("Erro ao salvar a tarefa:", e);
                 alert('Erro ao salvar a tarefa. Verifique o Console (F12).');
             }
+        }
+        
+        // --------------------------------------------------------
+        // EXCLUSÃO DE TAREFA
+        // --------------------------------------------------------
+        async function deleteTarefa(id, collection) {
+            if (!confirm(`Tem certeza que deseja EXCLUIR a tarefa?`)) {
+                return;
+            }
+            try {
+                await firestore.collection(collection).doc(id).delete();
+                alert('Tarefa excluída com sucesso!');
+                loadTarefas(); // Recarrega a lista
+                hideOptionsModal();
+            } catch (e) {
+                console.error(`Erro ao excluir tarefa da coleção ${collection}:`, e);
+                alert('Erro ao excluir a tarefa. Verifique o Console (F12).');
+            }
+        }
+
+
+        // --------------------------------------------------------
+        // OPÇÕES DA TAREFA
+        // --------------------------------------------------------
+        function showOptionsDisponivel(id, nome) {
+            const content = document.getElementById('options-content');
+            content.innerHTML = `
+                <h2>Opções: ${nome} (Disponível)</h2>
+                <button onclick="deleteTarefa('${id}', 'tarefasDisponiveis')" class="btn-rounded btn-red">Excluir Tarefa</button>
+                <button onclick="alert('Funcionalidade ainda não implementada.')" class="btn-rounded btn-yellow">Editar Tarefa</button>
+                <button onclick="hideOptionsModal()" class="btn-rounded btn-default" style="margin-top: 15px;">Fechar</button>
+            `;
+            showOptionsModal();
+        }
+        
+        function showOptionsAtribuida(id, nome) {
+            const content = document.getElementById('options-content');
+            content.innerHTML = `
+                <h2>Opções: ${nome} (Em Andamento)</h2>
+                <button onclick="alert('Funcionalidade de Revisão ainda não implementada.')" class="btn-rounded btn-green">Revisar Conclusão/Pagar</button>
+                <button onclick="deleteTarefa('${id}', 'tarefasAtribuidas')" class="btn-rounded btn-red">Excluir/Reverter Atribuição</button>
+                <button onclick="hideOptionsModal()" class="btn-rounded btn-default" style="margin-top: 15px;">Fechar</button>
+            `;
+            showOptionsModal();
         }
 
         // --------------------------------------------------------
@@ -107,27 +174,38 @@
         // --------------------------------------------------------
         async function loadTarefas() {
             const lista = document.getElementById('tarefas-list');
-            lista.innerHTML = '';
+            lista.innerHTML = ''; // Limpa a lista
             
-            const loadingMsg = document.getElementById('loading-message');
-            if (loadingMsg) loadingMsg.style.display = 'none';
-
+            // Exibe a mensagem de carregamento enquanto busca
+            lista.innerHTML = '<p id="loading-message">Carregando tarefas...</p>';
+            
             try {
                 // 1. Carregar Tarefas Disponíveis (status: 'disponivel')
-                const dispSnapshot = await db.collection('tarefasDisponiveis').get();
+                const dispSnapshot = await firestore.collection('tarefasDisponiveis').get();
+                
+                // 2. Carregar Tarefas Atribuídas/Em Andamento
+                const atribSnapshot = await firestore.collection('tarefasAtribuidas').where('status', 'in', ['atribuida', 'PendentePagamento']).get();
+
+                // Limpa a mensagem de carregamento (ou substitui se for vazia)
+                lista.innerHTML = '';
+
+                let hasTasks = false;
+
+                // Processa Tarefas Disponíveis
                 dispSnapshot.forEach(doc => {
+                    hasTasks = true;
                     const tarefa = doc.data();
-                    displayTarefa(doc.id, tarefa, 'disponivel');
+                    displayTarefa(doc.id, tarefa, 'tarefasDisponiveis');
                 });
                 
-                // 2. Carregar Tarefas Atribuídas/Em Andamento (status: 'atribuida')
-                const atribSnapshot = await db.collection('tarefasAtribuidas').where('status', 'in', ['atribuida', 'PendentePagamento']).get();
+                // Processa Tarefas Atribuídas
                 atribSnapshot.forEach(doc => {
+                    hasTasks = true;
                     const tarefa = doc.data();
-                    displayTarefa(doc.id, tarefa, 'atribuida');
+                    displayTarefa(doc.id, tarefa, 'tarefasAtribuidas');
                 });
 
-                if (dispSnapshot.empty && atribSnapshot.empty) {
+                if (!hasTasks) {
                     lista.innerHTML = '<p>Não há tarefas para gerenciar no momento.</p>';
                 }
 
@@ -147,22 +225,18 @@
             let optionsHtml = '';
             let assignedTo = '';
 
-            // Se for tarefa ATRIBUÍDA, precisamos tratar o campo 'atribuidaPara'
-            if (collection === 'atribuida') {
+            // Se for tarefa ATRIBUÍDA, ela vem da coleção 'tarefasAtribuidas'
+            if (collection === 'tarefasAtribuidas') {
                 statusText = tarefa.status === 'PendentePagamento' 
                     ? `<span style="color: orange; font-weight: bold;">Pendente Pagamento</span>` 
-                    : `<span style="color: #1976d2;">Em andamento</span>`;
+                    : `<span style="color: #1976d2;">Em Andamento</span>`;
                 
-                // *** CORREÇÃO: Trata o campo atribuidaPara para evitar o JSON gigante ***
-                if (typeof tarefa.atribuidaPara === 'object' && tarefa.atribuidaPara !== null) {
-                    // Se for o objeto completo (legado), tenta pegar o nome
-                    assignedTo = tarefa.atribuidaPara.nome || JSON.stringify(tarefa.atribuidaPara);
-                } else if (typeof tarefa.atribuidaPara === 'string') {
-                    // Se for apenas a string com o nome (novo formato)
-                    assignedTo = tarefa.atribuidaPara;
-                } else {
-                    assignedTo = 'Usuário Desconhecido';
-                }
+                // Trata o campo atribuidaPara (agora a coleção é o nome da tarefa, e não o status)
+                assignedTo = typeof tarefa.atribuidaPara === 'string' 
+                            ? tarefa.atribuidaPara 
+                            : tarefa.atribuidaPara && tarefa.atribuidaPara.nome 
+                                ? tarefa.atribuidaPara.nome
+                                : 'Usuário Desconhecido';
 
                 detailsHtml = `
                     <div class="tarefa-status-info">
@@ -172,8 +246,8 @@
 
                 optionsHtml = `<button onclick="showOptionsAtribuida('${id}', '${tarefa.nome}')" class="btn-blue">Opções</button>`;
 
-            } else { // status: 'disponivel'
-                statusText = '<span style="color: green;">Disponível</span>';
+            } else { // coleção: 'tarefasDisponiveis'
+                statusText = '<span style="color: green; font-weight: bold;">Disponível</span>';
                 detailsHtml = `<div class="tarefa-status-info">${statusText}</div>`;
                 optionsHtml = `<button onclick="showOptionsDisponivel('${id}', '${tarefa.nome}')" class="btn-blue">Opções</button>`;
             }
@@ -184,22 +258,11 @@
                     ${optionsHtml}
                 </div>
                 <div class="tarefa-details-admin">
-                    <span class="tarefa-info-admin">Data: ${tarefa.data} | Horário: ${tarefa.inicio} - ${tarefa.fim}</span>
+                    <span class="tarefa-info-admin">Data: ${tarefa.data} | Horário: ${tarefa.inicio} - ${tarefa.fim} | Valor: R$ ${tarefa.valor.toFixed(2)}</span>
                     ${detailsHtml}
                 </div>
             `;
             lista.appendChild(elemento);
-        }
-
-        // Simulação de funções de opções (para evitar quebrar o código)
-        function showOptionsDisponivel(id, nome) {
-            alert(`Opções para Tarefa Disponível: ${nome} (ID: ${id})`);
-            // Aqui você pode adicionar lógica de editar/excluir
-        }
-        
-        function showOptionsAtribuida(id, nome) {
-            alert(`Opções para Tarefa Atribuída: ${nome} (ID: ${id})`);
-            // Aqui você pode adicionar lógica de reassinar/excluir
         }
 
 
