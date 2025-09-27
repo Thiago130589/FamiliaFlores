@@ -18,6 +18,7 @@
         </div>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         <div id="gerenciar-tarefas-lista" style="width: 100%; min-height: 120px;">
+            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
         </div>
 
         <button class="btn-rounded" id="btn-criar-tarefa" style="width: 220px; max-width: 90vw; font-size: 1.1rem; margin: 32px auto 0 auto; display: block;">Criar tarefa</button>
@@ -41,17 +42,18 @@
     <script>
     // Variável para evitar re-criação desnecessária do popup de opções
     let popupOpcoesTarefa = null;
+    // Variável para armazenar as tarefas com seus IDs do Firestore
+    let tarefasDisponiveisCache = [];
 
     /**
      * BUSCA MEMBROS NO FIRESTORE
      * @returns {Promise<Array<{nome: string, id: string}>>} Lista de membros.
      */
     async function carregarMembrosFirestore() {
-        // Verifica se 'db' está disponível (definida em 'firebase-init.js')
         if (typeof db === 'undefined') {
-             console.error("A variável 'db' do Firestore não está definida. Verifique 'js/firebase-init.js'.");
-             alert("Erro: Conexão com o Banco de Dados não estabelecida. Verifique o console (F12).");
-             return [];
+            console.error("A variável 'db' do Firestore não está definida. Verifique 'js/firebase-init.js'.");
+            alert("Erro: Conexão com o Banco de Dados não estabelecida. Verifique o console (F12).");
+            return [];
         }
 
         try {
@@ -59,8 +61,6 @@
             let membros = [];
             snapshot.forEach(doc => {
                 const userData = doc.data();
-                // Usa o nome cadastrado para a lista, e o ID do documento
-                // Se o campo 'nome' não existir no doc, o item será ignorado.
                 if (userData.nome) { 
                     membros.push({ 
                         nome: userData.nome, 
@@ -77,36 +77,58 @@
     }
 
 
-    // Função para exibir lista de tarefas com botão opções
-    function renderGerenciarTarefas() {
+    /**
+     * Função para exibir lista de tarefas lidas do FIRESTORE.
+     */
+    async function renderGerenciarTarefas() {
         const lista = document.getElementById('gerenciar-tarefas-lista');
-        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
-        if (!tarefas.length) {
-            lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa cadastrada no momento.</p>';
-            return;
+        lista.innerHTML = '<p style="color: #888; text-align: center;">Carregando tarefas...</p>';
+        tarefasDisponiveisCache = []; // Limpa o cache
+
+        try {
+            // 1. LER do FIRESTORE
+            const snapshot = await db.collection('tarefasDisponiveis').get();
+            
+            snapshot.forEach(doc => {
+                // Armazena a tarefa com o ID do documento
+                tarefasDisponiveisCache.push({ id: doc.id, ...doc.data() });
+            });
+
+            if (!tarefasDisponiveisCache.length) {
+                lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa cadastrada no momento.</p>';
+                return;
+            }
+            
+            // 2. RENDERIZAR a lista
+            lista.innerHTML = tarefasDisponiveisCache.map((t) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                    <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                    <button class="btn-rounded btn-opcoes-tarefa" data-id="${t.id}" style="width: 110px; max-width: 90vw; font-size: 1rem; margin-left: 18px;">Opções</button>
+                </div>
+            `).join('');
+            
+            // 3. Adiciona eventos aos botões de opções
+            document.querySelectorAll('.btn-opcoes-tarefa').forEach(btn => {
+                btn.onclick = function() {
+                    abrirPopupOpcoesTarefa(this.getAttribute('data-id'));
+                };
+            });
+
+        } catch (error) {
+            console.error("Erro ao carregar tarefas do Firestore:", error);
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas.</p>';
         }
-        lista.innerHTML = tarefas.map((t, i) => `
-            <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                <button class="btn-rounded btn-opcoes-tarefa" data-index="${i}" style="width: 110px; max-width: 90vw; font-size: 1rem; margin-left: 18px;">Opções</button>
-            </div>
-        `).join('');
-        // Adiciona eventos aos botões de opções
-        document.querySelectorAll('.btn-opcoes-tarefa').forEach(btn => {
-            btn.onclick = function() {
-                abrirPopupOpcoesTarefa(this.getAttribute('data-index'));
-            };
-        });
     }
 
     /**
-     * Popup de opções de tarefa (AGORA USA O FIRESTORE PARA A LISTA DE MEMBROS)
-     * @param {string} idx - Índice da tarefa no localStorage.
+     * Popup de opções de tarefa, usando o ID do Firestore.
+     * @param {string} tarefaId - ID do documento da tarefa no Firestore.
      */
-    async function abrirPopupOpcoesTarefa(idx) {
-        const tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
-        const tarefa = tarefas[idx];
-        
+    async function abrirPopupOpcoesTarefa(tarefaId) {
+        // Encontra a tarefa no cache usando o ID
+        const tarefa = tarefasDisponiveisCache.find(t => t.id === tarefaId);
+        if (!tarefa) return; // Se não encontrar, sai
+
         // Cria o popup apenas na primeira vez
         if (!popupOpcoesTarefa) {
             popupOpcoesTarefa = document.createElement('div');
@@ -130,22 +152,22 @@
         const popupContent = document.getElementById('popup-opcoes-content');
         document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
 
-        // Lógica de Direcionamento:
+        // Lógica de Direcionamento (AGORA USA O FIRESTORE PARA ADICIONAR E REMOVER):
         document.getElementById('btn-direcionar-tarefa').onclick = async () => {
             popupContent.innerHTML = `<h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Carregando Membros...</h2>`;
             
-            // BUSCA CORRIGIDA: Usa o Firestore!
+            // BUSCA MEMBROS DO FIRESTORE
             let membros = await carregarMembrosFirestore(); 
             
             if (!membros.length) {
-                // A mensagem de erro que você viu na imagem
+                // Mensagem de erro se não houver membros
                 popupContent.innerHTML = `
                     <div style="color: #d32f2f; font-size: 1.1rem; text-align: center;">Nenhum membro cadastrado.</div>
                     <p style="text-align: center; margin: 0;">Por favor, adicione membros antes de direcionar tarefas.</p>
                     <button id="btn-fechar-erro" class="btn-rounded" style="width: 120px; margin: 0 auto; display: block;">OK</button>
                 `;
                 document.getElementById('btn-fechar-erro').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
-                return; // Sai da função após o erro
+                return;
             }
 
             // Cria o SELECT com os membros do Firestore
@@ -163,44 +185,60 @@
 
             document.getElementById('btn-cancelar-direcionar').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
             
-            // Lógica de Confirmação do Direcionamento (Ainda usa localStorage!)
-            document.getElementById('btn-confirmar-direcionar').onclick = () => {
+            // Lógica de Confirmação do Direcionamento (AGORA FIRESTORE)
+            document.getElementById('btn-confirmar-direcionar').onclick = async () => {
                 const membro = document.getElementById('select-membro').value;
-                
-                // 1. Adiciona a tarefa ao localStorage do membro
-                let minhas = JSON.parse(localStorage.getItem('minhasTarefas_' + membro) || '[]');
-                minhas.push(tarefa);
-                localStorage.setItem('minhasTarefas_' + membro, JSON.stringify(minhas));
-                
-                // 2. Remove a tarefa da lista de disponíveis (localStorage)
-                tarefas.splice(idx, 1);
-                localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
-                
-                // 3. Exibe mensagem de sucesso
-                popupContent.innerHTML = `<div style="color: #1976d2; font-size: 1.2rem; text-align: center; margin: 32px 0;">Tarefa direcionada para <b>${membro}</b>!</div><button id="btn-fechar-direcionada" class="btn-rounded" style="width: 120px; margin: 0 auto; display: block;">Fechar</button>`;
-                document.getElementById('btn-fechar-direcionada').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
-                
-                renderGerenciarTarefas(); // Atualiza a lista
+
+                try {
+                    // Prepara a nova tarefa para a coleção 'tarefasAtribuidas'
+                    const { id, ...dadosTarefa } = tarefa;
+                    const tarefaAtribuida = {
+                        ...dadosTarefa,
+                        status: 'direcionada', // Ou 'pendente', mas 'direcionada' é mais claro para o Admin
+                        atribuidaPara: membro,
+                        atribuidaEm: new Date().toISOString()
+                    };
+
+                    // 1. Adiciona a tarefa na coleção 'tarefasAtribuidas' do Firestore
+                    await db.collection('tarefasAtribuidas').add(tarefaAtribuida);
+                    
+                    // 2. Remove a tarefa da lista de disponíveis (Firestore)
+                    await db.collection('tarefasDisponiveis').doc(tarefaId).delete();
+                    
+                    // 3. Exibe mensagem de sucesso
+                    popupContent.innerHTML = `<div style="color: #1976d2; font-size: 1.2rem; text-align: center; margin: 32px 0;">Tarefa direcionada para <b>${membro}</b>!</div><button id="btn-fechar-direcionada" class="btn-rounded" style="width: 120px; margin: 0 auto; display: block;">Fechar</button>`;
+                    document.getElementById('btn-fechar-direcionada').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
+                    
+                    renderGerenciarTarefas(); // Atualiza a lista
+                } catch (error) {
+                    console.error("Erro ao direcionar/mover tarefa no Firestore:", error);
+                    alert(`Erro ao direcionar tarefa. Detalhes: ${error.message}`);
+                    popupOpcoesTarefa.style.display = 'none';
+                    renderGerenciarTarefas();
+                }
             };
         };
 
-        // Lógica de Exclusão
-        document.getElementById('btn-excluir-tarefa').onclick = () => {
-             if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
-                tarefas.splice(idx, 1);
-                localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
-                popupOpcoesTarefa.style.display = 'none';
-                renderGerenciarTarefas();
-                alert(`Tarefa "${tarefa.nome}" excluída.`);
-             }
+        // Lógica de Exclusão (AGORA FIRESTORE)
+        document.getElementById('btn-excluir-tarefa').onclick = async () => {
+            if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
+                try {
+                    await db.collection('tarefasDisponiveis').doc(tarefaId).delete();
+                    
+                    popupOpcoesTarefa.style.display = 'none';
+                    renderGerenciarTarefas();
+                    alert(`Tarefa "${tarefa.nome}" excluída.`);
+                } catch (error) {
+                    console.error("Erro ao excluir tarefa do Firestore:", error);
+                    alert(`Erro ao excluir tarefa. Detalhes: ${error.message}`);
+                    popupOpcoesTarefa.style.display = 'none';
+                }
+            }
         };
     }
     
-    // O restante do seu código JS (manutenção de eventos e relógio)
-    window.addEventListener('storage', renderGerenciarTarefas);
-    window.addEventListener('focus', renderGerenciarTarefas);
-    renderGerenciarTarefas();
-    setInterval(renderGerenciarTarefas, 2000);
+    // Inicia o relógio e a renderização
+    
     const btnCriarTarefa = document.getElementById('btn-criar-tarefa');
     const popupTarefa = document.getElementById('popup-tarefa');
     const btnSalvarTarefa = document.getElementById('btn-salvar-tarefa');
@@ -220,8 +258,8 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar tarefa no localStorage (AJUSTADO AQUI!)
-    btnSalvarTarefa.onclick = () => {
+    // Salvar nova tarefa (AGORA FIRESTORE)
+    btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
         const fim = document.getElementById('tarefa-fim').value;
@@ -232,18 +270,28 @@
             return;
         }
         
-        const tarefa = { nome, inicio, fim, valor };
-        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
-        tarefas.push(tarefa);
-        localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
+        const novaTarefa = { 
+            nome, 
+            inicio, 
+            fim, 
+            valor: parseFloat(valor).toFixed(2), // Garante formato de dinheiro
+            criadaEm: new Date().toISOString()
+        };
 
-        // ⚠️ REMOVIDA: A lógica que adicionava a tarefa a todos os membros ao CRIAR.
-        // A tarefa agora só é adicionada a um membro no momento do direcionamento.
-        
-        popupTarefa.style.display = 'none';
-        tarefaErro.textContent = '';
-        renderGerenciarTarefas();
+        try {
+            // SALVA a tarefa na coleção 'tarefasDisponiveis' do Firestore
+            await db.collection('tarefasDisponiveis').add(novaTarefa);
+            
+            popupTarefa.style.display = 'none';
+            tarefaErro.textContent = '';
+            alert(`Tarefa "${nome}" criada com sucesso e disponível para os membros!`);
+            renderGerenciarTarefas(); // Atualiza a lista para o admin
+        } catch (error) {
+            console.error("Erro ao salvar tarefa no Firestore:", error);
+            tarefaErro.textContent = `Erro ao salvar tarefa: ${error.message}`;
+        }
     };
+    
     
     // Relógio horário de Brasília
     function startBrasiliaClockGerenciar() {
@@ -259,7 +307,17 @@
         updateClock();
         setInterval(updateClock, 1000);
     }
-    startBrasiliaClockGerenciar();
+
+    // Inicialização
+    window.addEventListener('DOMContentLoaded', () => {
+        startBrasiliaClockGerenciar();
+        renderGerenciarTarefas(); 
+        // Não é ideal usar setInterval para renderizar dados do Firestore,
+        // mas é mantido se você não quiser usar o onSnapshot (escuta em tempo real).
+        // Se quiser usar o onSnapshot, a lógica precisaria ser atualizada.
+        // Vou manter a chamada única por enquanto.
+        // setInterval(renderGerenciarTarefas, 5000); // Removido o setInterval de renderização
+    });
     </script>
 </body>
 </html>
