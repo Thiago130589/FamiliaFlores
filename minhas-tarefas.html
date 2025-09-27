@@ -3,11 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <title>Minhas Tarefas</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <h1>Minhas Tarefas</h1>
-    <p>Página para visualizar e gerenciar suas tarefas.</p>
-    <a href="index.html" class="profile-link">Voltar ao perfil</a>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center;">
+        <h1 style="color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        <div id="minhas-tarefas-lista" style="width: 100%; min-height: 120px;">
+            <p style="color: #888; text-align: center;">Carregando suas tarefas...</p>
+        </div>
+
+        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
+    </div>
+
+    <script>
+    // Obtém o nome do usuário logado do localStorage
+    const USUARIO_LOGADO = localStorage.getItem('user_nome'); 
+    
+    if (!USUARIO_LOGADO) {
+        document.getElementById('minhas-tarefas-lista').innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Usuário não identificado. Por favor, faça login.</p>';
+    }
+
+    /**
+     * Função para exibir a lista de tarefas atribuídas ao usuário logado.
+     */
+    async function renderMinhasTarefas() {
+        const lista = document.getElementById('minhas-tarefas-lista');
+        // Sai se o DB não estiver pronto ou o usuário não estiver logado
+        if (!USUARIO_LOGADO || !db) { return; }
+
+        lista.innerHTML = '<p style="color: #888; text-align: center;">Buscando tarefas para ' + USUARIO_LOGADO + '...</p>';
+
+        try {
+            // LER a coleção 'tarefasAtribuidas' e FILTRAR pelo nome do usuário logado
+            const snapshot = await db.collection('tarefasAtribuidas')
+                                     .where('atribuidaPara', '==', USUARIO_LOGADO)
+                                     .get();
+            
+            const tarefas = [];
+            snapshot.forEach(doc => {
+                tarefas.push({ id: doc.id, ...doc.data() }); 
+            });
+
+            if (!tarefas.length) {
+                lista.innerHTML = '<p style="color: #888; text-align: center;">Você não possui tarefas atribuídas no momento.</p>';
+                return;
+            }
+            
+            // RENDERIZAR a lista de tarefas do membro
+            lista.innerHTML = tarefas.map((t) => `
+                <div style="display: flex; flex-direction: column; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                        <span style="font-weight: bold; color: #4CAF50;">R$ ${t.valor}</span>
+                    </div>
+                    <small style="color: #555; margin-top: 5px;">Horário: ${t.inicio} - ${t.fim} | Status: ${t.status}</small>
+                    <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" style="width: 140px; margin-top: 10px; font-size: 1rem; background: #2196F3; color: #fff;">Concluir Tarefa</button>
+                </div>
+            `).join('');
+
+        } catch (error) {
+            console.error("Erro ao carregar Minhas Tarefas:", error);
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar suas tarefas.</p>';
+        }
+    }
+    
+    // Inicia a renderização ao carregar a página
+    window.onload = renderMinhasTarefas;
+    </script>
 </body>
 </html>
