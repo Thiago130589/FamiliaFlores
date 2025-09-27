@@ -14,9 +14,11 @@
 <body>
     <div id="login-container" class="center-box">
         <h1>familia flores</h1>
-        <input type="text" id="login-username" placeholder="Nome de usuário" class="input-rounded">
-        <input type="password" id="login-password" placeholder="Senha" class="input-rounded">
-        <button onclick="login()" class="btn-rounded">Entrar</button>
+                <form id="login-form" onsubmit="event.preventDefault(); login();"> 
+            <input type="text" id="login-username" placeholder="Nome de usuário" class="input-rounded">
+            <input type="password" id="login-password" placeholder="Senha" class="input-rounded">
+            <button type="submit" class="btn-rounded">Entrar</button>
+        </form>
         <div id="auth-message"></div>
         <a href="#" id="show-register" onclick="showRegister()">cadastre-se</a>
     </div>
@@ -24,7 +26,7 @@
     <div id="profile-container" class="center-box" style="display: none; padding: 32px 32px; max-width: 700px; align-items: flex-start;">
         <div class="profile-layout">
             
-                        <div class="profile-foto-col">
+            <div class="profile-foto-col">
                 <img id="profile-foto" src="" alt="Foto" class="profile-foto-large">
                 <div class="profile-info">
                     <span id="profile-nome" class="profile-nome"></span>
@@ -33,11 +35,11 @@
                 <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
             </div>
             
-                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; max-width: 320px; padding-top: 5px; margin-left: 20px;">
-                                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 1; text-align: left;">Minhas Tarefas</a>
+            <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; max-width: 320px; padding-top: 5px; margin-left: 20px;">
+                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 1; text-align: left;">Minhas Tarefas</a>
                 <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Disponíveis</a>
 
-                                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 1; text-align: left;">Tarefas Pendentes</a>
+                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 1; text-align: left;">Tarefas Pendentes</a>
                 <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Concluídas</a>
             </div>
 
@@ -48,7 +50,7 @@
                     <a href="#" onclick="sairPerfil()" class="profile-link" style="text-align: right;">Sair</a>
                 </div>
 
-                                <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
+                <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
                     <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
                     <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
@@ -74,7 +76,8 @@
     </div>
 
     <script>
-    const db = firebase.firestore(); // Garantir que o db esteja definido aqui
+    // Garantir que o db esteja definido (lido de firebase-init.js)
+    const db = firebase.firestore(); 
 
     // --- Navegação entre telas ---
     function showRegister() {
@@ -127,7 +130,7 @@
             
             // Função para salvar no Firestore e limpar campos
             const saveUserAndFinish = async (user, fotoData) => {
-                 // Salva no Firestore
+                // Salva no Firestore
                 await userRef.set({ ...user, foto: fotoData });
                 
                 msg.innerText = 'Cadastro realizado com sucesso!';
@@ -158,23 +161,32 @@
         }
     }
 
-    // --- Autenticação: LOGIN ---
+    // --- Autenticação: LOGIN (REVISADO) ---
     async function login() {
         const usernameInput = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
-        document.getElementById('auth-message').innerText = '';
+        const msgElement = document.getElementById('auth-message');
+        msgElement.innerText = '';
 
         if (!usernameInput || !password) {
-            document.getElementById('auth-message').innerText = 'Preencha todos os campos.';
+            msgElement.innerText = 'Preencha todos os campos.';
             return;
         }
+        
+        // Verifica se a variável do Firestore está disponível
+        if (!db) {
+            msgElement.innerText = 'Erro de inicialização do Banco de Dados.';
+            console.error("Firestore DB não inicializado.");
+            return;
+        }
+
         try {
-            // Busca o usuário pelo nome (que é o ID do documento)
+            // Busca o usuário pelo nome (que é o ID do documento, ex: 'Thiago' ou 'Lucas')
             const userRef = db.collection('users').doc(usernameInput);
             const docSnap = await userRef.get();
 
             if (!docSnap.exists) {
-                document.getElementById('auth-message').innerText = 'Usuário não encontrado.';
+                msgElement.innerText = 'Usuário não encontrado.';
                 return;
             }
 
@@ -183,22 +195,23 @@
         
             // Verifica a senha
             if (foundUser.password === password) {
-                document.getElementById('auth-message').innerText = '';
+                msgElement.innerText = 'Login realizado!';
                 
-                // Garante que o isAdmin seja definido para 'thiago'
-                if (foundUser.nome.toLowerCase() === 'thiago') {
+                // Garante que o isAdmin seja definido para 'thiago' (se não estiver no Firestore)
+                if (foundUser.nome && foundUser.nome.toLowerCase() === 'thiago') {
                     foundUser.isAdmin = true;
                 }
-                // *** CORREÇÃO CHAVE: Salva o ID (o nome) de forma clara no localStorage ***
+                
+                // SALVA O OBJETO COMPLETO DO USUÁRIO NO LOCAL STORAGE
                 localStorage.setItem('usuarioLogado', JSON.stringify(foundUser));
                 
                 showProfile(foundUser);
             } else {
-                document.getElementById('auth-message').innerText = 'Senha incorreta.';
+                msgElement.innerText = 'Senha incorreta.';
             }
         } catch (e) {
             console.error("Erro detalhado do Firebase no Login:", e);
-            document.getElementById('auth-message').innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
+            msgElement.innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
         }
     }
 
