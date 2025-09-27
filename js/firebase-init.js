@@ -1,8 +1,9 @@
 // js/firebase-init.js
 
 // 1. CONFIGURAÇÃO do Firebase (Dados do seu projeto)
-const firebaseConfig = {
-    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM",
+// ATENÇÃO: Corrigir a apiKey para o valor exato.
+var firebaseConfig = {
+    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", // ESTA É A CORRETA!
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
     storageBucket: "familia-flores-2ed6a.appspot.com",
@@ -14,6 +15,5 @@ const firebaseConfig = {
 // 2. INICIALIZAÇÃO do Aplicativo Firebase
 firebase.initializeApp(firebaseConfig);
 
-// 3. DEFINIÇÃO GLOBAL da VARIÁVEL do Banco de Dados (Firestore)
-// Usamos 'var' para garantir que 'db' seja acessível em outros scripts (como no index.html).
+// 3. DEFINIÇÃO GLOBAL do Banco de Dados (Firestore)
 var db = firebase.firestore();
