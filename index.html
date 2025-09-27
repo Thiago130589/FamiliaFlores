@@ -33,16 +33,17 @@
                 
                                 <div id="admin-links" class="admin-links-vertical">
                     <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
-                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
+                    <a href="#" onclick="tarefasConcluidas()" class="profile-link">Histórico (Concluídas)</a>                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
                     <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
                     <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
                 </div>
             </div>
+            
                         <div class="profile-menu-horizontal">
                 <a href="#" onclick="tarefasDisponiveis()" class="profile-link">Tarefas disponíveis</a>
                 <a href="#" onclick="minhasTarefas()" class="profile-link">Minhas tarefas</a>
-                <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>                 <a href="#" onclick="tarefasConcluidas()" class="profile-link">Histórico (Concluídas)</a>
-                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
+                <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>
+                                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
                 <a href="#" onclick="sairPerfil()" class="profile-link sair">Sair</a>
             </div>
         </div>
@@ -63,8 +64,6 @@
     </div>
 
     <script>
-    // O código aqui assumirá que a variável global 'db' foi definida em js/firebase-init.js
-
     // --- Navegação entre telas ---
     function showRegister() {
         document.getElementById('login-container').style.display = 'none';
@@ -89,7 +88,6 @@
             return;
         }
         try {
-            // O código usa o nome como ID do documento (FireStore ID).
             const userRef = db.collection('users').doc(nome);
             const docSnap = await userRef.get();
             if (docSnap.exists) {
@@ -110,8 +108,8 @@
                 sobrenome, 
                 idade, 
                 password, 
-                isAdmin: (nome.toLowerCase() === 'thiago'), // Garante que o administrador já está configurado
-                saldo: 0 // Inicializa o saldo para o membro
+                isAdmin: (nome.toLowerCase() === 'thiago'),
+                saldo: 0
             };
             
             // Função para salvar no Firestore e limpar campos
@@ -122,7 +120,7 @@
                 msg.innerText = 'Cadastro realizado com sucesso!';
                 
                 clearFields();
-                showLogin(); // Volta para a tela de login
+                showLogin(); 
             }
 
             if (fotoInput.files && fotoInput.files[0]) {
@@ -151,7 +149,7 @@
     async function login() {
         const usernameInput = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
-        document.getElementById('auth-message').innerText = ''; // Limpa mensagens anteriores
+        document.getElementById('auth-message').innerText = '';
 
         if (!usernameInput || !password) {
             document.getElementById('auth-message').innerText = 'Preencha todos os campos.';
@@ -163,7 +161,6 @@
             
             usersSnapshot.forEach(doc => {
                 const data = doc.data();
-                // Verifica o nome, ignorando maiúsculas/minúsculas
                 if (data.nome && data.nome.trim().toLowerCase() === usernameInput.toLowerCase()) {
                     foundUser = { id: doc.id, ...data };
                 }
@@ -197,7 +194,6 @@
         document.getElementById('login-container').style.display = 'flex';
         document.getElementById('login-username').value = '';
         document.getElementById('login-password').value = '';
-        // Limpa todos os dados da sessão
         localStorage.removeItem('usuarioLogado'); 
     }
 
@@ -208,7 +204,6 @@
         document.getElementById('profile-nome').innerText = user.nome || '';
         document.getElementById('profile-foto').src = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome || 'U') + '&background=1976d2&color=fff&size=128';
         
-        // Lógica de Admin: se o nome for 'thiago', ele é administrador.
         const isAdmin = (user.nome && user.nome.toLowerCase() === 'thiago') || (user.isAdmin === true);
         
         document.getElementById('profile-status').innerText = isAdmin ? 'Administrador' : 'Membro';
@@ -220,7 +215,6 @@
     function startBrasiliaClock() {
         function updateClock() {
             const now = new Date();
-            // Horário de Brasília (GMT-3, sem considerar horário de verão)
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
             const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
             const h = String(brasilia.getHours()).padStart(2, '0');
@@ -236,14 +230,13 @@
     // --- Navegação para páginas (Funções Corrigidas) ---
     function tarefasDisponiveis() { window.location.href = 'tarefas-disponiveis.html'; }
     function minhasTarefas() { window.location.href = 'minhas-tarefas.html'; }
-    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; }
-    function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; } // NOVA FUNÇÃO
+    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } // Agora é um link de Admin
+    function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; } 
     function carteira() { window.location.href = 'carteira.html'; }
     function editarPerfil() { window.location.href = 'editar-perfil.html'; }
     function gerenciarTarefas() { window.location.href = 'gerenciar-tarefas.html'; }
     function gerenciarMultas() { window.location.href = 'multas.html'; }
     function gerenciarCarteira() { window.location.href = 'gerenciar-carteira.html'; }
-    // Tornar Admin removida da navegação principal, pois é apenas um utilitário.
 
     // --- Manter usuário logado ao atualizar ---
     window.addEventListener('DOMContentLoaded', function() {
