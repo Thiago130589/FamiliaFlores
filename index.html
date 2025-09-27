@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
         <script src="js/firebase-init.js"></script> 
-        <script src="script.js"></script>
+            <script src="js/script.js"></script>
 </head>
 <body>
     <div id="login-container" class="center-box">
@@ -64,9 +64,8 @@
     </div>
 
     <script>
-    // A variável 'db' é agora definida em js/firebase-init.js
-    // O restante da sua lógica JavaScript
-    
+    // O código aqui assumirá que a variável global 'db' foi definida em js/firebase-init.js
+
     // --- Navegação entre telas ---
     function showRegister() {
         document.getElementById('login-container').style.display = 'none';
@@ -79,9 +78,6 @@
 
     // --- Autenticação ---
     async function register() {
-        // ATENÇÃO: Seu código está usando 'db' aqui, que agora vem do firebase-init.js
-        // Se 'db' não for globalmente acessível, você precisará envolver 
-        // todo o seu código em um Listener para 'DOMContentLoaded'.
         const nome = document.getElementById('register-nome').value.trim();
         const sobrenome = document.getElementById('register-sobrenome').value.trim();
         const idade = document.getElementById('register-idade').value;
@@ -134,13 +130,13 @@
                 }
             }
         } catch (e) {
-            // Aqui, se 'db' ainda for undefined, este é o erro.
-            document.getElementById('register-message').innerText = 'Erro ao acessar o banco de dados: ' + (e.message || e);
+            // CORREÇÃO DE DEBUG AQUI: Imprime o erro real no console (F12)
+            console.error("Erro detalhado do Firebase no Cadastro:", e);
+            msg.innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
         }
     }
 
     async function login() {
-        // Seu código aqui também usa 'db'.
         const usernameInput = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
         if (!usernameInput || !password) {
@@ -168,7 +164,9 @@
                 document.getElementById('auth-message').innerText = 'Senha incorreta.';
             }
         } catch (e) {
-            document.getElementById('auth-message').innerText = 'Erro ao acessar o banco de dados.';
+            // CORREÇÃO DE DEBUG AQUI: Imprime o erro real no console (F12)
+            console.error("Erro detalhado do Firebase no Login:", e);
+            document.getElementById('auth-message').innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
         }
     }
 
@@ -200,7 +198,4 @@
     // Relógio horário de Brasília
     function startBrasiliaClock() {
         function updateClock() {
-            const now = new Date();
-            // Horário de Brasília (GMT-3, sem considerar horário de verão)
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const brasilia = new Date(utc - (3 * 60 * 60 * 100
+            const now
