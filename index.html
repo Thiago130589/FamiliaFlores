@@ -33,20 +33,19 @@
                 <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
             </div>
             
-                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; align-items: start; max-width: 300px; padding-top: 5px;">
-                
-                                <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 1;">Tarefas Disponíveis</a>
-                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 2;">Minhas Tarefas</a>
+                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; max-width: 320px; padding-top: 5px; margin-left: 20px;">
+                                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 1; text-align: left;">Minhas Tarefas</a>
+                <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Disponíveis</a>
 
-                                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 1;">Tarefas Concluídas</a>
-                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 2;">Tarefas Pendentes</a>
+                                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 1; text-align: left;">Tarefas Pendentes</a>
+                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Concluídas</a>
             </div>
 
-            <div style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <div style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; margin-left: 20px; width: calc(100% - 20px);">
                 
                 <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px;">
-                    <a href="#" onclick="carteira()" class="profile-link" style="color: #d32f2f; font-size: 1.5rem; font-weight: bold;">Carteira</a>
-                    <a href="#" onclick="sairPerfil()" class="profile-link">Sair</a>
+                    <a href="#" onclick="carteira()" class="profile-link" style="color: #d32f2f; font-size: 1.5rem; font-weight: bold; text-align: left;">Carteira</a>
+                    <a href="#" onclick="sairPerfil()" class="profile-link" style="text-align: right;">Sair</a>
                 </div>
 
                                 <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
