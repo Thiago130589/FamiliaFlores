@@ -83,14 +83,15 @@
     async function renderGerenciarTarefas() {
         const lista = document.getElementById('gerenciar-tarefas-lista');
         lista.innerHTML = '<p style="color: #888; text-align: center;">Carregando tarefas...</p>';
-        tarefasDisponiveisCache = []; // Limpa o cache
+        // Limpa o cache a cada renderização para buscar os dados mais recentes
+        tarefasDisponiveisCache = []; 
 
         try {
-            // 1. LER do FIRESTORE
+            // 1. LER as tarefas da coleção 'tarefasDisponiveis' do FIRESTORE
             const snapshot = await db.collection('tarefasDisponiveis').get();
             
             snapshot.forEach(doc => {
-                // Armazena a tarefa com o ID do documento
+                // Armazena a tarefa com o ID do documento (CRUCIAL!)
                 tarefasDisponiveisCache.push({ id: doc.id, ...doc.data() });
             });
 
@@ -185,7 +186,7 @@
 
             document.getElementById('btn-cancelar-direcionar').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
             
-            // Lógica de Confirmação do Direcionamento (AGORA FIRESTORE)
+            // Lógica de Confirmação do Direcionamento (FIRESTORE)
             document.getElementById('btn-confirmar-direcionar').onclick = async () => {
                 const membro = document.getElementById('select-membro').value;
 
@@ -194,7 +195,7 @@
                     const { id, ...dadosTarefa } = tarefa;
                     const tarefaAtribuida = {
                         ...dadosTarefa,
-                        status: 'direcionada', // Ou 'pendente', mas 'direcionada' é mais claro para o Admin
+                        status: 'direcionada', // Indica que foi atribuída pelo admin
                         atribuidaPara: membro,
                         atribuidaEm: new Date().toISOString()
                     };
@@ -209,7 +210,7 @@
                     popupContent.innerHTML = `<div style="color: #1976d2; font-size: 1.2rem; text-align: center; margin: 32px 0;">Tarefa direcionada para <b>${membro}</b>!</div><button id="btn-fechar-direcionada" class="btn-rounded" style="width: 120px; margin: 0 auto; display: block;">Fechar</button>`;
                     document.getElementById('btn-fechar-direcionada').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
                     
-                    renderGerenciarTarefas(); // Atualiza a lista
+                    renderGerenciarTarefas(); // Atualiza a lista do admin
                 } catch (error) {
                     console.error("Erro ao direcionar/mover tarefa no Firestore:", error);
                     alert(`Erro ao direcionar tarefa. Detalhes: ${error.message}`);
@@ -219,7 +220,7 @@
             };
         };
 
-        // Lógica de Exclusão (AGORA FIRESTORE)
+        // Lógica de Exclusão (FIRESTORE)
         document.getElementById('btn-excluir-tarefa').onclick = async () => {
             if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}"?`)) {
                 try {
@@ -258,7 +259,7 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar nova tarefa (AGORA FIRESTORE)
+    // Salvar nova tarefa (FIRESTORE)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -312,11 +313,9 @@
     window.addEventListener('DOMContentLoaded', () => {
         startBrasiliaClockGerenciar();
         renderGerenciarTarefas(); 
-        // Não é ideal usar setInterval para renderizar dados do Firestore,
-        // mas é mantido se você não quiser usar o onSnapshot (escuta em tempo real).
-        // Se quiser usar o onSnapshot, a lógica precisaria ser atualizada.
-        // Vou manter a chamada única por enquanto.
-        // setInterval(renderGerenciarTarefas, 5000); // Removido o setInterval de renderização
+        // O onSnapshot (escuta em tempo real) seria o ideal, mas para manter a simplicidade,
+        // vamos chamar a renderização novamente em um intervalo curto.
+        setInterval(renderGerenciarTarefas, 5000); 
     });
     </script>
 </body>
