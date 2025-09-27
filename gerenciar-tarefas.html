@@ -42,10 +42,11 @@
     <script>
     let popupOpcoesTarefa = null;
     let tarefasCache = []; 
-    let countdownInterval = null; // Para controlar o loop do cronômetro
+    let countdownInterval = null; 
 
     /**
      * BUSCA MEMBROS NO FIRESTORE
+     * @returns {Promise<Array<{nome: string, id: string}>>} Lista de membros.
      */
     async function carregarMembrosFirestore() {
         if (typeof db === 'undefined') { return []; }
@@ -70,6 +71,8 @@
 
     /**
      * Determina o status visual da tarefa e a cor do botão.
+     * @param {object} tarefa
+     * @returns {{statusTexto: string, corBotao: string, podeDirecionar: boolean, podeRemoverAtribuicao: boolean}}
      */
     function determinarStatusECor(tarefa) {
         let statusTexto = 'Disponível';
@@ -77,27 +80,36 @@
         let podeDirecionar = true;
         let podeRemoverAtribuicao = false;
 
+        // Se a tarefa já foi atribuída (está na coleção tarefasAtribuidas)
         if (tarefa.status === 'atribuida' || tarefa.atribuidaPara) {
             
             podeDirecionar = false; 
             podeRemoverAtribuicao = true; 
             
+            // Verifica o prazo
             if (tarefa.fim) {
                 // A data de atribuição (data do dia) é usada para definir o dia do prazo
                 const dataBase = tarefa.dataAtribuicao ? new Date(tarefa.dataAtribuicao.substring(0, 10)) : new Date();
                 const [h, m] = tarefa.fim.split(':').map(Number);
+                // Ajuste para garantir que a dataFim use a data correta do fuso (já tratada na atribuição com ISOString)
                 const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
                 
-                const agora = new Date();
+                const now = new Date();
+                // Ajuste para calcular o "agora" no fuso de Brasília (UTC-3), como o relógio.
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const agora = new Date(utc - (3 * 60 * 60 * 1000));
                 
                 if (agora > dataFim) {
+                    // Prazo ultrapassado
                     statusTexto = `ATRASADA | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#d32f2f'; // Vermelho (Atrasada)
                 } else {
+                    // Dentro do prazo
                     statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#4CAF50'; // Verde (Em andamento)
                 }
             } else {
+                 // Atribuída, mas sem prazo de fim
                 statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                 corBotao = '#4CAF50';
             }
@@ -108,7 +120,7 @@
 
 
     /**
-     * 🌟 NOVA FUNÇÃO: Inicia o cronômetro regressivo
+     * Inicia o cronômetro regressivo
      */
     function startCountdownTimers() {
         // Limpa o intervalo anterior para evitar que múltiplos timers rodem
@@ -118,7 +130,9 @@
         
         function updateTimers() {
             const now = new Date();
-            let shouldReRender = false; // Flag para forçar a atualização da lista se um prazo expirar
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
+            let shouldReRender = false; 
 
             tarefasCache.forEach(t => {
                 // Apenas tarefas atribuídas (que tem adminId)
@@ -139,11 +153,11 @@
                     const [h, m] = t.fim.split(':').map(Number);
                     const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
                     
-                    let diffMs = dataFim.getTime() - now.getTime();
+                    let diffMs = dataFim.getTime() - agora.getTime(); // Usa 'agora' em Brasília
 
                     if (diffMs <= 0) {
                         element.textContent = 'EXPIRADO';
-                        shouldReRender = true; // Marca para renderizar novamente (mudará a cor do botão)
+                        shouldReRender = true; 
                         return;
                     }
 
@@ -163,7 +177,6 @@
             });
 
             if (shouldReRender) {
-                // Se algum timer expirou, força a renderização para atualizar a cor dos botões.
                 renderGerenciarTarefas();
             }
         }
@@ -213,7 +226,7 @@
                 // domId é o ID do documento na coleção atual
                 const domId = t.adminId || t.id; 
                 
-                // 🌟 Novo: Placeholder do Cronômetro (apenas para tarefas em andamento)
+                // Placeholder do Cronômetro (apenas para tarefas em andamento)
                 const isAssignedAndNotOverdue = t.atribuidaPara && corBotao !== '#d32f2f';
                 const timerPlaceholder = isAssignedAndNotOverdue
                                         ? `<span id="countdown-${domId}" style="color: #d32f2f; font-weight: bold; margin-left: 10px;">--:--:--</span>` 
@@ -242,7 +255,7 @@
                 };
             });
             
-            // 🌟 Novo: Inicia o cronômetro após a lista ser renderizada
+            // Inicia o cronômetro após a lista ser renderizada
             startCountdownTimers();
 
         } catch (error) {
@@ -252,10 +265,10 @@
     }
 
     /**
-     * Lógica de Direcionamento/Exclusão
+     * Lógica de Direcionamento/Exclusão (Usa o ID do documento na coleção correta)
      */
     async function abrirPopupOpcoesTarefa(tarefaId, collection) {
-        // Encontra a tarefa correta no cache usando o ID do documento e a coleção (adminId ou original ID)
+        // Encontra a tarefa correta no cache usando o ID do documento e a coleção 
         const tarefa = tarefasCache.find(t => (t.adminId === tarefaId && collection === 'tarefasAtribuidas') || (t.id === tarefaId && collection === 'tarefasDisponiveis'));
         
         if (!tarefa) {
@@ -267,7 +280,7 @@
         const isAtribuida = !podeDirecionar;
         const colecaoAtual = isAtribuida ? 'tarefasAtribuidas' : 'tarefasDisponiveis';
 
-        // Cria o popup (código omitido para brevidade, mas o que você já tinha)
+        // Cria o popup
         if (!popupOpcoesTarefa) {
             popupOpcoesTarefa = document.createElement('div');
             popupOpcoesTarefa.id = 'popup-opcoes-tarefa';
@@ -320,7 +333,7 @@
         const msgDiv = document.getElementById('direcionamento-mensagem');
         document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
 
-        // Lógica de DIRECIONAMENTO (só se for tarefa disponível)
+        // Lógica de DIRECIONAMENTO 
         if (podeDirecionar) {
             const membrosSelect = document.getElementById('membros-select');
             const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
@@ -357,6 +370,7 @@
                         ...tarefa,
                         status: 'atribuida', 
                         atribuidaPara: membroSelecionado, 
+                        // dataAtribuicao precisa ser um timestamp ou string para cálculo de prazo
                         dataAtribuicao: new Date().toISOString() 
                     };
                     
@@ -378,7 +392,7 @@
         }
 
 
-        // Lógica de REMOÇÃO DE ATRIBUIÇÃO (só se for tarefa atribuída)
+        // Lógica de REMOÇÃO DE ATRIBUIÇÃO
         if (podeRemoverAtribuicao) {
             document.getElementById('btn-remover-atribuicao').onclick = async () => {
                 if (!confirm(`Tem certeza que deseja remover a atribuição da tarefa "${tarefa.nome}" de ${tarefa.atribuidaPara} e torná-la DISPONÍVEL novamente?`)) {
@@ -429,17 +443,33 @@
         };
     }
     
-    // [CÓDIGO DE CRIAÇÃO E RELÓGIO MANTIDO]
+    // Configuração do Popup de Criação de Tarefa
     const popupTarefa = document.getElementById('popup-tarefa');
     const btnSalvarTarefa = document.getElementById('btn-salvar-tarefa');
     const tarefaErro = document.getElementById('tarefa-erro');
     
+    /**
+     * AJUSTADO: Preenche os campos de Hora de Início e Fim com o horário atual (Brasília).
+     */
     document.getElementById('btn-criar-tarefa').onclick = () => {
+        // 1. Calcula o horário atual de Brasília
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        // Ajuste para UTC-3 (Horário de Brasília)
+        const brasilia = new Date(utc - (3 * 60 * 60 * 1000)); 
+        
+        const h = String(brasilia.getHours()).padStart(2, '0');
+        const m = String(brasilia.getMinutes()).padStart(2, '0');
+        const currentTime = `${h}:${m}`;
+        
+        // 2. Limpa e PREENCHE os campos
         document.getElementById('tarefa-nome').value = '';
-        document.getElementById('tarefa-inicio').value = '';
-        document.getElementById('tarefa-fim').value = '';
+        document.getElementById('tarefa-inicio').value = currentTime; // Preenchido com a hora atual
+        document.getElementById('tarefa-fim').value = currentTime;     // Preenchido com a hora atual
         document.getElementById('tarefa-valor').value = '';
         tarefaErro.textContent = '';
+        
+        // 3. Abre o popup
         popupTarefa.style.display = 'flex';
     };
     
@@ -447,6 +477,7 @@
         popupTarefa.style.display = 'none';
     };
     
+    // Salvar nova tarefa (FIRESTORE)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -479,6 +510,8 @@
         }
     };
     
+    
+    // Relógio horário de Brasília
     function startBrasiliaClockGerenciar() {
         function updateClock() {
             const now = new Date();
@@ -497,8 +530,6 @@
     window.addEventListener('DOMContentLoaded', () => {
         startBrasiliaClockGerenciar();
         renderGerenciarTarefas(); 
-        // A função renderGerenciarTarefas agora chama startCountdownTimers. 
-        // Mantemos o setInterval de 5s para recarregar a lista caso novas tarefas apareçam.
         setInterval(renderGerenciarTarefas, 5000); 
     });
     </script>
