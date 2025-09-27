@@ -43,7 +43,7 @@
             try {
                 // Filtra tarefas pelo nome do usuário E status 'atribuida' ou 'PendentePagamento'
                 const snapshot = await db.collection('tarefasAtribuidas')
-                    .where('atribuidaPara', '==', user.nome)
+                    .where('atribuidaPara', '==', user.nome) // Filtra pelo nome do usuário logado (string)
                     .where('status', 'in', ['atribuida', 'PendentePagamento'])
                     .get();
 
@@ -79,7 +79,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar minhas tarefas:", error);
-                // Instrução de índice para o administrador
+                // Instrução de índice para o administrador (mantida, pois pode ser necessária para o filtro composto)
                 lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, o administrador precisa criar um índice no Firebase para o filtro de tarefas.</p>`;
             }
         }

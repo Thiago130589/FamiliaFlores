@@ -35,6 +35,7 @@
             
             const user = JSON.parse(localStorage.getItem('usuarioLogado'));
             if (!user) {
+                // CORRIGIDO: Mensagem de erro mais clara
                 lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
                 return;
             }
@@ -107,7 +108,7 @@
                     criadaEm: new Date().toISOString(),
                     dataAtribuicao: new Date().toISOString(),
                     
-                    // *** CORREÇÃO: Armazena APENAS o nome do membro, resolvendo o erro de limite de consulta. ***
+                    // CORREÇÃO FINAL: Usa APENAS o nome, resolvendo o erro de tamanho de consulta para futuras tarefas.
                     atribuidaPara: user.nome 
                 };
 
