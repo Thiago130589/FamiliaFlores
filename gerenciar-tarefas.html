@@ -41,11 +41,11 @@
 
     <script>
     let popupOpcoesTarefa = null;
-    let tarefasCache = []; // Cache unificado: disponíveis + atribuídas
+    let tarefasCache = []; 
+    let countdownInterval = null; // Para controlar o loop do cronômetro
 
     /**
      * BUSCA MEMBROS NO FIRESTORE
-     * @returns {Promise<Array<{nome: string, id: string}>>} Lista de membros.
      */
     async function carregarMembrosFirestore() {
         if (typeof db === 'undefined') { return []; }
@@ -69,10 +69,7 @@
     }
 
     /**
-     * 🌟 NOVA LÓGICA DE STATUS E COR PARA ADMIN
-     * Determina o status visual da tarefa para o painel de Gerenciamento.
-     * @param {object} tarefa
-     * @returns {{statusTexto: string, corBotao: string, podeDirecionar: boolean, podeRemoverAtribuicao: boolean}}
+     * Determina o status visual da tarefa e a cor do botão.
      */
     function determinarStatusECor(tarefa) {
         let statusTexto = 'Disponível';
@@ -80,15 +77,13 @@
         let podeDirecionar = true;
         let podeRemoverAtribuicao = false;
 
-        // Se a tarefa já foi atribuída (está na coleção tarefasAtribuidas)
         if (tarefa.status === 'atribuida' || tarefa.atribuidaPara) {
             
-            podeDirecionar = false; // Não pode direcionar, já está atribuída
-            podeRemoverAtribuicao = true; // Pode remover a atribuição
+            podeDirecionar = false; 
+            podeRemoverAtribuicao = true; 
             
-            // Verifica o prazo
             if (tarefa.fim) {
-                // Junta a data de atribuição (apenas a data) com o horário de fim
+                // A data de atribuição (data do dia) é usada para definir o dia do prazo
                 const dataBase = tarefa.dataAtribuicao ? new Date(tarefa.dataAtribuicao.substring(0, 10)) : new Date();
                 const [h, m] = tarefa.fim.split(':').map(Number);
                 const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
@@ -96,22 +91,85 @@
                 const agora = new Date();
                 
                 if (agora > dataFim) {
-                    // Prazo ultrapassado
                     statusTexto = `ATRASADA | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#d32f2f'; // Vermelho (Atrasada)
                 } else {
-                    // Dentro do prazo
                     statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#4CAF50'; // Verde (Em andamento)
                 }
             } else {
-                 // Atribuída, mas sem prazo de fim
                 statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                 corBotao = '#4CAF50';
             }
         }
         
         return { statusTexto, corBotao, podeDirecionar, podeRemoverAtribuicao };
+    }
+
+
+    /**
+     * 🌟 NOVA FUNÇÃO: Inicia o cronômetro regressivo
+     */
+    function startCountdownTimers() {
+        // Limpa o intervalo anterior para evitar que múltiplos timers rodem
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        function updateTimers() {
+            const now = new Date();
+            let shouldReRender = false; // Flag para forçar a atualização da lista se um prazo expirar
+
+            tarefasCache.forEach(t => {
+                // Apenas tarefas atribuídas (que tem adminId)
+                if (t.atribuidaPara && t.adminId) {
+                    const { corBotao } = determinarStatusECor(t);
+                    const domId = t.adminId;
+                    const element = document.getElementById(`countdown-${domId}`);
+
+                    if (!element) return;
+                    
+                    if (corBotao === '#d32f2f') { // Atrasada
+                        element.textContent = 'EXPIRADO';
+                        return;
+                    }
+                    
+                    // Lógica para calcular o tempo restante
+                    const dataBase = t.dataAtribuicao ? new Date(t.dataAtribuicao.substring(0, 10)) : new Date();
+                    const [h, m] = t.fim.split(':').map(Number);
+                    const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
+                    
+                    let diffMs = dataFim.getTime() - now.getTime();
+
+                    if (diffMs <= 0) {
+                        element.textContent = 'EXPIRADO';
+                        shouldReRender = true; // Marca para renderizar novamente (mudará a cor do botão)
+                        return;
+                    }
+
+                    // Conversão para HH:MM:SS
+                    const totalSeconds = Math.floor(diffMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    const timeString = 
+                        String(hours).padStart(2, '0') + ':' + 
+                        String(minutes).padStart(2, '0') + ':' + 
+                        String(seconds).padStart(2, '0');
+
+                    element.textContent = timeString;
+                }
+            });
+
+            if (shouldReRender) {
+                // Se algum timer expirou, força a renderização para atualizar a cor dos botões.
+                renderGerenciarTarefas();
+            }
+        }
+        
+        updateTimers(); 
+        countdownInterval = setInterval(updateTimers, 1000); 
     }
 
 
@@ -130,16 +188,14 @@
             const dispSnapshot = await db.collection('tarefasDisponiveis').get();
             const dispTarefas = []; 
             dispSnapshot.forEach(doc => {
-                 // Usa o doc.id como ID da tarefa na cache
-                dispTarefas.push({ id: doc.id, ...doc.data() });
+                 dispTarefas.push({ id: doc.id, ...doc.data() });
             });
             
             // 2. LER tarefas atribuídas
             const atribSnapshot = await db.collection('tarefasAtribuidas').get();
             const atribTarefas = []; 
             atribSnapshot.forEach(doc => {
-                 // Adiciona um campo 'adminId' para identificar o doc na coleção 'atribuidas'
-                 // O ID do documento na coleção 'atribuidas' é diferente do ID original em 'disponiveis', mas o nome é o mesmo.
+                 // Usa adminId para o ID do documento na coleção atribuídas
                 atribTarefas.push({ id: doc.id, adminId: doc.id, ...doc.data() });
             });
 
@@ -151,18 +207,28 @@
                 return;
             }
             
-            // 4. RENDERIZAR a lista com as cores de status
+            // 4. RENDERIZAR a lista com os novos detalhes e cores de status
             lista.innerHTML = tarefasCache.map((t) => {
                 const { statusTexto, corBotao } = determinarStatusECor(t);
+                // domId é o ID do documento na coleção atual
+                const domId = t.adminId || t.id; 
+                
+                // 🌟 Novo: Placeholder do Cronômetro (apenas para tarefas em andamento)
+                const isAssignedAndNotOverdue = t.atribuidaPara && corBotao !== '#d32f2f';
+                const timerPlaceholder = isAssignedAndNotOverdue
+                                        ? `<span id="countdown-${domId}" style="color: #d32f2f; font-weight: bold; margin-left: 10px;">--:--:--</span>` 
+                                        : '';
 
                 return `
                     <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
                         <div>
                             <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
                             <br>
-                            <span style="color: #888; font-size: 0.9rem;">${statusTexto}</span>
+                            <span style="color: #888; font-size: 0.9rem;">Horário: ${t.inicio} - ${t.fim}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">${statusTexto} ${timerPlaceholder}</span>
                         </div>
-                        <button class="btn-rounded btn-opcoes-tarefa" data-id="${t.id}" data-collection="${t.atribuidaPara ? 'tarefasAtribuidas' : 'tarefasDisponiveis'}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: ${corBotao}; color: #fff;">Opções</button>
+                        <button class="btn-rounded btn-opcoes-tarefa" data-id="${domId}" data-collection="${t.atribuidaPara ? 'tarefasAtribuidas' : 'tarefasDisponiveis'}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: ${corBotao}; color: #fff;">Opções</button>
                     </div>
                 `;
             }).join('');
@@ -175,6 +241,9 @@
                     abrirPopupOpcoesTarefa(id, collection);
                 };
             });
+            
+            // 🌟 Novo: Inicia o cronômetro após a lista ser renderizada
+            startCountdownTimers();
 
         } catch (error) {
             console.error("Erro ao carregar tarefas do Firestore:", error);
@@ -186,15 +255,10 @@
      * Lógica de Direcionamento/Exclusão
      */
     async function abrirPopupOpcoesTarefa(tarefaId, collection) {
-        // Encontra a tarefa correta (pelo ID) no cache
-        const tarefa = tarefasCache.find(t => t.id === tarefaId && (collection === 'tarefasDisponiveis' ? !t.atribuidaPara : t.atribuidaPara));
+        // Encontra a tarefa correta no cache usando o ID do documento e a coleção (adminId ou original ID)
+        const tarefa = tarefasCache.find(t => (t.adminId === tarefaId && collection === 'tarefasAtribuidas') || (t.id === tarefaId && collection === 'tarefasDisponiveis'));
+        
         if (!tarefa) {
-             // Se for uma tarefa atribuída, o ID é o adminId (ID do documento na coleção atribuídas)
-             const atribuida = tarefasCache.find(t => t.adminId === tarefaId && t.atribuidaPara);
-             if (atribuida) {
-                 abrirPopupOpcoesTarefa(atribuida.adminId, 'tarefasAtribuidas');
-                 return;
-             }
              alert("Tarefa não encontrada no cache.");
              return;
         }
@@ -203,7 +267,7 @@
         const isAtribuida = !podeDirecionar;
         const colecaoAtual = isAtribuida ? 'tarefasAtribuidas' : 'tarefasDisponiveis';
 
-        // Cria o popup apenas na primeira vez
+        // Cria o popup (código omitido para brevidade, mas o que você já tinha)
         if (!popupOpcoesTarefa) {
             popupOpcoesTarefa = document.createElement('div');
             popupOpcoesTarefa.id = 'popup-opcoes-tarefa';
@@ -256,7 +320,7 @@
         const msgDiv = document.getElementById('direcionamento-mensagem');
         document.getElementById('btn-fechar-popup-opcoes').onclick = () => { popupOpcoesTarefa.style.display = 'none'; };
 
-        // 🌟 Lógica de DIRECIONAMENTO (só se for tarefa disponível)
+        // Lógica de DIRECIONAMENTO (só se for tarefa disponível)
         if (podeDirecionar) {
             const membrosSelect = document.getElementById('membros-select');
             const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
@@ -293,17 +357,13 @@
                         ...tarefa,
                         status: 'atribuida', 
                         atribuidaPara: membroSelecionado, 
-                        // dataAtribuicao precisa ser um timestamp ou string para cálculo de prazo
                         dataAtribuicao: new Date().toISOString() 
                     };
                     
-                    // Remove o ID antigo para não salvar como campo. O Firestore criará um novo.
                     delete tarefaAtribuida.id; 
 
                     await db.runTransaction(async (transaction) => {
-                        // Adiciona na coleção de tarefas atribuídas
                         await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
-                        // Remove da coleção de tarefas disponíveis
                         await transaction.delete(db.collection('tarefasDisponiveis').doc(tarefaId));
                     });
                     
@@ -318,7 +378,7 @@
         }
 
 
-        // 🌟 Lógica de REMOÇÃO DE ATRIBUIÇÃO (só se for tarefa atribuída)
+        // Lógica de REMOÇÃO DE ATRIBUIÇÃO (só se for tarefa atribuída)
         if (podeRemoverAtribuicao) {
             document.getElementById('btn-remover-atribuicao').onclick = async () => {
                 if (!confirm(`Tem certeza que deseja remover a atribuição da tarefa "${tarefa.nome}" de ${tarefa.atribuidaPara} e torná-la DISPONÍVEL novamente?`)) {
@@ -326,21 +386,16 @@
                 }
                 
                 try {
-                    // Prepara a tarefa para voltar à coleção de disponíveis
                     const tarefaDisponivel = {
                         nome: tarefa.nome,
                         inicio: tarefa.inicio,
                         fim: tarefa.fim,
                         valor: tarefa.valor,
                         criadaEm: tarefa.criadaEm,
-                        // Remove campos específicos de atribuição
                     };
 
                     await db.runTransaction(async (transaction) => {
-                        // Adiciona na coleção de tarefas disponíveis
-                        // Nota: Um novo ID será criado na coleção de disponíveis.
                         await transaction.set(db.collection('tarefasDisponiveis').doc(), tarefaDisponivel);
-                        // Remove da coleção de tarefas atribuídas (usa o ID do documento nessa coleção)
                         await transaction.delete(db.collection('tarefasAtribuidas').doc(tarefaId));
                     });
 
@@ -356,11 +411,10 @@
         }
 
 
-        // Lógica de Exclusão (Funciona para as duas coleções)
+        // Lógica de Exclusão 
         document.getElementById('btn-excluir-tarefa').onclick = async () => {
              if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}" permanentemente?`)) {
                  try {
-                     // Usa o ID do documento na coleção correta
                      await db.collection(colecaoAtual).doc(tarefaId).delete(); 
                      
                      popupOpcoesTarefa.style.display = 'none';
@@ -375,7 +429,7 @@
         };
     }
     
-    // Configuração do Popup de Criação de Tarefa (Mantida)
+    // [CÓDIGO DE CRIAÇÃO E RELÓGIO MANTIDO]
     const popupTarefa = document.getElementById('popup-tarefa');
     const btnSalvarTarefa = document.getElementById('btn-salvar-tarefa');
     const tarefaErro = document.getElementById('tarefa-erro');
@@ -393,7 +447,6 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar nova tarefa (FIRESTORE)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -419,15 +472,13 @@
             popupTarefa.style.display = 'none';
             tarefaErro.textContent = '';
             alert(`Tarefa "${nome}" criada com sucesso!`);
-            renderGerenciarTarefas(); // Atualiza a lista após salvar
+            renderGerenciarTarefas(); 
         } catch (error) {
             console.error("Erro ao salvar tarefa no Firestore:", error);
             tarefaErro.textContent = `Erro ao salvar tarefa: ${error.message}`;
         }
     };
     
-    
-    // Relógio horário de Brasília (Mantido)
     function startBrasiliaClockGerenciar() {
         function updateClock() {
             const now = new Date();
@@ -445,9 +496,9 @@
     // Inicialização principal
     window.addEventListener('DOMContentLoaded', () => {
         startBrasiliaClockGerenciar();
-        
-        // Chama a renderização imediatamente e repete a cada 5 segundos
         renderGerenciarTarefas(); 
+        // A função renderGerenciarTarefas agora chama startCountdownTimers. 
+        // Mantemos o setInterval de 5s para recarregar a lista caso novas tarefas apareçam.
         setInterval(renderGerenciarTarefas, 5000); 
     });
     </script>
