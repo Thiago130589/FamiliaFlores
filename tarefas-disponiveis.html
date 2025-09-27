@@ -25,17 +25,48 @@
     <script>
     let usuarioAtual = null;
 
-    // Função auxiliar para obter o usuário logado
+    // ************************************************************
+    // 🌟 CORREÇÃO APLICADA AQUI 🌟
+    // Agora a função força a extração apenas do nome, resolvendo o problema 
+    // de salvar o objeto JSON completo no Firestore.
+    // ************************************************************
+    /**
+     * Retorna APENAS o nome do usuário logado, como uma string simples,
+     * para ser usado no campo atribuidaPara do Firestore.
+     * @returns {string | null} O nome do usuário.
+     */
     function getUsuarioAtual() {
-        return localStorage.getItem('usuarioLogado');
+        const storedValue = localStorage.getItem('usuarioLogado');
+        if (!storedValue) return null;
+        
+        // Tenta TRATAR como JSON (caso tenha sido salvo como o objeto completo)
+        try {
+            const obj = JSON.parse(storedValue);
+            
+            // Verifica se o JSON tem a propriedade 'nome'
+            if (obj && obj.nome && typeof obj.nome === 'string') {
+                return obj.nome.trim(); // Retorna SÓ A STRING do nome.
+            }
+            
+        } catch (e) {
+            // Se falhar, é porque o valor é uma string simples (o que queremos)
+        }
+        
+        // Retorna o valor como string (o caso ideal)
+        if (typeof storedValue === 'string') {
+            return storedValue.trim();
+        }
+        
+        return null; 
     }
+    // ************************************************************
 
     /**
      * Função para exibir a lista de tarefas disponíveis.
      */
     async function renderTarefasDisponiveis() {
         const lista = document.getElementById('tarefas-disponiveis-lista');
-        usuarioAtual = getUsuarioAtual();
+        usuarioAtual = getUsuarioAtual(); // Usa a função corrigida
 
         if (!usuarioAtual) {
             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
@@ -98,6 +129,7 @@
             return;
         }
 
+        // Já tem o nome do usuário garantido pela getUsuarioAtual()
         if (!usuarioAtual) {
             alert("Erro: Usuário não identificado. Faça login novamente.");
             window.location.href = 'index.html'; 
@@ -122,7 +154,7 @@
                 const tarefaAtribuida = {
                     ...tarefaOriginal,
                     status: 'atribuida', 
-                    atribuidaPara: usuarioAtual, // Atribui ao nome do usuário logado
+                    atribuidaPara: usuarioAtual, // ATRIBUI APENAS A STRING DO NOME!
                     dataAtribuicao: new Date().toISOString() 
                 };
                 
