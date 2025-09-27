@@ -23,33 +23,40 @@
 
     <div id="profile-container" class="center-box" style="display: none; padding: 32px 32px; max-width: 700px; align-items: flex-start;">
         <div class="profile-layout">
-            <div class="profile-foto-col">
+            
+                        <div class="profile-foto-col">
                 <img id="profile-foto" src="" alt="Foto" class="profile-foto-large">
                 <div class="profile-info">
                     <span id="profile-nome" class="profile-nome"></span>
                     <span id="profile-status" class="profile-status"></span>
                 </div>
                 <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
-                
-                <div id="admin-links" class="admin-links-vertical">
-                    <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
-                    <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>
-                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
-                    <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
-                    <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
-                </div>
             </div>
             
                         <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; align-items: start; max-width: 300px; padding-top: 5px;">
                 
-                                <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 1;">Tarefas disponíveis</a>
-                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 2;">Minhas tarefas</a>
+                                <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 1;">Tarefas Disponíveis</a>
+                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 2;">Minhas Tarefas</a>
 
-                                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 1; background-color: #28a745; color: white; padding: 6px 10px; border-radius: 4px; text-align: center;">Tarefas Concluídas</a>
-                <a href="#" onclick="carteira()" class="profile-link" style="grid-column: 2;">Carteira</a>
-                
-                                <a href="#" onclick="sairPerfil()" class="profile-link sair" style="grid-column: 2; margin-top: 15px; text-align: right;">Sair</a>
+                                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 1;">Tarefas Concluídas</a>
+                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 2;">Tarefas Pendentes</a>
             </div>
+
+            <div style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                
+                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px;">
+                    <a href="#" onclick="carteira()" class="profile-link" style="color: #d32f2f; font-size: 1.5rem; font-weight: bold;">Carteira</a>
+                    <a href="#" onclick="sairPerfil()" class="profile-link">Sair</a>
+                </div>
+
+                                <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
+                    <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
+                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
+                    <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
+                    <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -211,6 +218,7 @@
         const isAdmin = (user.nome && user.nome.toLowerCase() === 'thiago') || (user.isAdmin === true);
         
         document.getElementById('profile-status').innerText = isAdmin ? 'Administrador' : 'Membro';
+        // Controla a visibilidade da div de links de admin
         document.getElementById('admin-links').style.display = isAdmin ? 'flex' : 'none';
         startBrasiliaClock();
     }
