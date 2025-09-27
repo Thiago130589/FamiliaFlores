@@ -1,57 +1,161 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Tarefas Disponíveis</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>Tarefas Disponíveis</title>
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: flex-start;">
-        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-            <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Tarefas Disponíveis</h1>
-            <div id="tarefas-clock" style="font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
-        </div>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        <div id="tarefas-lista" style="width: 100%; min-height: 200px;"></div>
-        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
-    </div>
-    <script>
-    // Relógio horário de Brasília
-    function startBrasiliaClockTarefas() {
-        function updateClock() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
-            const h = String(brasilia.getHours()).padStart(2, '0');
-            const m = String(brasilia.getMinutes()).padStart(2, '0');
-            const s = String(brasilia.getSeconds()).padStart(2, '0');
-            document.getElementById('tarefas-clock').textContent = `${h}:${m}:${s} (Brasília)`;
-        }
-        updateClock();
-        setInterval(updateClock, 1000);
-    }
-    startBrasiliaClockTarefas();
+    <div class="center-box" style="max-width: 700px; min-width: 400px;">
+        <h1 style="color: #1976d2; font-size: 2.2rem;">Tarefas Disponíveis</h1>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        <div id="lista-tarefas-disponiveis" style="width: 100%; min-height: 100px;">
+            <p style="text-align: center; color: #555;">Carregando tarefas...</p>
+        </div>
 
-    // Exibir tarefas disponíveis
-    function renderTarefasDisponiveis() {
-        const lista = document.getElementById('tarefas-lista');
-        let tarefas = JSON.parse(localStorage.getItem('tarefasDisponiveis') || '[]');
-        if (!tarefas.length) {
-            lista.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma tarefa disponível no momento.</p>';
-            return;
-        }
-        lista.innerHTML = tarefas.map((t, i) => `
-            <div style="background: #f3f3f3; border-radius: 12px; margin: 12px 0; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px;">
-                <strong style="color: #1976d2; font-size: 1.1rem;">${t.nome}</strong>
-                <span>Início: <b>${t.inicio}</b> &nbsp;|&nbsp; Fim: <b>${t.fim}</b></span>
-                <span>Valor: <b>R$ ${parseFloat(t.valor).toFixed(2)}</b></span>
-            </div>
-        `).join('');
-    }
-    window.addEventListener('storage', renderTarefasDisponiveis);
-    window.addEventListener('focus', renderTarefasDisponiveis);
-    renderTarefasDisponiveis();
-    setInterval(renderTarefasDisponiveis, 2000);
-    </script>
+        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
+    </div>
+
+    <script>
+    const listaDiv = document.getElementById('lista-tarefas-disponiveis');
+    let usuarioLogado = null;
+
+    // --- Funções de Ajuda ---
+    
+    /**
+     * Carrega e retorna os dados do usuário logado do localStorage.
+     */
+    function getUsuarioLogado() {
+        try {
+            const userStr = localStorage.getItem('usuarioLogado');
+            if (userStr) {
+                return JSON.parse(userStr);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar usuário logado:", e);
+        }
+        return null;
+    }
+
+    // --- Lógica Principal: Renderização e Ação (AGORA FIREBASE) ---
+
+    /**
+     * Função principal para exibir as tarefas disponíveis do Firestore.
+     */
+    async function renderTarefasDisponiveis() {
+        listaDiv.innerHTML = '<p style="text-align: center; color: #555;">Carregando tarefas...</p>';
+        
+        try {
+            // BUSCA AS TAREFAS NA COLEÇÃO 'tarefasDisponiveis'
+            const snapshot = await db.collection('tarefasDisponiveis').get();
+            let tarefasDisponiveis = [];
+            
+            snapshot.forEach(doc => {
+                // Inclui o ID do documento (que é crucial para a remoção) e os dados da tarefa
+                tarefasDisponiveis.push({ id: doc.id, ...doc.data() });
+            });
+            
+            if (!tarefasDisponiveis.length) {
+                listaDiv.innerHTML = '<p style="color: #888; text-align: center;">Não há tarefas disponíveis no momento.</p>';
+                return;
+            }
+
+            listaDiv.innerHTML = tarefasDisponiveis.map((tarefa, index) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                    <div>
+                        <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${tarefa.nome}</span>
+                        <div style="font-size: 0.9rem; color: #555;">
+                            Horário: ${tarefa.inicio} até ${tarefa.fim} | Valor: R$ ${parseFloat(tarefa.valor).toFixed(2)}
+                        </div>
+                    </div>
+                    <button class="btn-rounded btn-pegar-tarefa" data-id="${tarefa.id}" style="width: 100px; max-width: 90vw; font-size: 1rem; margin-left: 18px;">Pegar</button>
+                </div>
+            `).join('');
+
+            // Adiciona o evento de clique aos botões 'Pegar'
+            document.querySelectorAll('.btn-pegar-tarefa').forEach(btn => {
+                btn.onclick = function() {
+                    const tarefaId = this.getAttribute('data-id');
+                    const tarefaData = tarefasDisponiveis.find(t => t.id === tarefaId);
+                    if(tarefaData) {
+                         pegarTarefa(tarefaData);
+                    } else {
+                         alert('Erro ao identificar a tarefa para pegar.');
+                    }
+                };
+            });
+            
+        } catch (error) {
+            console.error("Erro ao carregar tarefas disponíveis do Firestore:", error);
+            listaDiv.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. Verifique o console.</p>';
+        }
+    }
+
+    /**
+     * Move a tarefa do Firestore: tarefasDisponiveis -> tarefasAtribuidas.
+     * @param {object} tarefa - O objeto da tarefa, incluindo o ID do documento (tarefa.id).
+     */
+    async function pegarTarefa(tarefa) {
+        if (!usuarioLogado) {
+            alert('Erro: Usuário não identificado. Por favor, faça login novamente.');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        const membroNome = usuarioLogado.nome;
+        listaDiv.innerHTML = '<p style="text-align: center; color: #1976d2;">Movendo tarefa...</p>';
+
+
+        try {
+            // 1. Remove da coleção 'tarefasDisponiveis'
+            await db.collection('tarefasDisponiveis').doc(tarefa.id).delete();
+            
+            // 2. Adiciona na coleção 'tarefasAtribuidas' do usuário
+            const tarefaAtribuida = { 
+                ...tarefa, 
+                // Remove o ID do documento original para não causar conflito na nova coleção
+                id: firebase.firestore.FieldValue.delete(), 
+                status: 'pendente', 
+                atribuidaPara: membroNome,
+                atribuidaEm: new Date().toISOString() 
+            };
+            
+            // Adiciona um novo documento na coleção 'tarefasAtribuidas'
+            await db.collection('tarefasAtribuidas').add(tarefaAtribuida);
+
+
+            alert(`Você pegou a tarefa: "${tarefa.nome}"! Ela está agora em "Minhas Tarefas".`);
+            
+            // 3. Atualiza a exibição
+            renderTarefasDisponiveis(); 
+
+        } catch (error) {
+            console.error("Erro ao pegar/mover tarefa no Firestore:", error);
+            alert(`Erro ao pegar a tarefa. Por favor, tente novamente. Detalhes: ${error.message}`);
+            renderTarefasDisponiveis(); // Tenta re-renderizar para o estado inicial
+        }
+    }
+
+    // --- Inicialização ---
+
+    window.addEventListener('DOMContentLoaded', () => {
+        // Carrega o usuário logado e garante que ele existe
+        usuarioLogado = getUsuarioLogado();
+        if (!usuarioLogado) {
+            alert('Você precisa estar logado para ver as tarefas disponíveis.');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Garante que a tela de tarefas é atualizada se houver alterações no Firestore
+        renderTarefasDisponiveis(); 
+    });
+
+    </script>
 </body>
 </html>
