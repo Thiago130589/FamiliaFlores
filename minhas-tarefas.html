@@ -11,70 +11,246 @@
     <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center;">
-        <h1 style="color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        
         <div id="minhas-tarefas-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando suas tarefas...</p>
+            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
         </div>
 
-        <a href="index.html" class="btn-rounded" style="width: 200px; margin: 32px auto 0 auto; text-align: center;">Voltar ao perfil</a>
+        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
     </div>
 
     <script>
-    // Obtém o nome do usuário logado do localStorage
-    const USUARIO_LOGADO = localStorage.getItem('user_nome'); 
-    
-    if (!USUARIO_LOGADO) {
-        document.getElementById('minhas-tarefas-lista').innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Usuário não identificado. Por favor, faça login.</p>';
+    let usuarioAtual = null;
+    let tarefasCache = []; 
+    let countdownInterval = null;
+
+    function getUsuarioAtual() {
+        return localStorage.getItem('usuarioLogado');
     }
 
     /**
-     * Função para exibir a lista de tarefas atribuídas ao usuário logado.
+     * Determina o status visual da tarefa e a cor do botão.
+     * @param {object} tarefa
+     * @returns {{statusTexto: string, corBotao: string, podeConcluir: boolean}}
+     */
+    function determinarStatusECor(tarefa) {
+        let statusTexto = 'Em andamento';
+        let corBotao = '#4CAF50'; // Verde (Em andamento)
+        let podeConcluir = true;
+
+        // A tarefa já está atribuída, verificamos apenas o prazo
+        if (tarefa.fim && tarefa.data) { 
+            // Junta a data da tarefa com o horário de fim
+            const dataString = tarefa.data; 
+            const [ano, mes, dia] = dataString.split('-').map(Number);
+            const [h, m] = tarefa.fim.split(':').map(Number);
+            
+            // Cria a data de fim (mês é 0-indexed no JS)
+            const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
+            
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
+            
+            if (agora > dataFim) {
+                statusTexto = `ATRASADA`;
+                corBotao = '#d32f2f'; // Vermelho (Atrasada)
+            } 
+        }
+        
+        return { statusTexto, corBotao, podeConcluir };
+    }
+
+
+    /**
+     * Inicia o cronômetro regressivo
+     */
+    function startCountdownTimers() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        function updateTimers() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
+            let shouldReRender = false; 
+
+            tarefasCache.forEach(t => {
+                // Apenas tarefas com data e fim (para que o cálculo seja possível)
+                if (t.data && t.fim) {
+                    const { corBotao } = determinarStatusECor(t);
+                    const element = document.getElementById(`countdown-${t.id}`);
+
+                    if (!element) return;
+                    
+                    if (corBotao === '#d32f2f') { // Atrasada
+                        element.textContent = 'EXPIRADO';
+                        return;
+                    }
+                    
+                    // Lógica para calcular o tempo restante
+                    const dataString = t.data; 
+                    const [ano, mes, dia] = dataString.split('-').map(Number);
+                    const [h, m] = t.fim.split(':').map(Number);
+                    const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
+                    
+                    let diffMs = dataFim.getTime() - agora.getTime(); 
+
+                    if (diffMs <= 0) {
+                        element.textContent = 'EXPIRADO';
+                        shouldReRender = true; // Força a lista a atualizar a cor para vermelho
+                        return;
+                    }
+
+                    // Conversão para HH:MM:SS
+                    const totalSeconds = Math.floor(diffMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    const timeString = 
+                        String(hours).padStart(2, '0') + ':' + 
+                        String(minutes).padStart(2, '0') + ':' + 
+                        String(seconds).padStart(2, '0');
+
+                    element.textContent = timeString;
+                }
+            });
+
+            if (shouldReRender) {
+                renderMinhasTarefas();
+            }
+        }
+        
+        updateTimers(); 
+        countdownInterval = setInterval(updateTimers, 1000); 
+    }
+
+
+    /**
+     * Função para exibir a lista de tarefas ATRIBUÍDAS ao usuário logado.
      */
     async function renderMinhasTarefas() {
         const lista = document.getElementById('minhas-tarefas-lista');
-        // Sai se o DB não estiver pronto ou o usuário não estiver logado
-        if (!USUARIO_LOGADO || !db) { return; }
+        usuarioAtual = getUsuarioAtual();
 
-        lista.innerHTML = '<p style="color: #888; text-align: center;">Buscando tarefas para ' + USUARIO_LOGADO + '...</p>';
+        if (!usuarioAtual) {
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            return;
+        }
+
+        if (typeof db === 'undefined') {
+             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
+             return;
+        }
 
         try {
-            // LER a coleção 'tarefasAtribuidas' e FILTRAR pelo nome do usuário logado
+            // 1. Consulta filtrada para o usuário atual
             const snapshot = await db.collection('tarefasAtribuidas')
-                                     .where('atribuidaPara', '==', USUARIO_LOGADO)
+                                     .where('atribuidaPara', '==', usuarioAtual)
                                      .get();
-            
-            const tarefas = [];
+                                     
+            tarefasCache = [];
             snapshot.forEach(doc => {
-                tarefas.push({ id: doc.id, ...doc.data() }); 
+                 tarefasCache.push({ id: doc.id, ...doc.data() });
             });
 
-            if (!tarefas.length) {
-                lista.innerHTML = '<p style="color: #888; text-align: center;">Você não possui tarefas atribuídas no momento.</p>';
+            if (tarefasCache.length === 0) {
+                lista.innerHTML = `<p style="color: #888; text-align: center;">Você não tem tarefas atribuídas no momento.</p>`;
+                // Parar o cronômetro se não houver tarefas
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
                 return;
             }
             
-            // RENDERIZAR a lista de tarefas do membro
-            lista.innerHTML = tarefas.map((t) => `
-                <div style="display: flex; flex-direction: column; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                        <span style="font-weight: bold; color: #4CAF50;">R$ ${t.valor}</span>
+            // 2. RENDERIZAR a lista
+            lista.innerHTML = tarefasCache.map((t) => {
+                const { statusTexto, corBotao } = determinarStatusECor(t);
+                
+                // Formata a data (DD/MM/YYYY)
+                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+                
+                // Exibe o cronômetro (ou "EXPIRADO")
+                const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
+
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                        <div>
+                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Prazo: ${t.inicio} - ${t.fim}</span>
+                            <br>
+                            <span style="color: ${corBotao}; font-size: 0.9rem; font-weight: bold;">${statusTexto}</span> ${timerPlaceholder}
+                        </div>
+                        <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #28a745; color: #fff;">Concluir</button>
                     </div>
-                    <small style="color: #555; margin-top: 5px;">Horário: ${t.inicio} - ${t.fim} | Status: ${t.status}</small>
-                    <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" style="width: 140px; margin-top: 10px; font-size: 1rem; background: #2196F3; color: #fff;">Concluir Tarefa</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+            
+            // 3. Adiciona eventos e inicia o cronômetro
+            document.querySelectorAll('.btn-concluir-tarefa').forEach(btn => {
+                btn.onclick = function() {
+                    const id = this.getAttribute('data-id');
+                    concluirTarefa(id);
+                };
+            });
+            
+            startCountdownTimers();
 
         } catch (error) {
-            console.error("Erro ao carregar Minhas Tarefas:", error);
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar suas tarefas.</p>';
+            console.error("Erro ao carregar minhas tarefas:", error);
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas.</p>';
         }
     }
-    
-    // Inicia a renderização ao carregar a página
-    window.onload = renderMinhasTarefas;
+
+    /**
+     * Move a tarefa de "Atribuidas" para "Concluidas"
+     */
+    async function concluirTarefa(tarefaId) {
+        const tarefa = tarefasCache.find(t => t.id === tarefaId);
+        if (!tarefa) {
+            alert("Erro: Tarefa não encontrada.");
+            return;
+        }
+        
+        if (!confirm(`Confirmar a conclusão da tarefa "${tarefa.nome}"?`)) {
+            return;
+        }
+
+        try {
+            const tarefaConcluida = {
+                ...tarefa,
+                status: 'concluida', 
+                dataConclusao: new Date().toISOString()
+            };
+            
+            delete tarefaConcluida.id; // Remover o ID do documento original
+
+            await db.runTransaction(async (transaction) => {
+                // 1. Cria a tarefa na coleção 'tarefasConcluidas'
+                await transaction.set(db.collection('tarefasConcluidas').doc(), tarefaConcluida);
+                
+                // 2. Deleta a tarefa da coleção 'tarefasAtribuidas'
+                await transaction.delete(db.collection('tarefasAtribuidas').doc(tarefaId));
+            });
+            
+            alert(`Tarefa "${tarefa.nome}" concluída com sucesso!`);
+            renderMinhasTarefas(); // Atualiza a lista
+        } catch (error) {
+            console.error("Erro ao concluir a tarefa:", error);
+            alert(`Não foi possível concluir a tarefa: ${error.message}`);
+        }
+    }
+
+    // Inicialização principal
+    window.addEventListener('DOMContentLoaded', () => {
+        renderMinhasTarefas();
+    });
     </script>
 </body>
 </html>
