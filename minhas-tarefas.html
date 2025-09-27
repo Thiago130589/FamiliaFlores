@@ -27,10 +27,26 @@
     let tarefasCache = []; 
     let countdownInterval = null;
 
+    // 🌟 ALTERADO: Funcao que garante que apenas o nome simples (string) seja retornado.
     function getUsuarioAtual() {
-        // Pega o nome do usuário logado (ex: "Lucas")
-        return localStorage.getItem('usuarioLogado');
+        const storedValue = localStorage.getItem('usuarioLogado');
+        if (!storedValue) return null;
+        
+        try {
+            // Se o valor armazenado for um JSON, tente extrair o campo 'nome'.
+            const obj = JSON.parse(storedValue);
+            if (obj && obj.nome) {
+                return String(obj.nome).trim();
+            }
+        } catch (e) {
+            // Se falhar, é uma string simples (o caso ideal)
+            return String(storedValue).trim(); 
+        }
+        
+        // Retorna a string simples como fallback
+        return String(storedValue).trim();
     }
+    // FIM ALTERADO
 
     /**
      * Determina o status visual da tarefa e a cor do botão.
@@ -39,7 +55,7 @@
      */
     function determinarStatusECor(tarefa) {
         let statusTexto = 'Em andamento';
-        let corBotao = '#4CAF50'; // Verde (Em andamento)
+        let corBotao = '#4CAF50'; 
         let podeConcluir = true;
 
         if (tarefa.fim && tarefa.data) { 
@@ -47,7 +63,6 @@
             const [ano, mes, dia] = dataString.split('-').map(Number);
             const [h, m] = tarefa.fim.split(':').map(Number);
             
-            // Cria a data de fim (mês é 0-indexed no JS)
             const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
             
             const now = new Date();
@@ -56,7 +71,7 @@
             
             if (agora > dataFim) {
                 statusTexto = `ATRASADA`;
-                corBotao = '#d32f2f'; // Vermelho (Atrasada)
+                corBotao = '#d32f2f'; 
             } 
         }
         
@@ -75,18 +90,17 @@
         function updateTimers() {
             const now = new Date();
             const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); 
             let shouldReRender = false; 
 
             tarefasCache.forEach(t => {
                 if (t.data && t.fim) {
                     const { corBotao } = determinarStatusECor(t);
-                    // O ID do elemento é o ID do documento do Firestore
                     const element = document.getElementById(`countdown-${t.id}`); 
 
                     if (!element) return;
                     
-                    if (corBotao === '#d32f2f') { // Atrasada
+                    if (corBotao === '#d32f2f') { 
                         element.textContent = 'EXPIRADO';
                         return;
                     }
@@ -104,7 +118,6 @@
                         return;
                     }
 
-                    // Conversão para HH:MM:SS
                     const totalSeconds = Math.floor(diffMs / 1000);
                     const hours = Math.floor(totalSeconds / 3600);
                     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -147,14 +160,13 @@
         }
 
         try {
-            // 1. Consulta filtrada para o usuário atual (EXIGE O ÍNDICE)
+            // A consulta requer o valor de usuarioAtual seja uma string simples e o índice
             const snapshot = await db.collection('tarefasAtribuidas')
                                      .where('atribuidaPara', '==', usuarioAtual)
                                      .get();
                                      
             tarefasCache = [];
             snapshot.forEach(doc => {
-                 // Armazena o ID do documento para uso no botão Concluir e no cronômetro
                  tarefasCache.push({ id: doc.id, ...doc.data() }); 
             });
 
@@ -172,7 +184,6 @@
                 
                 const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
                 
-                // Cronômetro usa o ID do documento
                 const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
 
                 return `
@@ -201,8 +212,8 @@
 
         } catch (error) {
             console.error("Erro ao carregar minhas tarefas:", error);
-            // Mensagem mais informativa sobre o erro de filtro (índice)
-            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. Se o erro persistir, o administrador precisa criar um índice no Firebase para o filtro de tarefas.</p>`;
+            // Mensagem atualizada: agora o problema é o valor muito grande, não mais o índice.
+            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. O valor do usuário atribuído parece ser muito grande. O administrador precisa limpar o 'localStorage' e refazer o login.</p>`;
         }
     }
 
@@ -230,10 +241,7 @@
             delete tarefaConcluida.id; 
 
             await db.runTransaction(async (transaction) => {
-                // 1. Cria a tarefa na coleção 'tarefasConcluidas'
                 await transaction.set(db.collection('tarefasConcluidas').doc(), tarefaConcluida);
-                
-                // 2. Deleta a tarefa da coleção 'tarefasAtribuidas'
                 await transaction.delete(db.collection('tarefasAtribuidas').doc(tarefaId));
             });
             
