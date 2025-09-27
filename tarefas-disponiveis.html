@@ -22,11 +22,20 @@
     </div>
 
     <script>
-    // Obtém o nome do usuário logado do localStorage (o campo 'nome' do Firestore)
+    // Obtém o nome do usuário logado do localStorage
     const USUARIO_LOGADO = localStorage.getItem('user_nome'); 
     
+    // Se o USUARIO_LOGADO não estiver definido, mostre o erro e interrompa a execução do script.
     if (!USUARIO_LOGADO) {
         document.getElementById('tarefas-lista').innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+        
+        // Esta é a razão do erro que você viu. Retorna aqui.
+        window.onload = function() {
+            document.getElementById('tarefas-lista').innerHTML = '<div style="color: #d32f2f; font-size: 1.2rem; margin: 30px 0;">ERRO: Usuário não identificado. Faça login novamente.</div>';
+            document.querySelector('.center-box h1').style.display = 'none'; // Esconde o título
+            document.querySelector('.center-box hr').style.display = 'none'; // Esconde a linha
+        };
+        throw new Error("Usuário não logado. Abortando carregamento de tarefas.");
     }
 
     /**
@@ -34,6 +43,7 @@
      * @param {string} tarefaId - ID do documento da tarefa no Firestore.
      */
     async function pegarTarefa(tarefaId) {
+        // Agora, se o USUARIO_LOGADO estiver vazio, o script nem chega aqui, mas mantemos por segurança.
         if (!USUARIO_LOGADO) {
             alert("Erro: Você precisa estar logado para pegar uma tarefa.");
             return;
@@ -44,7 +54,7 @@
         }
 
         try {
-            // 1. Obtém os dados da tarefa disponível
+            // ... (Resto da lógica de transação que move a tarefa. Esta parte já estava correta.)
             const tarefaDoc = await db.collection('tarefasDisponiveis').doc(tarefaId).get();
             if (!tarefaDoc.exists) {
                 alert("Tarefa não encontrada.");
@@ -54,25 +64,20 @@
 
             const dadosTarefa = tarefaDoc.data();
             
-            // 2. Prepara a nova tarefa para a coleção 'tarefasAtribuidas'
             const tarefaAtribuida = {
                 ...dadosTarefa,
                 status: 'atribuida', 
-                atribuidaPara: USUARIO_LOGADO, // Atribui ao usuário logado
+                atribuidaPara: USUARIO_LOGADO, 
                 dataAtribuicao: new Date().toISOString()
             };
 
-            // 3. Usa uma transação para garantir que a cópia e a exclusão sejam atômicas
             await db.runTransaction(async (transaction) => {
-                // Copia (Adiciona) a tarefa à coleção 'tarefasAtribuidas'
                 await transaction.set(db.collection('tarefasAtribuidas').doc(), tarefaAtribuida);
-                
-                // Exclui a tarefa da coleção 'tarefasDisponiveis'
                 await transaction.delete(db.collection('tarefasDisponiveis').doc(tarefaId));
             });
             
             alert(`Tarefa "${dadosTarefa.nome}" pega com sucesso e adicionada às suas tarefas!`);
-            renderTarefasDisponiveis(); // Atualiza a lista
+            renderTarefasDisponiveis(); 
         } catch (error) {
             console.error("Erro ao pegar e mover a tarefa no Firestore:", error);
             alert(`Erro ao pegar a tarefa. Detalhes: ${error.message}`);
@@ -85,13 +90,11 @@
      */
     async function renderTarefasDisponiveis() {
         const lista = document.getElementById('tarefas-lista');
-        // Sai se o DB não estiver pronto ou o usuário não estiver logado
-        if (!db || !USUARIO_LOGADO) { return; } 
+        if (!db) { return; } 
 
         lista.innerHTML = '<p style="color: #888; text-align: center;">Carregando tarefas...</p>';
 
         try {
-            // LER as tarefas da coleção 'tarefasDisponiveis'
             const snapshot = await db.collection('tarefasDisponiveis').get();
             const tarefas = [];
             
@@ -112,7 +115,6 @@
                 </div>
             `).join('');
             
-            // Adiciona eventos aos botões
             document.querySelectorAll('.btn-pegar-tarefa').forEach(btn => {
                 btn.onclick = function() {
                     pegarTarefa(this.getAttribute('data-id'));
@@ -125,7 +127,7 @@
         }
     }
     
-    // Inicia a renderização ao carregar a página
+    // Inicia a renderização APENAS se o usuário estiver logado
     window.onload = renderTarefasDisponiveis;
     </script>
 </body>
