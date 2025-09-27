@@ -1,282 +1,114 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Minhas Tarefas</title>
-    <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Tarefas</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        
-        <div id="minhas-tarefas-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
-        </div>
+    <div class="center-box">
+        <h1 style="color: #1976d2;">Minhas Tarefas</h1>
+        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
 
-        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
-    </div>
+        <div id="minhas-tarefas-list" style="width: 100%;">
+            <p>Carregando tarefas...</p>
+        </div>
 
-    <script>
-    let usuarioAtual = null;
-    let tarefasCache = []; 
-    let countdownInterval = null;
+        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+    </div>
 
-    /**
-     * Retorna o nome do usuário logado (string simples)
-     */
-    function getUsuarioAtual() {
-        const storedValue = localStorage.getItem('usuarioLogado');
-        if (!storedValue) return null;
-        
-        try {
-            const obj = JSON.parse(storedValue);
-            if (obj && obj.nome && typeof obj.nome === 'string') {
-                return obj.nome.trim(); 
-            }
-        } catch (e) {
-            if (typeof storedValue === 'string') {
-                return storedValue.trim();
-            }
-        }
-        
-        return null; 
-    }
-    
+    <script>
+        const db = firebase.firestore();
 
-    /**
-     * Determina o status visual da tarefa e a cor do botão.
-     */
-    function determinarStatusECor(tarefa) {
-        let statusTexto = 'Em andamento';
-        let corBotao = '#1976d2'; 
-        let podeConcluir = true;
+        function voltarAoPerfil() {
+            window.location.href = 'index.html';
+        }
 
-        if (tarefa.status === 'pendente-pagamento') {
-             statusTexto = 'AGUARDANDO PAGAMENTO';
-             corBotao = '#FF9800'; 
-             podeConcluir = false;
-        }
+        // Função para carregar tarefas atribuídas ao usuário logado
+        async function loadMinhasTarefas() {
+            const lista = document.getElementById('minhas-tarefas-list');
+            lista.innerHTML = '';
+            
+            const user = JSON.parse(localStorage.getItem('usuarioLogado'));
+            
+            if (!user) {
+                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                return;
+            }
 
-        // Lógica para verificar Atraso (somente para tarefas ativas)
-        if (tarefa.fim && tarefa.data && tarefa.status === 'atribuida') { 
-            const dataString = tarefa.data; 
-            const [ano, mes, dia] = dataString.split('-').map(Number);
-            const [h, m] = tarefa.fim.split(':').map(Number);
-            
-            const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
-            
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
-            
-            if (agora > dataFim) {
-                statusTexto = `ATRASADA`;
-                corBotao = '#d32f2f'; // Vermelho
-                podeConcluir = false; // Não pode concluir se estiver atrasada
-            } 
-        }
-        
-        return { statusTexto, corBotao, podeConcluir };
-    }
+            try {
+                // Filtra tarefas pelo nome do usuário E status 'atribuida' ou 'PendentePagamento'
+                const snapshot = await db.collection('tarefasAtribuidas')
+                    .where('atribuidaPara', '==', user.nome)
+                    .where('status', 'in', ['atribuida', 'PendentePagamento'])
+                    .get();
 
+                if (snapshot.empty) {
+                    lista.innerHTML = '<p>Você não tem tarefas em andamento ou pendentes de pagamento.</p>';
+                    return;
+                }
 
-    /**
-     * Inicia o cronômetro regressivo
-     */
-    function startCountdownTimers() {
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-        }
-        
-        function updateTimers() {
-            // Lógica para calcular o 'agora' em Brasília
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const agora = new Date(utc - (3 * 60 * 60 * 1000)); 
-            let shouldReRender = false; 
+                snapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    const elemento = document.createElement('div');
+                    elemento.className = 'tarefa-card-disponivel';
+                    
+                    const isPendentePagamento = tarefa.status === 'PendentePagamento';
+                    const statusText = isPendentePagamento 
+                        ? '<span style="color: orange; font-weight: bold;">Pendente Pagamento</span>' 
+                        : '<span style="color: #1976d2;">Em Andamento</span>';
+                        
+                    const buttonHtml = isPendentePagamento 
+                        ? `<button class="btn-disabled">Aguardando Pagamento</button>` 
+                        : `<button onclick="concluirTarefa('${doc.id}', '${tarefa.nome}')" class="btn-green">Concluir Tarefa</button>`;
 
-            tarefasCache.forEach(t => {
-                if (t.status !== 'atribuida' || !t.data || !t.fim) {
-                    return; // Ignora tarefas concluídas ou sem data
-                }
+                    elemento.innerHTML = `
+                        <div class="tarefa-details-minhas">
+                            <span class="tarefa-nome">${tarefa.nome}</span>
+                            <span class="tarefa-status">${statusText}</span>
+                            <span class="tarefa-info">R$ ${parseFloat(tarefa.valor).toFixed(2)} | Horário: ${tarefa.inicio} - ${tarefa.fim}</span>
+                        </div>
+                        ${buttonHtml}
+                    `;
+                    lista.appendChild(elemento);
+                });
 
-                const { corBotao } = determinarStatusECor(t);
-                const element = document.getElementById(`countdown-${t.id}`); 
-                if (!element) return;
-                
-                // Se já está atrasada, apenas mostra EXPIRADO
-                if (corBotao === '#d32f2f') { 
-                    element.textContent = 'EXPIRADO';
-                    return;
-                }
-                
-                // Calcula o tempo restante
-                const dataString = t.data; 
-                const [ano, mes, dia] = dataString.split('-').map(Number);
-                const [h, m] = t.fim.split(':').map(Number);
-                const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
-                
-                let diffMs = dataFim.getTime() - agora.getTime(); 
+            } catch (error) {
+                console.error("Erro ao carregar minhas tarefas:", error);
+                // Instrução de índice para o administrador
+                lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, o administrador precisa criar um índice no Firebase para o filtro de tarefas.</p>`;
+            }
+        }
 
-                if (diffMs <= 0) {
-                    element.textContent = 'EXPIRADO';
-                    shouldReRender = true; // Força a atualização para mudar o status
-                    return;
-                }
+        // Função para mover a tarefa para o status 'PendentePagamento'
+        async function concluirTarefa(taskId, nomeTarefa) {
+            if (!confirm(`Você concluiu a tarefa "${nomeTarefa}"? Ela será enviada para aprovação e pagamento do Administrador.`)) {
+                return;
+            }
 
-                const totalSeconds = Math.floor(diffMs / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
+            try {
+                const taskRef = db.collection('tarefasAtribuidas').doc(taskId);
+                
+                // Manda a tarefa para a fila de pagamento do Admin
+                await taskRef.update({ 
+                    status: 'PendentePagamento', 
+                    dataConclusao: new Date().toISOString().split('T')[0] 
+                });
 
-                const timeString = 
-                    String(hours).padStart(2, '0') + ':' + 
-                    String(minutes).padStart(2, '0') + ':' + 
-                    String(seconds).padStart(2, '0');
-
-                element.textContent = timeString;
-            });
-
-            if (shouldReRender) {
-                renderMinhasTarefas();
-            }
-        }
-        
-        updateTimers(); 
-        countdownInterval = setInterval(updateTimers, 1000); 
-    }
+                alert(`Tarefa "${nomeTarefa}" enviada para aprovação de pagamento!`);
+                loadMinhasTarefas(); // Recarrega a lista
+            } catch (e) {
+                console.error("Erro ao concluir a tarefa:", e);
+                alert('Erro ao enviar a tarefa para aprovação. Tente novamente.');
+            }
+        }
 
 
-    /**
-     * Função para exibir a lista de tarefas ATRIBUÍDAS ao usuário logado, 
-     * excluindo as que já estão 'pendente-pagamento' e 'concluida'.
-     */
-    async function renderMinhasTarefas() {
-        const lista = document.getElementById('minhas-tarefas-lista');
-        usuarioAtual = getUsuarioAtual();
-
-        if (!usuarioAtual) {
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
-            return;
-        }
-
-        if (typeof db === 'undefined') {
-             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
-             return;
-        }
-
-        try {
-            // CORREÇÃO SIMPLIFICADA: Filtra por nome e status "atribuida" ou "pendente-pagamento"
-            // O Firebase não permite .where('status', '!=', 'concluida') E .where('status', '!=', 'pendente-pagamento')
-            // Se a sua regra do Firestore permitir, o ideal é usar "where('atribuidaPara', '==', usuarioAtual)" e filtrar depois no JS.
-            
-            // Tentativa 1: Consulta básica (mais tolerante a erros de dados antigos)
-            const snapshot = await db.collection('tarefasAtribuidas')
-                                     .where('atribuidaPara', '==', usuarioAtual)
-                                     .get();
-                                     
-            tarefasCache = [];
-            snapshot.forEach(doc => {
-                 tarefasCache.push({ id: doc.id, ...doc.data() }); 
-            });
-
-            // Filtra no lado do cliente: mostra apenas tarefas ativas (atribuida)
-            const tarefasEmAndamento = tarefasCache.filter(t => t.status === 'atribuida');
-
-            if (tarefasEmAndamento.length === 0) {
-                lista.innerHTML = `<p style="color: #888; text-align: center;">Você não tem tarefas ativas no momento.</p>`;
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                }
-                return;
-            }
-            
-            // 2. RENDERIZAÇÃO
-            lista.innerHTML = tarefasEmAndamento.map((t) => {
-                const { statusTexto, corBotao, podeConcluir } = determinarStatusECor(t);
-                
-                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
-                
-                const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
-                
-                // Desabilita o botão se a tarefa estiver atrasada
-                const buttonDisabled = podeConcluir ? '' : 'disabled style="background: #9e9e9e;"';
-                const buttonText = podeConcluir ? 'Concluir' : 'Atrasada'; // Mudei de 'Em andamento' para 'Atrasada' para indicar o motivo de não poder concluir
-
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                        <div>
-                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                            <br>
-                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Prazo: ${t.inicio} - ${t.fim}</span>
-                            <br>
-                            <span style="color: ${corBotao}; font-size: 0.9rem; font-weight: bold;">${statusTexto}</span> ${timerPlaceholder}
-                        </div>
-                        <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" ${buttonDisabled} style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #28a745; color: #fff;">${buttonText}</button>
-                    </div>
-                `;
-            }).join('');
-            
-            // 3. Adiciona eventos e inicia o cronômetro
-            document.querySelectorAll('.btn-concluir-tarefa').forEach(btn => {
-                if (!btn.hasAttribute('disabled')) { 
-                    btn.onclick = function() {
-                        const id = this.getAttribute('data-id');
-                        concluirTarefa(id);
-                    };
-                }
-            });
-            
-            startCountdownTimers();
-
-        } catch (error) {
-            console.error("Erro ao carregar minhas tarefas:", error);
-            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. Verifique se o usuário foi atribuído corretamente.</p>`;
-        }
-    }
-
-    /**
-     * Altera o status da tarefa para 'pendente-pagamento'.
-     */
-    async function concluirTarefa(tarefaId) {
-        const tarefa = tarefasCache.find(t => t.id === tarefaId);
-        if (!tarefa) {
-            alert("Erro: Tarefa não encontrada.");
-            return;
-        }
-        
-        if (!confirm(`Confirmar a conclusão da tarefa "${tarefa.nome}"? Ela será enviada para o administrador aprovar o pagamento.`)) {
-            return;
-        }
-
-        try {
-            const tarefaRef = db.collection('tarefasAtribuidas').doc(tarefaId);
-            
-            await tarefaRef.update({
-                status: 'pendente-pagamento', 
-                dataConclusao: new Date().toISOString()
-            });
-            
-            alert(`Tarefa "${tarefa.nome}" marcada como CONCLUÍDA! Ela está agora em 'Tarefas Pendentes' aguardando o administrador.`);
-            
-            renderMinhasTarefas(); // Atualiza a lista para remover o item
-            
-        } catch (error) {
-            console.error("Erro ao marcar a tarefa como concluída:", error);
-            alert(`Não foi possível concluir a tarefa: ${error.message}`);
-        }
-    }
-
-    // Inicialização principal
-    window.addEventListener('DOMContentLoaded', () => {
-        renderMinhasTarefas();
-    });
-    </script>
+        window.addEventListener('DOMContentLoaded', loadMinhasTarefas);
+    </script>
 </body>
 </html>
