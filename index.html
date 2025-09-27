@@ -33,18 +33,22 @@
                 
                 <div id="admin-links" class="admin-links-vertical">
                     <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
-                    <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
+                    <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>
+                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
                     <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
                     <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
                 </div>
             </div>
             
-            <div class="profile-menu-horizontal">
-                <a href="#" onclick="tarefasDisponiveis()" class="profile-link">Tarefas disponíveis</a>
-                <a href="#" onclick="minhasTarefas()" class="profile-link">Minhas tarefas</a>
-                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="background-color: #28a745; color: white;">Tarefas Concluídas</a>
-                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
-                <a href="#" onclick="sairPerfil()" class="profile-link sair">Sair</a>
+                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; align-items: start; max-width: 300px; padding-top: 5px;">
+                
+                                <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 1;">Tarefas disponíveis</a>
+                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 2;">Minhas tarefas</a>
+
+                                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 1; background-color: #28a745; color: white; padding: 6px 10px; border-radius: 4px; text-align: center;">Tarefas Concluídas</a>
+                <a href="#" onclick="carteira()" class="profile-link" style="grid-column: 2;">Carteira</a>
+                
+                                <a href="#" onclick="sairPerfil()" class="profile-link sair" style="grid-column: 2; margin-top: 15px; text-align: right;">Sair</a>
             </div>
         </div>
     </div>
@@ -227,10 +231,10 @@
         window._clockInterval = setInterval(updateClock, 1000);
     }
 
-    // --- Navegação para páginas (Funções Corrigidas) ---
+    // --- Navegação para páginas ---
     function tarefasDisponiveis() { window.location.href = 'tarefas-disponiveis.html'; }
     function minhasTarefas() { window.location.href = 'minhas-tarefas.html'; }
-    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } // CORRIGIDO: Agora aponta para a página correta
+    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } 
     function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; } 
     function carteira() { window.location.href = 'carteira.html'; }
     function editarPerfil() { window.location.href = 'editar-perfil.html'; }
