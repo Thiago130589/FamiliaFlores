@@ -1,262 +1,274 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Minhas Tarefas</title>
-    <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <title>Minhas Tarefas</title>
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        
-        <div id="minhas-tarefas-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
-        </div>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+        <h1 style="margin: 0; color: #1976d2; font-size: 2.2rem;">Minhas Tarefas</h1>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div id="minhas-tarefas-lista" style="width: 100%; min-height: 120px;">
+            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
+        </div>
 
-        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
-    </div>
+        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
+    </div>
 
-    <script>
-    let usuarioAtual = null;
-    let tarefasCache = []; 
-    let countdownInterval = null;
+    <script>
+    let usuarioAtual = null;
+    let tarefasCache = []; 
+    let countdownInterval = null;
 
-    // 🌟 ALTERADO: Funcao que garante que apenas o nome simples (string) seja retornado.
-    function getUsuarioAtual() {
-        const storedValue = localStorage.getItem('usuarioLogado');
-        if (!storedValue) return null;
-        
-        try {
-            // Se o valor armazenado for um JSON, tente extrair o campo 'nome'.
-            const obj = JSON.parse(storedValue);
-            if (obj && obj.nome) {
-                return String(obj.nome).trim();
-            }
-        } catch (e) {
-            // Se falhar, é uma string simples (o caso ideal)
-            return String(storedValue).trim(); 
+    // Funcao que garante que apenas o nome simples (string) seja retornado.
+    function getUsuarioAtual() {
+        const storedValue = localStorage.getItem('usuarioLogado');
+        if (!storedValue) return null;
+        
+        try {
+            const obj = JSON.parse(storedValue);
+            if (obj && obj.nome) {
+                return String(obj.nome).trim();
+            }
+        } catch (e) {
+            return String(storedValue).trim(); 
+        }
+        
+        return String(storedValue).trim();
+    }
+    
+
+    /**
+     * Determina o status visual da tarefa e a cor do botão.
+     * @param {object} tarefa
+     * @returns {{statusTexto: string, corBotao: string, podeConcluir: boolean}}
+     */
+    function determinarStatusECor(tarefa) {
+        let statusTexto = 'Em andamento';
+        let corBotao = '#4CAF50'; 
+        let podeConcluir = true;
+
+        if (tarefa.status === 'pendente-pagamento') {
+             statusTexto = 'AGUARDANDO PAGAMENTO';
+             corBotao = '#FF9800'; // Amarelo/Laranja
+             podeConcluir = false;
         }
-        
-        // Retorna a string simples como fallback
-        return String(storedValue).trim();
-    }
-    // FIM ALTERADO
 
-    /**
-     * Determina o status visual da tarefa e a cor do botão.
-     * @param {object} tarefa
-     * @returns {{statusTexto: string, corBotao: string, podeConcluir: boolean}}
-     */
-    function determinarStatusECor(tarefa) {
-        let statusTexto = 'Em andamento';
-        let corBotao = '#4CAF50'; 
-        let podeConcluir = true;
-
-        if (tarefa.fim && tarefa.data) { 
-            const dataString = tarefa.data; 
-            const [ano, mes, dia] = dataString.split('-').map(Number);
-            const [h, m] = tarefa.fim.split(':').map(Number);
-            
-            const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
-            
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
-            
-            if (agora > dataFim) {
-                statusTexto = `ATRASADA`;
-                corBotao = '#d32f2f'; 
-            } 
-        }
-        
-        return { statusTexto, corBotao, podeConcluir };
-    }
+        if (tarefa.fim && tarefa.data && tarefa.status !== 'pendente-pagamento') { 
+            const dataString = tarefa.data; 
+            const [ano, mes, dia] = dataString.split('-').map(Number);
+            const [h, m] = tarefa.fim.split(':').map(Number);
+            
+            const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
+            
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
+            
+            if (agora > dataFim) {
+                statusTexto = `ATRASADA`;
+                corBotao = '#d32f2f'; 
+            } 
+        }
+        
+        return { statusTexto, corBotao, podeConcluir };
+    }
 
 
-    /**
-     * Inicia o cronômetro regressivo
-     */
-    function startCountdownTimers() {
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-        }
-        
-        function updateTimers() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const agora = new Date(utc - (3 * 60 * 60 * 1000)); 
-            let shouldReRender = false; 
+    /**
+     * Inicia o cronômetro regressivo
+     */
+    function startCountdownTimers() {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+        
+        function updateTimers() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const agora = new Date(utc - (3 * 60 * 60 * 1000)); 
+            let shouldReRender = false; 
 
-            tarefasCache.forEach(t => {
-                if (t.data && t.fim) {
-                    const { corBotao } = determinarStatusECor(t);
-                    const element = document.getElementById(`countdown-${t.id}`); 
-
-                    if (!element) return;
-                    
-                    if (corBotao === '#d32f2f') { 
-                        element.textContent = 'EXPIRADO';
-                        return;
-                    }
-                    
-                    const dataString = t.data; 
-                    const [ano, mes, dia] = dataString.split('-').map(Number);
-                    const [h, m] = t.fim.split(':').map(Number);
-                    const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
-                    
-                    let diffMs = dataFim.getTime() - agora.getTime(); 
-
-                    if (diffMs <= 0) {
-                        element.textContent = 'EXPIRADO';
-                        shouldReRender = true; 
-                        return;
-                    }
-
-                    const totalSeconds = Math.floor(diffMs / 1000);
-                    const hours = Math.floor(totalSeconds / 3600);
-                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                    const seconds = totalSeconds % 60;
-
-                    const timeString = 
-                        String(hours).padStart(2, '0') + ':' + 
-                        String(minutes).padStart(2, '0') + ':' + 
-                        String(seconds).padStart(2, '0');
-
-                    element.textContent = timeString;
+            tarefasCache.forEach(t => {
+                if (t.status === 'pendente-pagamento') {
+                    const element = document.getElementById(`countdown-${t.id}`);
+                    if (element) element.textContent = 'PENDENTE';
+                    return;
                 }
-            });
 
-            if (shouldReRender) {
-                renderMinhasTarefas();
-            }
-        }
-        
-        updateTimers(); 
-        countdownInterval = setInterval(updateTimers, 1000); 
-    }
+                if (t.data && t.fim) {
+                    const { corBotao } = determinarStatusECor(t);
+                    const element = document.getElementById(`countdown-${t.id}`); 
+
+                    if (!element) return;
+                    
+                    if (corBotao === '#d32f2f') { 
+                        element.textContent = 'EXPIRADO';
+                        return;
+                    }
+                    
+                    const dataString = t.data; 
+                    const [ano, mes, dia] = dataString.split('-').map(Number);
+                    const [h, m] = t.fim.split(':').map(Number);
+                    const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
+                    
+                    let diffMs = dataFim.getTime() - agora.getTime(); 
+
+                    if (diffMs <= 0) {
+                        element.textContent = 'EXPIRADO';
+                        shouldReRender = true; 
+                        return;
+                    }
+
+                    const totalSeconds = Math.floor(diffMs / 1000);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    const timeString = 
+                        String(hours).padStart(2, '0') + ':' + 
+                        String(minutes).padStart(2, '0') + ':' + 
+                        String(seconds).padStart(2, '0');
+
+                    element.textContent = timeString;
+                }
+            });
+
+            if (shouldReRender) {
+                renderMinhasTarefas();
+            }
+        }
+        
+        updateTimers(); 
+        countdownInterval = setInterval(updateTimers, 1000); 
+    }
 
 
-    /**
-     * Função para exibir a lista de tarefas ATRIBUÍDAS ao usuário logado.
-     */
-    async function renderMinhasTarefas() {
-        const lista = document.getElementById('minhas-tarefas-lista');
-        usuarioAtual = getUsuarioAtual();
+    /**
+     * Função para exibir a lista de tarefas ATRIBUÍDAS ao usuário logado, 
+     * excluindo as que já estão 'pendente-pagamento'.
+     */
+    async function renderMinhasTarefas() {
+        const lista = document.getElementById('minhas-tarefas-lista');
+        usuarioAtual = getUsuarioAtual();
 
-        if (!usuarioAtual) {
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
-            return;
-        }
+        if (!usuarioAtual) {
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            return;
+        }
 
-        if (typeof db === 'undefined') {
-             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
-             return;
-        }
+        if (typeof db === 'undefined') {
+             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
+             return;
+        }
 
-        try {
-            // A consulta requer o valor de usuarioAtual seja uma string simples e o índice
-            const snapshot = await db.collection('tarefasAtribuidas')
-                                     .where('atribuidaPara', '==', usuarioAtual)
+        try {
+            // Consulta agora deve incluir tarefas pendentes, mas o filtro de renderização vai ocultá-las.
+            const snapshot = await db.collection('tarefasAtribuidas')
+                                     .where('atribuidaPara', '==', usuarioAtual)
+                                     // O filtro aqui garante que apenas tarefas 'em andamento' apareçam na tela
+                                     .where('status', '!=', 'concluida')
                                      .get();
-                                     
-            tarefasCache = [];
-            snapshot.forEach(doc => {
-                 tarefasCache.push({ id: doc.id, ...doc.data() }); 
-            });
+                                     
+            tarefasCache = [];
+            snapshot.forEach(doc => {
+                 tarefasCache.push({ id: doc.id, ...doc.data() }); 
+            });
 
-            if (tarefasCache.length === 0) {
-                lista.innerHTML = `<p style="color: #888; text-align: center;">Você não tem tarefas atribuídas no momento.</p>`;
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                }
-                return;
-            }
-            
-            // 2. RENDERIZAÇÃO
-            lista.innerHTML = tarefasCache.map((t) => {
-                const { statusTexto, corBotao } = determinarStatusECor(t);
-                
-                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
-                
-                const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
+            // Filtra o cache para mostrar apenas tarefas em andamento. As pendentes vão para outra tela.
+            const tarefasEmAndamento = tarefasCache.filter(t => t.status !== 'pendente-pagamento');
 
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
-                        <div>
-                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                            <br>
-                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Prazo: ${t.inicio} - ${t.fim}</span>
-                            <br>
-                            <span style="color: ${corBotao}; font-size: 0.9rem; font-weight: bold;">${statusTexto}</span> ${timerPlaceholder}
-                        </div>
-                        <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #28a745; color: #fff;">Concluir</button>
-                    </div>
-                `;
-            }).join('');
-            
-            // 3. Adiciona eventos e inicia o cronômetro
-            document.querySelectorAll('.btn-concluir-tarefa').forEach(btn => {
-                btn.onclick = function() {
-                    const id = this.getAttribute('data-id');
-                    concluirTarefa(id);
-                };
-            });
-            
-            startCountdownTimers();
+            if (tarefasEmAndamento.length === 0) {
+                lista.innerHTML = `<p style="color: #888; text-align: center;">Você não tem tarefas ativas no momento.</p>`;
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+                return;
+            }
+            
+            // 2. RENDERIZAÇÃO
+            lista.innerHTML = tarefasEmAndamento.map((t) => {
+                const { statusTexto, corBotao, podeConcluir } = determinarStatusECor(t);
+                
+                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+                
+                const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
 
-        } catch (error) {
-            console.error("Erro ao carregar minhas tarefas:", error);
-            // Mensagem atualizada: agora o problema é o valor muito grande, não mais o índice.
-            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. O valor do usuário atribuído parece ser muito grande. O administrador precisa limpar o 'localStorage' e refazer o login.</p>`;
-        }
-    }
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
+                        <div>
+                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Prazo: ${t.inicio} - ${t.fim}</span>
+                            <br>
+                            <span style="color: ${corBotao}; font-size: 0.9rem; font-weight: bold;">${statusTexto}</span> ${timerPlaceholder}
+                        </div>
+                        <button class="btn-rounded btn-concluir-tarefa" data-id="${t.id}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #28a745; color: #fff;">Concluir</button>
+                    </div>
+                `;
+            }).join('');
+            
+            // 3. Adiciona eventos e inicia o cronômetro
+            document.querySelectorAll('.btn-concluir-tarefa').forEach(btn => {
+                btn.onclick = function() {
+                    const id = this.getAttribute('data-id');
+                    concluirTarefa(id);
+                };
+            });
+            
+            startCountdownTimers();
 
-    /**
-     * Move a tarefa de "Atribuidas" para "Concluidas"
-     */
-    async function concluirTarefa(tarefaId) {
-        const tarefa = tarefasCache.find(t => t.id === tarefaId);
-        if (!tarefa) {
-            alert("Erro: Tarefa não encontrada.");
-            return;
-        }
-        
-        if (!confirm(`Confirmar a conclusão da tarefa "${tarefa.nome}"?`)) {
-            return;
-        }
+        } catch (error) {
+            console.error("Erro ao carregar minhas tarefas:", error);
+            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. Verifique se o usuário foi atribuído corretamente.</p>`;
+        }
+    }
 
-        try {
-            const tarefaConcluida = {
-                ...tarefa,
-                status: 'concluida', 
-                dataConclusao: new Date().toISOString()
-            };
-            
-            delete tarefaConcluida.id; 
+    /**
+     * Altera o status da tarefa de 'atribuida' para 'pendente-pagamento'.
+     * A tarefa PERMANECE na coleção 'tarefasAtribuidas'.
+     */
+    async function concluirTarefa(tarefaId) {
+        const tarefa = tarefasCache.find(t => t.id === tarefaId);
+        if (!tarefa) {
+            alert("Erro: Tarefa não encontrada.");
+            return;
+        }
+        
+        if (!confirm(`Confirmar a conclusão da tarefa "${tarefa.nome}"? Ela será enviada para o administrador aprovar o pagamento.`)) {
+            return;
+        }
 
-            await db.runTransaction(async (transaction) => {
-                await transaction.set(db.collection('tarefasConcluidas').doc(), tarefaConcluida);
-                await transaction.delete(db.collection('tarefasAtribuidas').doc(tarefaId));
-            });
-            
-            alert(`Tarefa "${tarefa.nome}" concluída com sucesso!`);
-            renderMinhasTarefas(); 
-        } catch (error) {
-            console.error("Erro ao concluir a tarefa:", error);
-            alert(`Não foi possível concluir a tarefa: ${error.message}`);
-        }
-    }
+        try {
+            const tarefaRef = db.collection('tarefasAtribuidas').doc(tarefaId);
+            
+            // AÇÃO CHAVE: APENAS ATUALIZA O STATUS E ADICIONA DATA DE CONCLUSÃO
+            await tarefaRef.update({
+                status: 'pendente-pagamento', 
+                dataConclusao: new Date().toISOString()
+            });
+            
+            alert(`Tarefa "${tarefa.nome}" marcada como CONCLUÍDA! Ela está agora em 'Tarefas Pendentes' aguardando o administrador.`);
+            
+            renderMinhasTarefas(); // Atualiza a lista para remover o item
+            
+        } catch (error) {
+            console.error("Erro ao marcar a tarefa como concluída:", error);
+            alert(`Não foi possível concluir a tarefa: ${error.message}`);
+        }
+    }
 
-    // Inicialização principal
-    window.addEventListener('DOMContentLoaded', () => {
-        renderMinhasTarefas();
-    });
-    </script>
+    // Inicialização principal
+    window.addEventListener('DOMContentLoaded', () => {
+        renderMinhasTarefas();
+    });
+    </script>
 </body>
 </html>
