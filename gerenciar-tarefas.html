@@ -26,6 +26,7 @@
             <div style="background: #fff; border-radius: 18px; padding: 32px 24px; min-width: 320px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 18px; align-items: stretch;">
                 <h2 style="color: #1976d2; margin: 0 0 12px 0; text-align: center;">Criar Nova Tarefa</h2>
                 <input id="tarefa-nome" class="input-rounded" type="text" placeholder="Nome da Tarefa">
+                <input id="tarefa-data" class="input-rounded" type="date" placeholder="Data da Tarefa">
                 <input id="tarefa-inicio" class="input-rounded" type="time" placeholder="Horário de início">
                 <input id="tarefa-fim" class="input-rounded" type="time" placeholder="Horário final">
                 <input id="tarefa-valor" class="input-rounded" type="number" min="0" step="0.01" placeholder="Valor">
@@ -71,6 +72,7 @@
 
     /**
      * Determina o status visual da tarefa e a cor do botão.
+     * A lógica do prazo AGORA USA A TAREFA.DATA (se estiver disponível)
      * @param {object} tarefa
      * @returns {{statusTexto: string, corBotao: string, podeDirecionar: boolean, podeRemoverAtribuicao: boolean}}
      */
@@ -80,36 +82,32 @@
         let podeDirecionar = true;
         let podeRemoverAtribuicao = false;
 
-        // Se a tarefa já foi atribuída (está na coleção tarefasAtribuidas)
         if (tarefa.status === 'atribuida' || tarefa.atribuidaPara) {
             
             podeDirecionar = false; 
             podeRemoverAtribuicao = true; 
             
-            // Verifica o prazo
-            if (tarefa.fim) {
-                // A data de atribuição (data do dia) é usada para definir o dia do prazo
-                const dataBase = tarefa.dataAtribuicao ? new Date(tarefa.dataAtribuicao.substring(0, 10)) : new Date();
+            if (tarefa.fim && tarefa.data) { // Verifica se há data e hora final
+                // Junta a data da tarefa com o horário de fim
+                const dataString = tarefa.data; 
+                const [ano, mes, dia] = dataString.split('-').map(Number);
                 const [h, m] = tarefa.fim.split(':').map(Number);
-                // Ajuste para garantir que a dataFim use a data correta do fuso (já tratada na atribuição com ISOString)
-                const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
+                
+                // Cria a data de fim (mês é 0-indexed no JS)
+                const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
                 
                 const now = new Date();
-                // Ajuste para calcular o "agora" no fuso de Brasília (UTC-3), como o relógio.
                 const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-                const agora = new Date(utc - (3 * 60 * 60 * 1000));
+                const agora = new Date(utc - (3 * 60 * 60 * 1000)); // Horário de Brasília
                 
                 if (agora > dataFim) {
-                    // Prazo ultrapassado
                     statusTexto = `ATRASADA | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#d32f2f'; // Vermelho (Atrasada)
                 } else {
-                    // Dentro do prazo
                     statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                     corBotao = '#4CAF50'; // Verde (Em andamento)
                 }
             } else {
-                 // Atribuída, mas sem prazo de fim
                 statusTexto = `Em andamento | Com: ${tarefa.atribuidaPara}`;
                 corBotao = '#4CAF50';
             }
@@ -123,7 +121,6 @@
      * Inicia o cronômetro regressivo
      */
     function startCountdownTimers() {
-        // Limpa o intervalo anterior para evitar que múltiplos timers rodem
         if (countdownInterval) {
             clearInterval(countdownInterval);
         }
@@ -135,8 +132,8 @@
             let shouldReRender = false; 
 
             tarefasCache.forEach(t => {
-                // Apenas tarefas atribuídas (que tem adminId)
-                if (t.atribuidaPara && t.adminId) {
+                // Apenas tarefas atribuídas, com ID e data
+                if (t.atribuidaPara && t.adminId && t.data && t.fim) {
                     const { corBotao } = determinarStatusECor(t);
                     const domId = t.adminId;
                     const element = document.getElementById(`countdown-${domId}`);
@@ -149,11 +146,12 @@
                     }
                     
                     // Lógica para calcular o tempo restante
-                    const dataBase = t.dataAtribuicao ? new Date(t.dataAtribuicao.substring(0, 10)) : new Date();
+                    const dataString = t.data; 
+                    const [ano, mes, dia] = dataString.split('-').map(Number);
                     const [h, m] = t.fim.split(':').map(Number);
-                    const dataFim = new Date(dataBase.getFullYear(), dataBase.getMonth(), dataBase.getDate(), h, m, 0);
+                    const dataFim = new Date(ano, mes - 1, dia, h, m, 0); 
                     
-                    let diffMs = dataFim.getTime() - agora.getTime(); // Usa 'agora' em Brasília
+                    let diffMs = dataFim.getTime() - agora.getTime(); 
 
                     if (diffMs <= 0) {
                         element.textContent = 'EXPIRADO';
@@ -197,22 +195,19 @@
         }
 
         try {
-            // 1. LER tarefas disponíveis
+            // ... (Leitura de tarefas disponíveis e atribuídas - Lógica mantida) ...
             const dispSnapshot = await db.collection('tarefasDisponiveis').get();
             const dispTarefas = []; 
             dispSnapshot.forEach(doc => {
                  dispTarefas.push({ id: doc.id, ...doc.data() });
             });
             
-            // 2. LER tarefas atribuídas
             const atribSnapshot = await db.collection('tarefasAtribuidas').get();
             const atribTarefas = []; 
             atribSnapshot.forEach(doc => {
-                 // Usa adminId para o ID do documento na coleção atribuídas
                 atribTarefas.push({ id: doc.id, adminId: doc.id, ...doc.data() });
             });
 
-            // 3. COMBINAR todas as tarefas
             tarefasCache = [...dispTarefas, ...atribTarefas];
 
             if (!tarefasCache.length) {
@@ -220,24 +215,25 @@
                 return;
             }
             
-            // 4. RENDERIZAR a lista com os novos detalhes e cores de status
+            // 4. RENDERIZAR a lista
             lista.innerHTML = tarefasCache.map((t) => {
                 const { statusTexto, corBotao } = determinarStatusECor(t);
-                // domId é o ID do documento na coleção atual
                 const domId = t.adminId || t.id; 
                 
-                // Placeholder do Cronômetro (apenas para tarefas em andamento)
                 const isAssignedAndNotOverdue = t.atribuidaPara && corBotao !== '#d32f2f';
                 const timerPlaceholder = isAssignedAndNotOverdue
                                         ? `<span id="countdown-${domId}" style="color: #d32f2f; font-weight: bold; margin-left: 10px;">--:--:--</span>` 
                                         : '';
+
+                // Formata a data (opcional, mas melhora a visualização)
+                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
 
                 return `
                     <div style="display: flex; align-items: center; justify-content: space-between; background: #f3f3f3; border-radius: 12px; margin: 10px 0; padding: 14px 18px;">
                         <div>
                             <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
                             <br>
-                            <span style="color: #888; font-size: 0.9rem;">Horário: ${t.inicio} - ${t.fim}</span>
+                            <span style="color: #888; font-size: 0.9rem;">Data: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
                             <br>
                             <span style="color: #888; font-size: 0.9rem;">${statusTexto} ${timerPlaceholder}</span>
                         </div>
@@ -246,7 +242,7 @@
                 `;
             }).join('');
             
-            // 5. Adiciona eventos aos botões de opções
+            // 5. Adiciona eventos e inicia o cronômetro
             document.querySelectorAll('.btn-opcoes-tarefa').forEach(btn => {
                 btn.onclick = function() {
                     const id = this.getAttribute('data-id');
@@ -255,7 +251,6 @@
                 };
             });
             
-            // Inicia o cronômetro após a lista ser renderizada
             startCountdownTimers();
 
         } catch (error) {
@@ -265,10 +260,10 @@
     }
 
     /**
-     * Lógica de Direcionamento/Exclusão (Usa o ID do documento na coleção correta)
+     * Lógica de Direcionamento/Exclusão (Mantida, mas garantindo que o campo 'data' seja considerado)
      */
     async function abrirPopupOpcoesTarefa(tarefaId, collection) {
-        // Encontra a tarefa correta no cache usando o ID do documento e a coleção 
+        // Encontra a tarefa correta no cache
         const tarefa = tarefasCache.find(t => (t.adminId === tarefaId && collection === 'tarefasAtribuidas') || (t.id === tarefaId && collection === 'tarefasDisponiveis'));
         
         if (!tarefa) {
@@ -280,7 +275,7 @@
         const isAtribuida = !podeDirecionar;
         const colecaoAtual = isAtribuida ? 'tarefasAtribuidas' : 'tarefasDisponiveis';
 
-        // Cria o popup
+        // ... (criação do popup - código omitido para brevidade) ...
         if (!popupOpcoesTarefa) {
             popupOpcoesTarefa = document.createElement('div');
             popupOpcoesTarefa.id = 'popup-opcoes-tarefa';
@@ -337,7 +332,8 @@
         if (podeDirecionar) {
             const membrosSelect = document.getElementById('membros-select');
             const btnConfirmar = document.getElementById('btn-confirmar-direcionamento');
-
+            
+            // ... (Lógica de Carregar Membros e Botão Confirmar - Mantida) ...
             const membros = await carregarMembrosFirestore();
             membrosSelect.innerHTML = ''; 
 
@@ -370,7 +366,8 @@
                         ...tarefa,
                         status: 'atribuida', 
                         atribuidaPara: membroSelecionado, 
-                        // dataAtribuicao precisa ser um timestamp ou string para cálculo de prazo
+                        // dataAtribuicao usada apenas para fins de registro histórico, 
+                        // o prazo final é calculado a partir de tarefa.data e tarefa.fim
                         dataAtribuicao: new Date().toISOString() 
                     };
                     
@@ -391,8 +388,7 @@
             };
         }
 
-
-        // Lógica de REMOÇÃO DE ATRIBUIÇÃO
+        // ... (Lógica de Remover Atribuição e Excluir Tarefa - Mantida) ...
         if (podeRemoverAtribuicao) {
             document.getElementById('btn-remover-atribuicao').onclick = async () => {
                 if (!confirm(`Tem certeza que deseja remover a atribuição da tarefa "${tarefa.nome}" de ${tarefa.atribuidaPara} e torná-la DISPONÍVEL novamente?`)) {
@@ -402,6 +398,8 @@
                 try {
                     const tarefaDisponivel = {
                         nome: tarefa.nome,
+                        // Incluir data na volta para disponíveis
+                        data: tarefa.data, 
                         inicio: tarefa.inicio,
                         fim: tarefa.fim,
                         valor: tarefa.valor,
@@ -424,8 +422,6 @@
             };
         }
 
-
-        // Lógica de Exclusão 
         document.getElementById('btn-excluir-tarefa').onclick = async () => {
              if (confirm(`Tem certeza que deseja excluir a tarefa "${tarefa.nome}" permanentemente?`)) {
                  try {
@@ -449,27 +445,41 @@
     const tarefaErro = document.getElementById('tarefa-erro');
     
     /**
-     * AJUSTADO: Preenche os campos de Hora de Início e Fim com o horário atual (Brasília).
+     * 🌟 AJUSTADO: Preenche a Data com o dia atual e o Horário Final 1h após o Horário de Início.
      */
     document.getElementById('btn-criar-tarefa').onclick = () => {
         // 1. Calcula o horário atual de Brasília
         const now = new Date();
         const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        // Ajuste para UTC-3 (Horário de Brasília)
         const brasilia = new Date(utc - (3 * 60 * 60 * 1000)); 
         
-        const h = String(brasilia.getHours()).padStart(2, '0');
-        const m = String(brasilia.getMinutes()).padStart(2, '0');
-        const currentTime = `${h}:${m}`;
+        // 2. Horário de Início (atual) e Horário Final (+1 hora)
+        const h_inicio = brasilia.getHours();
+        const m_inicio = brasilia.getMinutes();
         
-        // 2. Limpa e PREENCHE os campos
+        // Calcula a hora final: + 1 hora
+        const data_fim_calculada = new Date(brasilia.getTime() + (60 * 60 * 1000));
+        const h_fim = data_fim_calculada.getHours();
+        const m_fim = data_fim_calculada.getMinutes();
+        
+        const time_inicio = String(h_inicio).padStart(2, '0') + ':' + String(m_inicio).padStart(2, '0');
+        const time_fim = String(h_fim).padStart(2, '0') + ':' + String(m_fim).padStart(2, '0');
+
+        // 3. Data Atual (formato YYYY-MM-DD para o input type="date")
+        const yyyy = brasilia.getFullYear();
+        const mm = String(brasilia.getMonth() + 1).padStart(2, '0'); 
+        const dd = String(brasilia.getDate()).padStart(2, '0');
+        const todayDate = `${yyyy}-${mm}-${dd}`;
+        
+        // 4. Limpa e PREENCHE os campos
         document.getElementById('tarefa-nome').value = '';
-        document.getElementById('tarefa-inicio').value = currentTime; // Preenchido com a hora atual
-        document.getElementById('tarefa-fim').value = currentTime;     // Preenchido com a hora atual
+        document.getElementById('tarefa-data').value = todayDate;      // Preenchido com a data atual
+        document.getElementById('tarefa-inicio').value = time_inicio; // Preenchido com a hora atual
+        document.getElementById('tarefa-fim').value = time_fim;       // Preenchido com a hora atual + 1h
         document.getElementById('tarefa-valor').value = '';
         tarefaErro.textContent = '';
         
-        // 3. Abre o popup
+        // 5. Abre o popup
         popupTarefa.style.display = 'flex';
     };
     
@@ -480,17 +490,19 @@
     // Salvar nova tarefa (FIRESTORE)
     btnSalvarTarefa.onclick = async () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
+        const data = document.getElementById('tarefa-data').value; // Novo campo de data
         const inicio = document.getElementById('tarefa-inicio').value;
         const fim = document.getElementById('tarefa-fim').value;
         const valor = document.getElementById('tarefa-valor').value;
         
-        if (!nome || !inicio || !fim || !valor) {
+        if (!nome || !data || !inicio || !fim || !valor) {
             tarefaErro.textContent = 'Preencha todos os campos.';
             return;
         }
         
         const novaTarefa = { 
             nome, 
+            data, // Salva o novo campo de data
             inicio, 
             fim, 
             valor: parseFloat(valor).toFixed(2), 
