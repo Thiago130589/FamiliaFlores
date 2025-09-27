@@ -11,22 +11,29 @@
 </head>
 <body>
     <div class="center-box">
-        <h1 style="color: #4CAF50;">Minha Carteira</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+        <h1 class="main-title-green">Minha Carteira</h1>
+        <hr class="divider">
 
         <div class="saldo-card">
             <h2>Saldo Atual</h2>
             <p id="saldo-valor" class="saldo-amount">R$ 0,00</p>
         </div>
         
-        <hr style="width: 100%; border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
+        <hr class="divider dashed-divider">
 
-        <h3>Histórico de Tarefas Pagas</h3>
-        <div id="historico-list" style="width: 100%;">
+        <h3 class="multas-title">Multas Pendentes (Subtraídas do Saldo)</h3>
+        <div id="multas-list" class="historico-section">
+            <p>Carregando multas...</p>
+        </div>
+
+        <hr class="divider dashed-divider">
+        
+        <h3>Histórico de Tarefas Pagas (Ganhos)</h3>
+        <div id="historico-list" class="historico-section">
             <p>Carregando histórico...</p>
         </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 25px;">Voltar ao perfil</button>
+        <button onclick="voltarAoPerfil()" class="btn-rounded btn-primary" style="margin-top: 25px;">Voltar ao perfil</button>
     </div>
 
     <script>
@@ -49,91 +56,128 @@
             }
         }
 
+        // Função para renderizar uma lista de transações (tarefas ou multas)
+        function renderTransactions(el, transactions, isMulta = false) {
+            el.innerHTML = ''; // Limpa a mensagem de carregamento
+            let totalValor = 0;
+
+            if (transactions.length === 0) {
+                el.innerHTML = `<p>${isMulta ? 'Nenhuma multa pendente.' : 'Você não possui tarefas pagas em seu histórico.'}</p>`;
+                return;
+            }
+
+            const ul = document.createElement('ul');
+            ul.className = 'historico-list-ul';
+
+            transactions.forEach(item => {
+                const valorItem = parseFloat(item.valor || 0);
+                
+                // Multas já são negativas no Firestore
+                const valorAbsoluto = Math.abs(valorItem);
+                totalValor += valorItem; 
+                
+                const valorFormatado = valorAbsoluto.toFixed(2).replace('.', ',');
+                
+                // Data pode vir de diferentes campos (dataPagamento para tarefas, data para multas)
+                const dataRaw = item.dataPagamento || item.data;
+                const dataFormatada = dataRaw 
+                    ? new Date(dataRaw).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                    : 'N/A';
+                
+                const li = document.createElement('li');
+                li.className = `historico-item ${isMulta ? 'multa-item' : 'ganho-item'}`;
+                li.innerHTML = `
+                    <span class="item-nome">${item.nome || item.motivo}</span>
+                    <span class="item-valor ${isMulta ? 'error-color' : 'success-color'}">
+                        ${isMulta ? '- ' : '+ '} R$ ${valorFormatado}
+                    </span>
+                    <span class="item-data">${isMulta ? 'Aplicada em:' : 'Paga em:'} ${dataFormatada}</span>
+                `;
+                ul.appendChild(li);
+            });
+
+            el.appendChild(ul);
+
+            // Exibe a soma total do histórico desta seção
+            const totalEl = document.createElement('div');
+            totalEl.className = `historico-total ${isMulta ? 'historico-total-multa' : 'historico-total-ganho'}`;
+            totalEl.innerHTML = `
+                <span>Total ${isMulta ? 'Subtraído' : 'Ganhos'}:</span>
+                <span class="total-amount ${isMulta ? 'error-color' : 'success-color'}">
+                    R$ ${totalValor.toFixed(2).replace('.', ',')}
+                </span>
+            `;
+            // Não exibe o total negativo das multas, apenas o total de ganhos para maior clareza
+            if (!isMulta) {
+                el.appendChild(totalEl);
+            }
+        }
+
         // Função principal para carregar o saldo e o histórico
         async function loadCarteira() {
             const userName = getNomeUsuario();
             const saldoEl = document.getElementById('saldo-valor');
             const historicoListEl = document.getElementById('historico-list');
+            const multasListEl = document.getElementById('multas-list');
+            
+            saldoEl.textContent = 'R$ 0,00';
             historicoListEl.innerHTML = '<p>Carregando histórico...</p>';
+            multasListEl.innerHTML = '<p>Carregando multas...</p>';
+
 
             if (!userName) {
                 saldoEl.textContent = 'ERRO';
-                historicoListEl.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                historicoListEl.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                multasListEl.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
                 return;
             }
 
-            // 1. CARREGAR O SALDO
+            // Busca os dados do usuário (saldo e multas)
+            let userData = {};
             try {
-                // O nome do usuário é o ID do documento na coleção 'users'
                 const userDoc = await firestore.collection('users').doc(userName).get();
                 if (userDoc.exists) {
-                    const userData = userDoc.data();
+                    userData = userDoc.data();
                     const saldo = parseFloat(userData.saldo || 0).toFixed(2).replace('.', ',');
                     saldoEl.textContent = `R$ ${saldo}`;
                 } else {
-                    saldoEl.textContent = 'R$ 0,00';
-                    console.warn(`Documento do usuário ${userName} não encontrado na coleção 'users'.`);
+                    console.warn(`Documento do usuário ${userName} não encontrado.`);
                 }
             } catch (error) {
                 console.error("Erro ao carregar saldo:", error);
                 saldoEl.textContent = 'ERRO';
             }
 
+            // 1. EXIBIR MULTAS (Multas estão no documento do usuário)
+            const multas = userData.multas || [];
+            // Filtra as multas para garantir que só valores negativos sejam exibidos (embora já devam ser)
+            const multasNegativas = multas.filter(m => parseFloat(m.valor) < 0)
+                                          .map(m => ({ ...m, nome: m.motivo })); // Usa 'motivo' como nome
+            
+            renderTransactions(multasListEl, multasNegativas, true);
 
-            // 2. CARREGAR O HISTÓRICO DE TAREFAS CONCLUÍDAS E PAGAS
+
+            // 2. CARREGAR O HISTÓRICO DE TAREFAS CONCLUÍDAS E PAGAS (Ganhos)
             try {
-                // Filtra as tarefas da coleção 'tarefasConcluidas' pelo nome do usuário
+                // Filtra as tarefas da coleção 'tarefasConcluidas'
                 const querySnapshot = await firestore.collection('tarefasConcluidas')
                     .where('atribuidaPara', '==', userName)
                     .get();
 
-                historicoListEl.innerHTML = ''; // Limpa a mensagem de carregamento
-                let valorTotalHistorico = 0;
-
-                if (querySnapshot.empty) {
-                    historicoListEl.innerHTML = '<p>Você não possui tarefas pagas em seu histórico.</p>';
-                    return;
-                }
-
-                // Cria o cabeçalho da lista
-                const ul = document.createElement('ul');
-                ul.className = 'historico-list-ul';
-
+                const tarefasConcluidas = [];
                 querySnapshot.forEach(doc => {
+                    // Garante que só valores positivos de ganhos sejam exibidos aqui
                     const tarefa = doc.data();
-                    const valorTarefa = parseFloat(tarefa.valor || 0);
-                    
-                    valorTotalHistorico += valorTarefa; // Soma para o total
-                    
-                    const valorFormatado = valorTarefa.toFixed(2).replace('.', ',');
-                    const dataPagamento = tarefa.dataPagamento 
-                        ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') 
-                        : 'N/A';
-
-                    const li = document.createElement('li');
-                    li.className = 'historico-item';
-                    li.innerHTML = `
-                        <span class="item-nome">${tarefa.nome}</span>
-                        <span class="item-valor">R$ ${valorFormatado}</span>
-                        <span class="item-data">Pago em: ${dataPagamento}</span>
-                    `;
-                    ul.appendChild(li);
+                    if (parseFloat(tarefa.valor) > 0) {
+                        tarefasConcluidas.push(tarefa);
+                    }
                 });
-
-                historicoListEl.appendChild(ul);
-
-                // Exibe a soma total do histórico (apenas das tarefas listadas)
-                const totalEl = document.createElement('div');
-                totalEl.className = 'historico-total';
-                totalEl.innerHTML = `
-                    <span>Valor Total Histórico:</span>
-                    <span class="total-amount">R$ ${valorTotalHistorico.toFixed(2).replace('.', ',')}</span>
-                `;
-                historicoListEl.appendChild(totalEl);
+                
+                renderTransactions(historicoListEl, tarefasConcluidas, false);
 
             } catch (error) {
                 console.error("Erro ao carregar histórico de tarefas:", error);
-                historicoListEl.innerHTML = `<p style="color: red;">Erro ao carregar histórico de tarefas.</p>`;
+                historicoListEl.innerHTML = `<p class="error-message">Erro ao carregar histórico de tarefas.</p>`;
             }
         }
 
