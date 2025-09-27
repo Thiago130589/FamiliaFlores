@@ -31,19 +31,21 @@
                 </div>
                 <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
                 
-                                <div id="admin-links" class="admin-links-vertical">
+                <div id="admin-links" class="admin-links-vertical">
                     <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
-                    <a href="#" onclick="tarefasConcluidas()" class="profile-link">Histórico (Concluídas)</a>                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
+                    <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas Pendentes (Admin)</a>                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
                     <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
                     <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
                 </div>
             </div>
-            
-                        <div class="profile-menu-horizontal">
+            
+            <div class="profile-menu-horizontal">
                 <a href="#" onclick="tarefasDisponiveis()" class="profile-link">Tarefas disponíveis</a>
                 <a href="#" onclick="minhasTarefas()" class="profile-link">Minhas tarefas</a>
-                <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas pendentes</a>
-                                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
+                
+                                <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="background-color: #28a745; color: white;">Tarefas Concluídas</a>
+                
+                <a href="#" onclick="carteira()" class="profile-link">Carteira</a>
                 <a href="#" onclick="sairPerfil()" class="profile-link sair">Sair</a>
             </div>
         </div>
@@ -104,13 +106,13 @@
             };
             
             const userData = { 
-                nome, 
-                sobrenome, 
-                idade, 
-                password, 
-                isAdmin: (nome.toLowerCase() === 'thiago'),
-                saldo: 0
-            };
+                nome, 
+                sobrenome, 
+                idade, 
+                password, 
+                isAdmin: (nome.toLowerCase() === 'thiago'),
+                saldo: 0
+            };
             
             // Função para salvar no Firestore e limpar campos
             const saveUserAndFinish = async (user, fotoData) => {
@@ -120,7 +122,7 @@
                 msg.innerText = 'Cadastro realizado com sucesso!';
                 
                 clearFields();
-                showLogin(); 
+                showLogin(); 
             }
 
             if (fotoInput.files && fotoInput.files[0]) {
@@ -173,10 +175,10 @@
 
             if (foundUser.password === password) {
                 document.getElementById('auth-message').innerText = '';
-                // Garante que o objeto userLogado armazene o status de admin
-                if (foundUser.nome.toLowerCase() === 'thiago') {
-                    foundUser.isAdmin = true;
-                }
+                // Garante que o objeto userLogado armazene o status de admin
+                if (foundUser.nome.toLowerCase() === 'thiago') {
+                    foundUser.isAdmin = true;
+                }
                 localStorage.setItem('usuarioLogado', JSON.stringify(foundUser));
                 
                 showProfile(foundUser);
@@ -230,7 +232,7 @@
     // --- Navegação para páginas (Funções Corrigidas) ---
     function tarefasDisponiveis() { window.location.href = 'tarefas-disponiveis.html'; }
     function minhasTarefas() { window.location.href = 'minhas-tarefas.html'; }
-    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } // Agora é um link de Admin
+    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } // Vai para a nova página de concluídas
     function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; } 
     function carteira() { window.location.href = 'carteira.html'; }
     function editarPerfil() { window.location.href = 'editar-perfil.html'; }
@@ -248,8 +250,3 @@
             } catch (e) {
                 localStorage.removeItem('usuarioLogado');
             }
-        }
-    });
-    </script>
-</body>
-</html>
