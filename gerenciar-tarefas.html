@@ -220,7 +220,7 @@
         popupTarefa.style.display = 'none';
     };
     
-    // Salvar tarefa no localStorage (mantido, mas idealmente usaria Firestore)
+    // Salvar tarefa no localStorage (AJUSTADO AQUI!)
     btnSalvarTarefa.onclick = () => {
         const nome = document.getElementById('tarefa-nome').value.trim();
         const inicio = document.getElementById('tarefa-inicio').value;
@@ -237,8 +237,8 @@
         tarefas.push(tarefa);
         localStorage.setItem('tarefasDisponiveis', JSON.stringify(tarefas));
 
-        // Sua lógica anterior de sincronização com membros no localStorage: REMOVIDA
-        // Não faz sentido adicionar a mesma tarefa a TODOS os membros ao CRIAR, apenas ao DIRECIONAR.
+        // ⚠️ REMOVIDA: A lógica que adicionava a tarefa a todos os membros ao CRIAR.
+        // A tarefa agora só é adicionada a um membro no momento do direcionamento.
         
         popupTarefa.style.display = 'none';
         tarefaErro.textContent = '';
