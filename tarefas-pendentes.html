@@ -1,193 +1,216 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Tarefas Pendentes</title>
-    <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <title>Tarefas Pendentes</title>
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Pendentes de Pagamento</h1>
-        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
-        
-        <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
-        </div>
+    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Pendentes de Pagamento</h1>
+        <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
+        
+        <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
+            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
+        </div>
 
-        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
-    </div>
+        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
+    </div>
 
-    <script>
-    let usuarioAtual = null;
-    let isAdmin = false;
+    <script>
+    const db = firebase.firestore();
+    let usuarioAtual = null;
+    let isAdmin = false;
 
-    // Função que retorna apenas a string do nome do usuário E verifica se é Admin
-    function getUsuarioInfo() {
-        const storedValue = localStorage.getItem('usuarioLogado');
-        if (!storedValue) return { nome: null, isAdmin: false };
-        
-        try {
-            const obj = JSON.parse(storedValue);
-            if (obj && obj.nome) {
-                // Assumindo que o Admin tem o campo 'isAdmin' ou o nome é 'Admin'
-                const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'admin');
-                return { 
-                    nome: String(obj.nome).trim(), 
-                    isAdmin: isUserAdmin 
-                };
-            }
-        } catch (e) {
-            const nome = String(storedValue).trim();
-            const isUserAdmin = nome.toLowerCase() === 'admin';
-            return { nome: nome, isAdmin: isUserAdmin };
-        }
-        return { nome: null, isAdmin: false };
-    }
+    // Função para obter o nome do usuário E verificar se é Admin
+    function getUsuarioInfo() {
+        const storedValue = localStorage.getItem('usuarioLogado');
+        if (!storedValue) return { nome: null, isAdmin: false };
+        
+        try {
+            const obj = JSON.parse(storedValue);
+            if (obj && obj.nome) {
+                // Admin é 'thiago' OU tem a flag 'isAdmin: true'
+                const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'thiago');
+                return { 
+                    nome: String(obj.nome).trim(), 
+                    isAdmin: isUserAdmin 
+                };
+            }
+        } catch (e) {
+            console.error("Erro ao analisar JSON do usuário:", e);
+        }
+        return { nome: null, isAdmin: false };
+    }
 
-    /**
-     * Função para exibir a lista de tarefas pendentes.
-     */
-    async function renderTarefasPendentes() {
-        const lista = document.getElementById('tarefas-pendentes-lista');
-        const userInfo = getUsuarioInfo();
-        usuarioAtual = userInfo.nome;
-        isAdmin = userInfo.isAdmin;
+    /**
+     * Função para exibir a lista de tarefas pendentes.
+     */
+    async function renderTarefasPendentes() {
+        const lista = document.getElementById('tarefas-pendentes-lista');
+        const userInfo = getUsuarioInfo();
+        usuarioAtual = userInfo.nome;
+        isAdmin = userInfo.isAdmin;
 
-        if (!usuarioAtual) {
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
-            return;
-        }
-        if (typeof db === 'undefined') {
-             lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro: Conexão com o Banco de Dados não estabelecida.</p>';
-             return;
-        }
+        if (!usuarioAtual) {
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            return;
+        }
+        
+        lista.innerHTML = '<p style="color: #888; text-align: center;">Carregando tarefas...</p>';
 
-        try {
-            let query = db.collection('tarefasAtribuidas')
-                            .where('status', '==', 'pendente-pagamento');
-            
-            // Lógica de VISIBILIDADE: Se NÃO for Admin, filtra pela sua tarefa
-            if (!isAdmin) {
-                query = query.where('atribuidaPara', '==', usuarioAtual);
-            }
-            
-            const snapshot = await query.get();
-            let tarefas = [];
-            snapshot.forEach(doc => {
-                 tarefas.push({ id: doc.id, ...doc.data() });
-            });
 
-            if (tarefas.length === 0) {
-                lista.innerHTML = `<p style="color: #888; text-align: center;">Não há tarefas pendentes de pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
-                return;
-            }
-            
-            // RENDERIZAÇÃO
-            lista.innerHTML = tarefas.map((t) => {
-                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
-                const dataConclusao = t.dataConclusao ? new Date(t.dataConclusao).toLocaleDateString('pt-BR') : 'N/A';
-                const horaConclusao = t.dataConclusao ? new Date(t.dataConclusao).toLocaleTimeString('pt-BR') : 'N/A';
+        try {
+            let query = db.collection('tarefasAtribuidas')
+                            .where('status', '==', 'PendentePagamento'); 
+            
+            // Lógica de VISIBILIDADE: Se NÃO for Admin, filtra pela sua tarefa
+            if (!isAdmin) {
+                query = query.where('atribuidaPara', '==', usuarioAtual);
+            }
+            
+            const snapshot = await query.get();
+            let tarefas = [];
+            
+            snapshot.forEach(doc => {
+                const tarefa = doc.data();
+                
+                // CORREÇÃO: Trata tarefas onde 'atribuidaPara' ainda é um objeto (legado)
+                let nomeAtribuido = tarefa.atribuidaPara;
+                if (typeof tarefa.atribuidaPara === 'object' && tarefa.atribuidaPara !== null) {
+                    nomeAtribuido = tarefa.atribuidaPara.nome;
+                }
+                
+                // Se for membro, e houver inconsistência no BD (filtro não funcionou 100%), pula
+                if (!isAdmin && nomeAtribuido !== usuarioAtual) {
+                    return; 
+                }
 
-                let infoAdicional = '';
-                let botaoAcao = '';
+                tarefas.push({ id: doc.id, ...tarefa, atribuidaPara: nomeAtribuido });
+            });
 
-                if (isAdmin) {
-                    // ADMIN: Mostra quem fez, valor e o botão de pagamento
-                    infoAdicional = `<br><span style="color: #1976d2; font-size: 0.9rem; font-weight: bold;">Usuário: ${t.atribuidaPara}</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} às ${horaConclusao}</span>`;
-                    infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: R$ ${parseFloat(t.valor || 0).toFixed(2).replace('.', ',')}</span>`;
-                    
-                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #FFC107; color: #333; font-weight: bold;">PAGAMENTO</button>`;
-                } else {
-                    // MEMBRO: Apenas mostra que a tarefa está aguardando
-                    infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando aprovação de pagamento.</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
-                }
+            if (tarefas.length === 0) {
+                lista.innerHTML = `<p style="color: #888; text-align: center;">Não há tarefas pendentes de pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
+                return;
+            }
+            
+            // RENDERIZAÇÃO
+            lista.innerHTML = tarefas.map((t) => {
+                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+                const dataConclusao = t.dataConclusao ? new Date(t.dataConclusao).toLocaleDateString('pt-BR') : 'N/A';
+                const horaConclusao = t.dataConclusao ? new Date(t.dataConclusao).toLocaleTimeString('pt-BR').substring(0, 5) : 'N/A';
 
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: #fff3e0; border-radius: 12px; margin: 10px 0; padding: 14px 18px; border-left: 5px solid #ff9800;">
-                        <div>
-                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                            <br>
-                            <span style="color: #888; font-size: 0.9rem;">Prazo: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
-                            ${infoAdicional}
-                        </div>
-                        ${botaoAcao}
-                    </div>
-                `;
-            }).join('');
-            
-            // Adiciona evento aos botões "Pagamento" (apenas se for admin)
-            if (isAdmin) {
-                document.querySelectorAll('.btn-pagar-tarefa').forEach(btn => {
-                    btn.onclick = function() {
-                        const id = this.getAttribute('data-id');
-                        const valor = parseFloat(this.getAttribute('data-valor'));
-                        const usuario = this.getAttribute('data-usuario');
-                        pagarTarefa(id, usuario, valor);
-                    };
-                });
-            }
+                let infoAdicional = '';
+                let botaoAcao = '';
 
-        } catch (error) {
-            console.error("Erro ao carregar tarefas pendentes:", error);
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas pendentes.</p>';
-        }
-    }
+                if (isAdmin) {
+                    // ADMIN: Mostra quem fez, valor e o botão de pagamento
+                    infoAdicional = `<br><span style="color: #1976d2; font-size: 0.9rem; font-weight: bold;">Usuário: ${t.atribuidaPara}</span>`;
+                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} às ${horaConclusao}</span>`;
+                    infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: R$ ${parseFloat(t.valor || 0).toFixed(2).replace('.', ',')}</span>`;
+                    
+                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}" style="width: 140px; max-width: 90vw; font-size: 1rem; margin-left: 18px; background: #FFC107; color: #333; font-weight: bold;">PAGAMENTO</button>`;
+                } else {
+                    // MEMBRO: Apenas mostra que a tarefa está aguardando
+                    infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando aprovação de pagamento.</span>`;
+                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
+                }
 
-    /**
-     * Ação de PAGAMENTO (Exclusiva do Admin):
-     * 1. Move a tarefa para tarefasConcluidas.
-     * 2. Deleta a tarefa de tarefasAtribuidas.
-     */
-    async function pagarTarefa(tarefaId, usuarioNome, valor) {
-        if (!confirm(`Confirmar pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome}? A tarefa será FINALIZADA.`)) {
-            return;
-        }
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #fff3e0; border-radius: 12px; margin: 10px 0; padding: 14px 18px; border-left: 5px solid #ff9800;">
+                        <div>
+                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.9rem;">Prazo: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
+                            ${infoAdicional}
+                        </div>
+                        ${botaoAcao}
+                    </div>
+                `;
+            }).join('');
+            
+            // Adiciona evento aos botões "Pagamento" (apenas se for admin)
+            if (isAdmin) {
+                document.querySelectorAll('.btn-pagar-tarefa').forEach(btn => {
+                    btn.onclick = function() {
+                        const id = this.getAttribute('data-id');
+                        const valor = parseFloat(this.getAttribute('data-valor'));
+                        const usuario = this.getAttribute('data-usuario');
+                        pagarTarefa(id, usuario, valor);
+                    };
+                });
+            }
 
-        try {
-            const tarefaRef = db.collection('tarefasAtribuidas').doc(tarefaId);
-            
-            await db.runTransaction(async (transaction) => {
-                const doc = await transaction.get(tarefaRef);
+        } catch (error) {
+            console.error("Erro ao carregar tarefas pendentes:", error);
+            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas pendentes. Se o erro persistir, o administrador precisa criar um índice no Firebase para o filtro de tarefas.</p>';
+        }
+    }
 
-                if (!doc.exists) {
-                    throw new Error("Tarefa não existe ou já foi paga/removida.");
-                }
+    /**
+     * Ação de PAGAMENTO (Exclusiva do Admin):
+     * 1. Move a tarefa para tarefasConcluidas.
+     * 2. Deleta a tarefa de tarefasAtribuidas.
+     * 3. Atualiza o saldo do usuário.
+     */
+    async function pagarTarefa(tarefaId, usuarioNome, valor) {
+        if (!confirm(`Confirmar pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome}? A tarefa será FINALIZADA.`)) {
+            return;
+        }
 
-                const tarefaOriginal = doc.data();
-                
-                // 1. Cria a nova tarefa concluída (com o novo status e data)
-                const tarefaConcluida = {
-                    ...tarefaOriginal,
-                    status: 'concluida', 
-                    dataPagamento: new Date().toISOString() // Novo campo
-                };
-                
-                // 2. Move a tarefa (cria em 'tarefasConcluidas' e deleta de 'tarefasAtribuidas')
-                await transaction.set(db.collection('tarefasConcluidas').doc(), tarefaConcluida);
-                await transaction.delete(tarefaRef);
-                
-                // (Opcional/Futuro: Lógica para atualizar a carteira do usuário aqui)
-            });
-            
-            alert(`Pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome} processado com sucesso!`);
-            renderTarefasPendentes(); // Atualiza a lista
-        } catch (error) {
-            console.error("Erro ao pagar a tarefa:", error);
-            alert(`Não foi possível pagar a tarefa. Detalhes: ${error.message}`);
-        }
-    }
+        try {
+            const tarefaRef = db.collection('tarefasAtribuidas').doc(tarefaId);
+            // O nome do usuário é o ID do documento na coleção 'users'
+            const userRef = db.collection('users').doc(usuarioNome); 
+            
+            await db.runTransaction(async (transaction) => {
+                const docTarefa = await transaction.get(tarefaRef);
+                const docUser = await transaction.get(userRef);
 
-    // Inicialização principal
-    window.addEventListener('DOMContentLoaded', () => {
-        renderTarefasPendentes();
-    });
-    </script>
+                if (!docTarefa.exists) {
+                    throw new Error("Tarefa não encontrada ou já foi processada!");
+                }
+                if (!docUser.exists) {
+                    throw new Error(`Usuário ${usuarioNome} não encontrado para atualizar o saldo.`);
+                }
+                
+                const tarefaData = docTarefa.data();
+                const userData = docUser.data();
+                
+                // Atualiza o saldo
+                const novoSaldo = (userData.saldo || 0) + valor;
+                transaction.update(userRef, { saldo: novoSaldo });
+                
+                // Prepara a tarefa para a coleção de concluídas
+                const tarefaConcluidaData = {
+                    ...tarefaData,
+                    status: 'Concluída',
+                    dataPagamento: new Date().toISOString().split('T')[0]
+                };
+
+                // Cria a tarefa na coleção de concluídas
+                transaction.set(db.collection('tarefasConcluidas').doc(), tarefaConcluidaData);
+                
+                // Deleta a tarefa da lista de atribuidas
+                transaction.delete(tarefaRef);
+            });
+
+            alert(`Pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
+            renderTarefasPendentes(); // Recarrega a lista
+            
+        } catch (error) {
+            console.error("Erro na transação de pagamento:", error);
+            alert(`Erro ao processar o pagamento. Verifique o Console (F12).`);
+        }
+    }
+
+
+    window.addEventListener('DOMContentLoaded', renderTarefasPendentes);
+    </script>
 </body>
 </html>

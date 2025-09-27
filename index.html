@@ -24,7 +24,7 @@
     <div id="profile-container" class="center-box" style="display: none; padding: 32px 32px; max-width: 700px; align-items: flex-start;">
         <div class="profile-layout">
             
-                        <div class="profile-foto-col">
+                        <div class="profile-foto-col">
                 <img id="profile-foto" src="" alt="Foto" class="profile-foto-large">
                 <div class="profile-info">
                     <span id="profile-nome" class="profile-nome"></span>
@@ -33,28 +33,28 @@
                 <div id="profile-clock" style="margin: 18px 0 0 0; font-size: 1.1rem; color: #d32f2f; font-weight: bold;"></div>
             </div>
             
-                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; max-width: 320px; padding-top: 5px; margin-left: 20px;">
-                                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 1; text-align: left;">Minhas Tarefas</a>
+                        <div class="profile-menu-horizontal" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: start; max-width: 320px; padding-top: 5px; margin-left: 20px;">
+                                <a href="#" onclick="minhasTarefas()" class="profile-link" style="grid-column: 1; text-align: left;">Minhas Tarefas</a>
                 <a href="#" onclick="tarefasDisponiveis()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Disponíveis</a>
 
-                                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 1; text-align: left;">Tarefas Pendentes</a>
+                                <a href="#" onclick="tarefasPendentes()" class="profile-link" style="grid-column: 1; text-align: left;">Tarefas Pendentes</a>
                 <a href="#" onclick="tarefasConcluidas()" class="profile-link" style="grid-column: 2; text-align: left;">Tarefas Concluídas</a>
             </div>
 
-            <div style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; margin-left: 20px; width: calc(100% - 20px);">
-                
-                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px;">
-                    <a href="#" onclick="carteira()" class="profile-link" style="color: #d32f2f; font-size: 1.5rem; font-weight: bold; text-align: left;">Carteira</a>
-                    <a href="#" onclick="sairPerfil()" class="profile-link" style="text-align: right;">Sair</a>
-                </div>
+            <div style="grid-column: 1 / 3; display: flex; flex-direction: column; align-items: flex-start; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; margin-left: 20px; width: calc(100% - 20px);">
+                
+                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 20px;">
+                    <a href="#" onclick="carteira()" class="profile-link" style="color: #d32f2f; font-size: 1.5rem; font-weight: bold; text-align: left;">Carteira</a>
+                    <a href="#" onclick="sairPerfil()" class="profile-link" style="text-align: right;">Sair</a>
+                </div>
 
-                                <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
+                                <div id="admin-links" class="admin-links-vertical" style="display: none; flex-direction: column; align-items: flex-start; width: 100%;">
                     <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar tarefas</a>
                     <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
                     <a href="#" onclick="editarPerfil()" class="profile-link">Editar perfis</a>
                     <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar carteiras</a>
                 </div>
-            </div>
+            </div>
 
         </div>
     </div>
@@ -74,6 +74,8 @@
     </div>
 
     <script>
+    const db = firebase.firestore(); // Garantir que o db esteja definido aqui
+
     // --- Navegação entre telas ---
     function showRegister() {
         document.getElementById('login-container').style.display = 'none';
@@ -118,6 +120,7 @@
                 sobrenome, 
                 idade, 
                 password, 
+                // CORRIGIDO: O Admin é o "thiago"
                 isAdmin: (nome.toLowerCase() === 'thiago'),
                 saldo: 0
             };
@@ -166,27 +169,27 @@
             return;
         }
         try {
-            const usersSnapshot = await db.collection('users').get();
-            let foundUser = null;
-            
-            usersSnapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.nome && data.nome.trim().toLowerCase() === usernameInput.toLowerCase()) {
-                    foundUser = { id: doc.id, ...data };
-                }
-            });
+            // Busca o usuário pelo nome (que é o ID do documento)
+            const userRef = db.collection('users').doc(usernameInput);
+            const docSnap = await userRef.get();
 
-            if (!foundUser) {
+            if (!docSnap.exists) {
                 document.getElementById('auth-message').innerText = 'Usuário não encontrado.';
                 return;
             }
 
+            const data = docSnap.data();
+            const foundUser = { id: docSnap.id, ...data }; // ID do documento é o nome
+        
+            // Verifica a senha
             if (foundUser.password === password) {
                 document.getElementById('auth-message').innerText = '';
-                // Garante que o objeto userLogado armazene o status de admin
+                
+                // Garante que o isAdmin seja definido para 'thiago'
                 if (foundUser.nome.toLowerCase() === 'thiago') {
                     foundUser.isAdmin = true;
                 }
+                // *** CORREÇÃO CHAVE: Salva o ID (o nome) de forma clara no localStorage ***
                 localStorage.setItem('usuarioLogado', JSON.stringify(foundUser));
                 
                 showProfile(foundUser);

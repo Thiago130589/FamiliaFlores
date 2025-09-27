@@ -1,13 +1,106 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Tarefas Concluídas</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefas Concluídas</title>
+    <link rel="stylesheet" href="style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <h1>Tarefas Concluídas</h1>
-    <p>Página para visualizar tarefas já concluídas.</p>
-    <a href="index.html" class="profile-link">Voltar ao perfil</a>
+    <div class="center-box">
+        <h1 style="color: #4CAF50;">Tarefas Concluídas e Pagas</h1>
+        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+
+        <div id="tarefas-concluidas-list" style="width: 100%;">
+            <p>Carregando histórico...</p>
+        </div>
+
+        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+    </div>
+    
+    <script>
+        const db = firebase.firestore();
+
+        function voltarAoPerfil() {
+            window.location.href = 'index.html';
+        }
+
+        // Função para obter o nome do usuário E verificar se é Admin
+        function getUsuarioInfo() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) return { nome: null, isAdmin: false };
+            try {
+                const obj = JSON.parse(storedValue);
+                if (obj && obj.nome) {
+                    const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'thiago');
+                    return { nome: String(obj.nome).trim(), isAdmin: isUserAdmin };
+                }
+            } catch (e) {
+                return { nome: null, isAdmin: false };
+            }
+            return { nome: null, isAdmin: false };
+        }
+
+        async function loadTarefasConcluidas() {
+            const lista = document.getElementById('tarefas-concluidas-list');
+            lista.innerHTML = '';
+            
+            const userInfo = getUsuarioInfo();
+            const userName = userInfo.nome;
+            const isAdmin = userInfo.isAdmin;
+            
+            if (!userName) {
+                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                return;
+            }
+
+            try {
+                let query = db.collection('tarefasConcluidas');
+
+                // Filtra apenas as tarefas do usuário, se não for Admin
+                if (!isAdmin) {
+                    query = query.where('atribuidaPara', '==', userName);
+                }
+                
+                const snapshot = await query.get();
+                
+                if (snapshot.empty) {
+                    lista.innerHTML = '<p>Não há tarefas concluídas e pagas no seu histórico.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    const elemento = document.createElement('div');
+                    elemento.className = 'tarefa-card-concluida';
+                    
+                    const dataPagamento = tarefa.dataPagamento ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') : 'N/A';
+                    
+                    let infoAdmin = '';
+                    if(isAdmin) {
+                        infoAdmin = `<span style="font-weight: bold; color: #1976d2;">Usuário: ${tarefa.atribuidaPara}</span> | `;
+                    }
+
+                    elemento.innerHTML = `
+                        <div class="tarefa-details-concluida">
+                            <span class="tarefa-nome">${tarefa.nome}</span>
+                            <span class="tarefa-info">${infoAdmin}R$ ${parseFloat(tarefa.valor).toFixed(2)} | Paga em: ${dataPagamento}</span>
+                        </div>
+                        <span style="color: #4CAF50; font-weight: bold;">PAGO</span>
+                    `;
+                    lista.appendChild(elemento);
+                });
+
+            } catch (error) {
+                console.error("Erro ao carregar tarefas concluídas:", error);
+                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas.</p>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadTarefasConcluidas);
+    </script>
 </body>
 </html>

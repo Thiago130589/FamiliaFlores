@@ -1,132 +1,142 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefas Disponíveis</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefas Disponíveis</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 style="color: #1976d2;">Tarefas Disponíveis</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+    <div class="center-box">
+        <h1 style="color: #1976d2;">Tarefas Disponíveis</h1>
+        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
 
-        <div id="tarefas-list" style="width: 100%;">
-            <p id="loading-message">Carregando tarefas...</p>
-        </div>
+        <div id="tarefas-list" style="width: 100%;">
+            <p id="loading-message">Carregando tarefas...</p>
+        </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
-    </div>
+        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+    </div>
 
-    <script>
-        const db = firebase.firestore();
+    <script>
+        const db = firebase.firestore();
 
-        function voltarAoPerfil() {
-            window.location.href = 'index.html';
-        }
-        
-        // Função para carregar tarefas com status 'disponivel'
-        async function loadTarefasDisponiveis() {
-            const lista = document.getElementById('tarefas-list');
-            lista.innerHTML = '';
-            
-            const user = JSON.parse(localStorage.getItem('usuarioLogado'));
-            if (!user) {
-                // CORRIGIDO: Mensagem de erro mais clara
-                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
-                return;
-            }
+        function voltarAoPerfil() {
+            window.location.href = 'index.html';
+        }
 
+        // Função utilitária para obter o objeto completo do usuário
+        function getUsuarioObjeto() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) return null;
             try {
-                const snapshot = await db.collection('tarefasDisponiveis').get();
-
-                if (snapshot.empty) {
-                    lista.innerHTML = '<p>Não há tarefas disponíveis no momento.</p>';
-                    return;
-                }
-
-                snapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-disponivel';
-                    
-                    elemento.innerHTML = `
-                        <div class="tarefa-details-disponivel">
-                            <span class="tarefa-nome">${tarefa.nome}</span>
-                            <span class="tarefa-info">R$ ${parseFloat(tarefa.valor).toFixed(2)} | Horário: ${tarefa.inicio} - ${tarefa.fim}</span>
-                        </div>
-                        <button onclick="pegarTarefa('${doc.id}')" class="btn-green">Pegar Tarefa</button>
-                    `;
-                    lista.appendChild(elemento);
-                });
-
-            } catch (error) {
-                console.error("Erro ao carregar tarefas disponíveis:", error);
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, verifique o Console (F12).</p>`;
-            } finally {
-                 const loadingMsg = document.getElementById('loading-message');
-                 if (loadingMsg) loadingMsg.style.display = 'none';
-            }
-        }
-
-        // Função para mover a tarefa para 'tarefasAtribuidas'
-        async function pegarTarefa(taskId) {
-            const user = JSON.parse(localStorage.getItem('usuarioLogado'));
-            if (!user) {
-                alert('Usuário não identificado. Faça login novamente.');
-                voltarAoPerfil();
-                return;
-            }
-
-            if (!confirm(`Tem certeza que deseja pegar a tarefa?`)) {
-                return;
-            }
-
-            try {
-                const taskRef = db.collection('tarefasDisponiveis').doc(taskId);
-                const taskDoc = await taskRef.get();
-                
-                if (!taskDoc.exists) {
-                    alert('Tarefa não encontrada.');
-                    loadTarefasDisponiveis();
-                    return;
-                }
-
-                const tarefaData = taskDoc.data();
-                
-                // 1. Criar um novo documento na coleção 'tarefasAtribuidas'
-                const novaTarefaAtribuida = {
-                    nome: tarefaData.nome,
-                    data: tarefaData.data,
-                    inicio: tarefaData.inicio,
-                    fim: tarefaData.fim,
-                    valor: tarefaData.valor,
-                    status: 'atribuida',
-                    criadaEm: new Date().toISOString(),
-                    dataAtribuicao: new Date().toISOString(),
-                    
-                    // CORREÇÃO FINAL: Usa APENAS o nome, resolvendo o erro de tamanho de consulta para futuras tarefas.
-                    atribuidaPara: user.nome 
-                };
-
-                await db.collection('tarefasAtribuidas').add(novaTarefaAtribuida);
-
-                // 2. Deletar a tarefa da coleção 'tarefasDisponiveis'
-                await taskRef.delete();
-                
-                alert(`Tarefa "${tarefaData.nome}" atribuída a você!`);
-                loadTarefasDisponiveis(); // Recarrega a lista
+                return JSON.parse(storedValue);
             } catch (e) {
-                console.error("Erro ao pegar a tarefa:", e);
-                alert('Erro ao atribuir a tarefa. Tente novamente.');
+                return null;
             }
         }
+        
+        // Função para carregar tarefas com status 'disponivel'
+        async function loadTarefasDisponiveis() {
+            const lista = document.getElementById('tarefas-list');
+            lista.innerHTML = '';
+            
+            const user = getUsuarioObjeto();
+            if (!user || !user.nome) {
+                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('tarefasDisponiveis').get();
+
+                if (snapshot.empty) {
+                    lista.innerHTML = '<p>Não há tarefas disponíveis no momento.</p>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    const elemento = document.createElement('div');
+                    elemento.className = 'tarefa-card-disponivel';
+                    
+                    elemento.innerHTML = `
+                        <div class="tarefa-details-disponivel">
+                            <span class="tarefa-nome">${tarefa.nome}</span>
+                            <span class="tarefa-info">R$ ${parseFloat(tarefa.valor).toFixed(2)} | Horário: ${tarefa.inicio} - ${tarefa.fim}</span>
+                        </div>
+                        <button onclick="pegarTarefa('${doc.id}')" class="btn-green">Pegar Tarefa</button>
+                    `;
+                    lista.appendChild(elemento);
+                });
+
+            } catch (error) {
+                console.error("Erro ao carregar tarefas disponíveis:", error);
+                lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, verifique o Console (F12).</p>`;
+            } finally {
+                 const loadingMsg = document.getElementById('loading-message');
+                 if (loadingMsg) loadingMsg.style.display = 'none';
+            }
+        }
+
+        // Função para mover a tarefa para 'tarefasAtribuidas'
+        async function pegarTarefa(taskId) {
+            const user = getUsuarioObjeto();
+            if (!user || !user.nome) {
+                alert('Usuário não identificado. Faça login novamente.');
+                voltarAoPerfil();
+                return;
+            }
+
+            if (!confirm(`Tem certeza que deseja pegar a tarefa?`)) {
+                return;
+            }
+
+            try {
+                const taskRef = db.collection('tarefasDisponiveis').doc(taskId);
+                const taskDoc = await taskRef.get();
+                
+                if (!taskDoc.exists) {
+                    alert('Tarefa não encontrada.');
+                    loadTarefasDisponiveis();
+                    return;
+                }
+
+                const tarefaData = taskDoc.data();
+                
+                // 1. Criar um novo documento na coleção 'tarefasAtribuidas'
+                const novaTarefaAtribuida = {
+                    nome: tarefaData.nome,
+                    data: tarefaData.data,
+                    inicio: tarefaData.inicio,
+                    fim: tarefaData.fim,
+                    valor: tarefaData.valor,
+                    status: 'atribuida',
+                    criadaEm: new Date().toISOString(),
+                    dataAtribuicao: new Date().toISOString(),
+                    
+                    // CORREÇÃO FINAL: Usa APENAS o nome (string), resolvendo o erro de tamanho
+                    atribuidaPara: user.nome 
+                };
+
+                await db.collection('tarefasAtribuidas').add(novaTarefaAtribuida);
+
+                // 2. Deletar a tarefa da coleção 'tarefasDisponiveis'
+                await taskRef.delete();
+                
+                alert(`Tarefa "${tarefaData.nome}" atribuída a você!`);
+                loadTarefasDisponiveis(); // Recarrega a lista
+            } catch (e) {
+                console.error("Erro ao pegar a tarefa:", e);
+                alert('Erro ao atribuir a tarefa. Tente novamente.');
+            }
+        }
 
 
-        window.addEventListener('DOMContentLoaded', loadTarefasDisponiveis);
-    </script>
+        window.addEventListener('DOMContentLoaded', loadTarefasDisponiveis);
+    </script>
 </body>
 </html>
