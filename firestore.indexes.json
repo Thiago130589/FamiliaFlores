@@ -1,4 +1,15 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "tarefasAtribuidas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "atribuidaPara",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

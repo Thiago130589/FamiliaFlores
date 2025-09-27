@@ -28,6 +28,7 @@
     let countdownInterval = null;
 
     function getUsuarioAtual() {
+        // Pega o nome do usuário logado (ex: "Lucas")
         return localStorage.getItem('usuarioLogado');
     }
 
@@ -41,9 +42,7 @@
         let corBotao = '#4CAF50'; // Verde (Em andamento)
         let podeConcluir = true;
 
-        // A tarefa já está atribuída, verificamos apenas o prazo
         if (tarefa.fim && tarefa.data) { 
-            // Junta a data da tarefa com o horário de fim
             const dataString = tarefa.data; 
             const [ano, mes, dia] = dataString.split('-').map(Number);
             const [h, m] = tarefa.fim.split(':').map(Number);
@@ -80,10 +79,10 @@
             let shouldReRender = false; 
 
             tarefasCache.forEach(t => {
-                // Apenas tarefas com data e fim (para que o cálculo seja possível)
                 if (t.data && t.fim) {
                     const { corBotao } = determinarStatusECor(t);
-                    const element = document.getElementById(`countdown-${t.id}`);
+                    // O ID do elemento é o ID do documento do Firestore
+                    const element = document.getElementById(`countdown-${t.id}`); 
 
                     if (!element) return;
                     
@@ -92,7 +91,6 @@
                         return;
                     }
                     
-                    // Lógica para calcular o tempo restante
                     const dataString = t.data; 
                     const [ano, mes, dia] = dataString.split('-').map(Number);
                     const [h, m] = t.fim.split(':').map(Number);
@@ -102,7 +100,7 @@
 
                     if (diffMs <= 0) {
                         element.textContent = 'EXPIRADO';
-                        shouldReRender = true; // Força a lista a atualizar a cor para vermelho
+                        shouldReRender = true; 
                         return;
                     }
 
@@ -149,33 +147,32 @@
         }
 
         try {
-            // 1. Consulta filtrada para o usuário atual
+            // 1. Consulta filtrada para o usuário atual (EXIGE O ÍNDICE)
             const snapshot = await db.collection('tarefasAtribuidas')
                                      .where('atribuidaPara', '==', usuarioAtual)
                                      .get();
                                      
             tarefasCache = [];
             snapshot.forEach(doc => {
-                 tarefasCache.push({ id: doc.id, ...doc.data() });
+                 // Armazena o ID do documento para uso no botão Concluir e no cronômetro
+                 tarefasCache.push({ id: doc.id, ...doc.data() }); 
             });
 
             if (tarefasCache.length === 0) {
                 lista.innerHTML = `<p style="color: #888; text-align: center;">Você não tem tarefas atribuídas no momento.</p>`;
-                // Parar o cronômetro se não houver tarefas
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                 }
                 return;
             }
             
-            // 2. RENDERIZAR a lista
+            // 2. RENDERIZAÇÃO
             lista.innerHTML = tarefasCache.map((t) => {
                 const { statusTexto, corBotao } = determinarStatusECor(t);
                 
-                // Formata a data (DD/MM/YYYY)
                 const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
                 
-                // Exibe o cronômetro (ou "EXPIRADO")
+                // Cronômetro usa o ID do documento
                 const timerPlaceholder = `<span id="countdown-${t.id}" style="color: ${corBotao}; font-weight: bold; margin-left: 10px;">--:--:--</span>`; 
 
                 return `
@@ -204,7 +201,8 @@
 
         } catch (error) {
             console.error("Erro ao carregar minhas tarefas:", error);
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas.</p>';
+            // Mensagem mais informativa sobre o erro de filtro (índice)
+            lista.innerHTML = `<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas. Se o erro persistir, o administrador precisa criar um índice no Firebase para o filtro de tarefas.</p>`;
         }
     }
 
@@ -229,7 +227,7 @@
                 dataConclusao: new Date().toISOString()
             };
             
-            delete tarefaConcluida.id; // Remover o ID do documento original
+            delete tarefaConcluida.id; 
 
             await db.runTransaction(async (transaction) => {
                 // 1. Cria a tarefa na coleção 'tarefasConcluidas'
@@ -240,7 +238,7 @@
             });
             
             alert(`Tarefa "${tarefa.nome}" concluída com sucesso!`);
-            renderMinhasTarefas(); // Atualiza a lista
+            renderMinhasTarefas(); 
         } catch (error) {
             console.error("Erro ao concluir a tarefa:", error);
             alert(`Não foi possível concluir a tarefa: ${error.message}`);
