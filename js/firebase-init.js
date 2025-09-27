@@ -15,8 +15,5 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 // 3. DEFINIÇÃO GLOBAL da VARIÁVEL do Banco de Dados (Firestore)
-// A variável 'db' é criada AQUI.
-const db = firebase.firestore();
-
-// ATENÇÃO: Se você usa o Storage para as fotos, adicione a linha abaixo:
-// const storage = firebase.storage();
+// Usamos 'var' para garantir que 'db' seja acessível em outros scripts (como no index.html).
+var db = firebase.firestore();
