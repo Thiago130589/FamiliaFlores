@@ -5,139 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Meu Perfil</title>
     <link rel="stylesheet" href="style.css">
-    
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 id="welcome-message" class="main-title-green">Carregando Perfil...</h1>
-        <hr class="divider">
+    <div class="center-box">
+        <h1 id="page-title" class="main-title">Carregando Perfil...</h1>
+        <div id="profile-container" style="display: none; text-align: center;">
+            <img id="profile-picture" src="assets/perfil-padrao.png" alt="Foto de Perfil" class="profile-img">
+            <p id="time-display" class="time-text"></p>
+            <h2 id="user-name" class="user-name-text"></h2>
+            <p id="user-role" class="user-role-text"></p>
+        </div>
 
-        <div id="saldo-area" class="saldo-card" style="display:none;">
-            <h2>Seu Saldo Atual</h2>
-            <p id="saldo-valor" class="saldo-amount">R$ 0,00</p>
+        <div id="loading-container" style="text-align: center;">
+            <h2 class="section-title">Ações Rápidas</h2>
+            <p id="loading-links">Carregando links...</p>
         </div>
         
-        <hr id="member-divider" class="divider" style="display:none;">
-
-        <h2 style="color: #444; margin-top: 30px;">Ações Rápidas</h2>
-        <div id="dashboard-links" class="dashboard-links-container">
-            <p>Carregando links...</p>
-        </div>
-
-        <button onclick="logout()" class="btn-rounded btn-danger wide-button" style="margin-top: 30px;">Sair / Logout</button>
+        <nav id="nav-menu" class="nav-menu" style="display: none;">
+            </nav>
+        
+        <button id="logout-button" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">Sair / Logout</button>
     </div>
+
+    <script src="js/script.js"></script>
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
 
-        // --- Funções de Utilitário ---
+        // Variável global para armazenar os dados do usuário logado
+        let usuarioLogadoData = null; 
 
-        // Função para obter o nome, status Admin e senha do usuário logado
-        function getUsuarioInfo() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) return { nome: null, isAdmin: false, senha: null };
-            try {
-                const obj = JSON.parse(storedValue);
-                const userName = String(obj.nome).trim();
-                // Admin é 'thiago' OU tem a flag 'isAdmin: true'
-                const isUserAdmin = (obj.isAdmin === true) || (userName.toLowerCase() === 'thiago');
-                return { 
-                    nome: userName, 
-                    isAdmin: isUserAdmin,
-                    senha: obj.senha
+        // 1. Função de Utilitário para formatar a hora (se você ainda usa a função no index)
+        function startBrasilClock(displayElementId) {
+            const timeDisplay = document.getElementById(displayElementId);
+            if (!timeDisplay) return;
+
+            function updateTime() {
+                const now = new Date();
+                const options = {
+                    timeZone: 'America/Sao_Paulo',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
                 };
-            } catch (e) {
-                return { nome: null, isAdmin: false, senha: null };
+                const brasilTime = now.toLocaleTimeString('pt-BR', options);
+                timeDisplay.textContent = brasilTime.replace(',', ' (Brasil)');
             }
+            updateTime();
+            setInterval(updateTime, 1000);
         }
 
-        // Função de Logout
-        function logout() {
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html'; // Redireciona para a página de login
-        }
+        // 2. Função principal para carregar o perfil e o menu
+        async function loadProfileAndMenu() {
+            const pageTitle = document.getElementById('page-title');
+            const profileContainer = document.getElementById('profile-container');
+            const loadingContainer = document.getElementById('loading-container');
+            const navMenu = document.getElementById('nav-menu');
+            const userNameEl = document.getElementById('user-name');
+            const userRoleEl = document.getElementById('user-role');
+            const logoutButton = document.getElementById('logout-button');
+            
+            // Tenta obter o usuário do localStorage
+            const storedValue = localStorage.getItem('usuarioLogado');
 
-        // --- Renderização do Dashboard ---
-        
-        async function loadProfile() {
-            const userInfo = getUsuarioInfo();
-            const welcomeEl = document.getElementById('welcome-message');
-            const saldoAreaEl = document.getElementById('saldo-area');
-            const saldoValorEl = document.getElementById('saldo-valor');
-            const dashboardEl = document.getElementById('dashboard-links');
-            const memberDividerEl = document.getElementById('member-divider');
-
-            // 1. Verificar Autenticação - Redireciona imediatamente se não estiver logado
-            if (!userInfo.nome) {
+            if (!storedValue) {
+                // Se não há ninguém logado, redireciona para o login
                 window.location.href = 'login.html';
                 return;
             }
-            
-            welcomeEl.textContent = Olá, !;
-            if (userInfo.isAdmin) {
-                welcomeEl.innerHTML += <span style="font-size: 0.7em; color: #f44336; margin-left: 10px;">(ADMIN)</span>;
-            }
 
-            // 2. Carregar Saldo e Área do Membro
             try {
-                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const saldo = parseFloat(userData.saldo || 0);
-                    saldoValorEl.textContent = R$ ;
-                    
-                    if (!userInfo.isAdmin) {
-                       saldoAreaEl.style.display = 'block';
-                       memberDividerEl.style.display = 'block';
-                    } else {
-                        saldoAreaEl.style.display = 'none';
-                        memberDividerEl.style.display = 'none';
-                    }
+                usuarioLogadoData = JSON.parse(storedValue);
+                const nome = usuarioLogadoData.nome;
+                const isAdmin = usuarioLogadoData.isAdmin || false;
+                
+                pageTitle.textContent = 'Dashboard'; // Título da página
+                userNameEl.textContent = nome; // Nome do usuário
+                userRoleEl.textContent = isAdmin ? 'Administrador' : 'Membro da Família';
+                
+                profileContainer.style.display = 'block'; // Mostra a foto e info
+                loadingContainer.style.display = 'none'; // Esconde o "Carregando links"
+                navMenu.style.display = 'block'; // Mostra o menu
 
-                } else {
-                    saldoValorEl.textContent = 'Erro: Usuário não cadastrado no Firestore.';
-                    saldoAreaEl.style.display = 'block';
-                }
-            } catch (error) {
-                console.error("Erro ao carregar saldo:", error);
-                saldoValorEl.textContent = 'Erro ao carregar saldo.';
-                saldoAreaEl.style.display = 'block';
-            }
+                // Inicia o relógio
+                startBrasilClock('time-display');
 
-
-            // 3. Renderizar Links de Navegação
-            dashboardEl.innerHTML = '';
-            
-            const links = userInfo.isAdmin 
-                ? [
-                    // Links do Administrador
-                    { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas (Criar/Editar)', style: 'btn-admin-action' },
-                    { href: 'tarefas-pendentes.html', text: 'Ver Tarefas Pendentes', style: 'btn-tertiary' },
-                    { href: 'gerenciar-carteira.html', text: 'Gerenciar Carteiras (Adicionar/Multa)', style: 'btn-admin-action' },
-                    { href: 'multas.html', text: 'Histórico de Multas (Remover/Add)', style: 'btn-danger' },
-                    { href: 'tornar-admin.html', text: 'Gerenciar Permissões de Admin', style: 'btn-admin-action' },
-                    { href: 'editar-perfis.html', text: 'Excluir Perfis de Usuário', style: 'btn-danger' },
-                ]
-                : [
-                    // Links do Membro Comum
-                    { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis (Para Pegar)', style: 'btn-primary' },
-                    { href: 'minhas-tarefas.html', text: 'Minhas Tarefas (Para Concluir)', style: 'btn-tertiary' },
-                    { href: 'carteira.html', text: 'Minha Carteira (Histórico de Ganhos/Multas)', style: 'btn-primary' },
+                // 3. Monta os Links do Menu
+                const links = [
+                    { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis' },
+                    { href: 'minhas-tarefas.html', text: 'Minhas Tarefas' },
+                    { href: 'tarefas-pendentes.html', text: 'Tarefas Pendentes' },
+                    { href: 'tarefas-concluidas.html', text: 'Tarefas Concluídas' },
+                    { href: 'carteira.html', text: 'Carteira' },
+                    // Links de Admin/Gerenciamento (APENAS se for Admin)
+                    ...(isAdmin ? [
+                        { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
+                        { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, // CORRIGIDO O LINK AQUI
+                        { href: 'multas.html', text: 'Multas' },
+                        { href: 'gerenciar-carteira.html', text: 'Gerenciar Carteira' }
+                    ] : [])
                 ];
 
-            links.forEach(link => {
-                const linkEl = document.createElement('a');
-                linkEl.href = link.href;
-                linkEl.className = tn-rounded  wide-button dashboard-link;
-                linkEl.textContent = link.text;
-                dashboardEl.appendChild(linkEl);
-            });
+                navMenu.innerHTML = links.map(link => 
+                    <a href="" class="menu-link"></a>
+                ).join('');
+
+
+                // 4. Configura o botão de Logout
+                logoutButton.onclick = function() {
+                    localStorage.removeItem('usuarioLogado');
+                    window.location.href = 'login.html';
+                };
+                
+            } catch (e) {
+                console.error("Erro ao carregar dados do localStorage:", e);
+                // Em caso de erro, força o logout para evitar travamentos
+                localStorage.removeItem('usuarioLogado');
+                window.location.href = 'login.html';
+            }
         }
+
+        // Inicia o processo de carregamento quando a página terminar de carregar
+        window.addEventListener('DOMContentLoaded', loadProfileAndMenu);
         
-        window.addEventListener('DOMContentLoaded', loadProfile);
+        // Se a sua função startBrasilClock estiver dentro do script.js, remova esta função daqui.
+        // Se a sua função de logout estiver no script.js, remova o onclick do botão.
     </script>
 </body>
 </html>
