@@ -1,277 +1,143 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>familia flores</title>
+    <title>Dashboard | Meu Perfil</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script src="js/firebase-init.js"></script> 
 </head>
 <body>
-    <div id="login-container" class="center-box">
-        <h1>familia flores</h1>
-        <form id="login-form" onsubmit="event.preventDefault(); login();"> 
-            <input type="text" id="login-username" placeholder="Nome de usuário" class="input-rounded">
-            <input type="password" id="login-password" placeholder="Senha" class="input-rounded">
-            <button type="submit" class="btn-rounded">Entrar</button>
-        </form>
-        <div id="auth-message"></div>
-        <a href="#" id="show-register" onclick="showRegister()">cadastre-se</a>
-    </div>
+    <div class="center-box large-box">
+        <h1 id="welcome-message" class="main-title-green">Carregando Perfil...</h1>
+        <hr class="divider">
 
-    <div id="profile-container" class="center-box" style="display: none;">
-        <div class="profile-grid">
-
-            <div id="quadrant-i" class="profile-quadrant">
-                <img id="profile-foto" src="" alt="Foto" class="profile-foto-large">
-                <span id="profile-nome" class="profile-nome"></span>
-                <span id="profile-status" class="profile-status"></span>
-                <div id="profile-clock" class="profile-clock-style"></div>
-            </div>
-
-            <div id="quadrant-ii" class="profile-quadrant">
-                <a href="#" onclick="tarefasDisponiveis()" class="profile-link">Tarefas Disponíveis</a>
-                <a href="#" onclick="minhasTarefas()" class="profile-link">Minhas Tarefas</a>
-                <a href="#" onclick="tarefasPendentes()" class="profile-link">Tarefas Pendentes</a>
-                <a href="#" onclick="tarefasConcluidas()" class="profile-link">Tarefas Concluídas</a>
-            </div>
-
-            <div id="quadrant-iii" class="profile-quadrant">
-                <div id="admin-links" class="admin-links-vertical">
-                    <a href="#" onclick="gerenciarTarefas()" class="profile-link">Gerenciar Tarefas</a>
-                    <a href="#" onclick="editarPerfil()" class="profile-link">Editar Perfis</a>
-                    <a href="#" onclick="gerenciarMultas()" class="profile-link">Multas</a>
-                    <a href="#" onclick="gerenciarCarteira()" class="profile-link">Gerenciar Carteira</a>
-                </div>
-            </div>
-
-            <div id="quadrant-iv" class="profile-quadrant">
-                <a href="#" onclick="carteira()" class="profile-link profile-main-link">Carteira</a>
-                <a href="#" onclick="sairPerfil()" class="profile-link profile-main-link">Sair</a>
-            </div>
-
+        <div id="saldo-area" class="saldo-card" style="display:none;">
+            <h2>Seu Saldo Atual</h2>
+            <p id="saldo-valor" class="saldo-amount">R$ 0,00</p>
         </div>
-    </div>
-    <div id="register-container" class="center-box" style="display: none;">
-        <h1>Cadastro</h1>
-        <form id="register-form" onsubmit="event.preventDefault(); register();">
-            <input type="text" id="register-nome" placeholder="Nome" class="input-rounded">
-            <input type="text" id="register-sobrenome" placeholder="Sobrenome" class="input-rounded">
-            <input type="number" id="register-idade" placeholder="Idade" class="input-rounded" min="0">
-            <input type="file" id="register-foto" accept="image/*" class="input-rounded">
-            <input type="password" id="register-password" placeholder="Senha" class="input-rounded">
-            <button type="submit" class="btn-rounded">Cadastrar</button>
-        </form>
-        <div id="register-message"></div>
-        <a href="#" onclick="showLogin()">voltar ao login</a>
+        
+        <hr id="member-divider" class="divider" style="display:none;">
+
+        <h2 style="color: #444; margin-top: 30px;">Ações Rápidas</h2>
+        <div id="dashboard-links" class="dashboard-links-container">
+            <p>Carregando links...</p>
+        </div>
+
+        <button onclick="logout()" class="btn-rounded btn-danger wide-button" style="margin-top: 30px;">Sair / Logout</button>
     </div>
 
     <script>
-    // --- Navegação entre telas ---
-    function showRegister() {
-        document.getElementById('login-container').style.display = 'none';
-        document.getElementById('register-container').style.display = 'flex';
-    }
-    function showLogin() {
-        document.getElementById('register-container').style.display = 'none';
-        document.getElementById('login-container').style.display = 'flex';
-    }
-
-    // --- Autenticação: CADASTRO ---
-    async function register() {
-        const nome = document.getElementById('register-nome').value.trim();
-        const sobrenome = document.getElementById('register-sobrenome').value.trim();
-        const idade = document.getElementById('register-idade').value;
-        const fotoInput = document.getElementById('register-foto');
-        const password = document.getElementById('register-password').value;
-        const msg = document.getElementById('register-message');
-        msg.innerText = '';
-        if (!nome || !password) {
-            msg.innerText = 'Preencha nome e senha.';
-            return;
-        }
-        try {
-            // CORREÇÃO: Utiliza 'firebase.firestore()' diretamente no caso de 'db' não estar no escopo global
-            const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-            const userRef = firestore.collection('users').doc(nome);
-            const docSnap = await userRef.get();
-            if (docSnap.exists) {
-                msg.innerText = 'Nome já cadastrado.';
-                return;
-            }
-            
-            const clearFields = () => {
-                document.getElementById('register-nome').value = '';
-                document.getElementById('register-sobrenome').value = '';
-                document.getElementById('register-idade').value = '';
-                document.getElementById('register-foto').value = '';
-                document.getElementById('register-password').value = '';
-            };
-            
-            const userData = { 
-                nome, 
-                sobrenome, 
-                idade, 
-                password, 
-                // CORRIGIDO: O Admin é o "thiago"
-                isAdmin: (nome.toLowerCase() === 'thiago'),
-                saldo: 0
-            };
-            
-            // Função para salvar no Firestore e limpar campos
-            const saveUserAndFinish = async (user, fotoData) => {
-                // Salva no Firestore
-                await userRef.set({ ...user, foto: fotoData });
-                
-                msg.innerText = 'Cadastro realizado com sucesso!';
-                
-                clearFields();
-                showLogin(); 
-            }
-
-            if (fotoInput.files && fotoInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    try {
-                        await saveUserAndFinish(userData, e.target.result);
-                    } catch (err) {
-                        msg.innerText = 'Erro ao salvar usuário: ' + err.message;
-                    }
-                };
-                reader.onerror = function(e) {
-                    msg.innerText = 'Erro ao ler a foto.';
-                };
-                reader.readAsDataURL(fotoInput.files[0]);
-            } else {
-                await saveUserAndFinish(userData, ''); // Salva sem foto
-            }
-        } catch (e) {
-            console.error("Erro detalhado do Firebase no Cadastro:", e);
-            msg.innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
-        }
-    }
-
-    // --- Autenticação: LOGIN ---
-    async function login() {
-        const usernameInput = document.getElementById('login-username').value.trim();
-        const password = document.getElementById('login-password').value;
-        const msgElement = document.getElementById('auth-message');
-        msgElement.innerText = '';
-
-        if (!usernameInput || !password) {
-            msgElement.innerText = 'Preencha todos os campos.';
-            return;
-        }
-        
-        // CORREÇÃO: Utiliza 'firebase.firestore()' diretamente no caso de 'db' não estar no escopo global
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        try {
-            // Busca o usuário pelo nome (que é o ID do documento, ex: 'Thiago' ou 'Lucas')
-            const userRef = firestore.collection('users').doc(usernameInput);
-            const docSnap = await userRef.get();
+        // --- Funções de Utilitário ---
 
-            if (!docSnap.exists) {
-                msgElement.innerText = 'Usuário não encontrado.';
+        // Função para obter o nome, status Admin e senha do usuário logado
+        function getUsuarioInfo() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) return { nome: null, isAdmin: false, senha: null };
+            try {
+                const obj = JSON.parse(storedValue);
+                const userName = String(obj.nome).trim();
+                // Admin é 'thiago' OU tem a flag 'isAdmin: true'
+                const isUserAdmin = (obj.isAdmin === true) || (userName.toLowerCase() === 'thiago');
+                return { 
+                    nome: userName, 
+                    isAdmin: isUserAdmin,
+                    senha: obj.senha
+                };
+            } catch (e) {
+                return { nome: null, isAdmin: false, senha: null };
+            }
+        }
+
+        // Função de Logout
+        function logout() {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html'; // Redireciona para a página de login
+        }
+
+        // --- Renderização do Dashboard ---
+        
+        async function loadProfile() {
+            const userInfo = getUsuarioInfo();
+            const welcomeEl = document.getElementById('welcome-message');
+            const saldoAreaEl = document.getElementById('saldo-area');
+            const saldoValorEl = document.getElementById('saldo-valor');
+            const dashboardEl = document.getElementById('dashboard-links');
+            const memberDividerEl = document.getElementById('member-divider');
+
+            // 1. Verificar Autenticação - Redireciona imediatamente se não estiver logado
+            if (!userInfo.nome) {
+                window.location.href = 'login.html';
                 return;
             }
-
-            const data = docSnap.data();
-            const foundUser = { id: docSnap.id, ...data }; // ID do documento é o nome
-        
-            // Verifica a senha
-            if (foundUser.password === password) {
-                msgElement.innerText = 'Login realizado!';
-                
-                // Garante que o isAdmin seja definido para 'thiago' (se não estiver no Firestore)
-                if (foundUser.nome && foundUser.nome.toLowerCase() === 'thiago') {
-                    foundUser.isAdmin = true;
-                }
-                
-                // SALVA O OBJETO COMPLETO DO USUÁRIO NO LOCAL STORAGE
-                localStorage.setItem('usuarioLogado', JSON.stringify(foundUser));
-                
-                showProfile(foundUser);
-            } else {
-                msgElement.innerText = 'Senha incorreta.';
+            
+            welcomeEl.textContent = Olá, !;
+            if (userInfo.isAdmin) {
+                welcomeEl.innerHTML += <span style="font-size: 0.7em; color: #f44336; margin-left: 10px;">(ADMIN)</span>;
             }
-        } catch (e) {
-            console.error("Erro detalhado do Firebase no Login:", e);
-            msgElement.innerText = 'Erro ao acessar o banco de dados. Verifique o Console (F12).';
-        }
-    }
 
-    function sairPerfil() {
-        document.getElementById('profile-container').style.display = 'none';
-        document.getElementById('login-container').style.display = 'flex';
-        document.getElementById('login-username').value = '';
-        document.getElementById('login-password').value = '';
-        localStorage.removeItem('usuarioLogado'); 
-    }
-
-    function showProfile(user) {
-        document.getElementById('login-container').style.display = 'none';
-        document.getElementById('register-container').style.display = 'none';
-        document.getElementById('profile-container').style.display = 'flex';
-        document.getElementById('profile-nome').innerText = user.nome || '';
-        document.getElementById('profile-foto').src = user.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nome || 'U') + '&background=1976d2&color=fff&size=128';
-        
-        const isAdmin = (user.nome && user.nome.toLowerCase() === 'thiago') || (user.isAdmin === true);
-        
-        document.getElementById('profile-status').innerText = isAdmin ? 'Administrador' : 'Membro';
-        
-        // Controla a visibilidade da div de links de admin
-        document.getElementById('admin-links').style.display = isAdmin ? 'flex' : 'none';
-        
-        startBrasiliaClock();
-    }
-
-    // Relógio horário de Brasília
-    function startBrasiliaClock() {
-        function updateClock() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            const brasilia = new Date(utc - (3 * 60 * 60 * 1000));
-            const h = String(brasilia.getHours()).padStart(2, '0');
-            const m = String(brasilia.getMinutes()).padStart(2, '0');
-            const s = String(brasilia.getSeconds()).padStart(2, '0');
-            const clockElement = document.getElementById('profile-clock');
-            if (clockElement) {
-                clockElement.textContent = `${h}:${m}:${s} (Brasília)`;
-            }
-        }
-        updateClock();
-        if (window._clockInterval) clearInterval(window._clockInterval);
-        window._clockInterval = setInterval(updateClock, 1000);
-    }
-
-    // --- Navegação para páginas ---
-    function tarefasDisponiveis() { window.location.href = 'tarefas-disponiveis.html'; }
-    function minhasTarefas() { window.location.href = 'minhas-tarefas.html'; }
-    function tarefasConcluidas() { window.location.href = 'tarefas-concluidas.html'; } 
-    function tarefasPendentes() { window.location.href = 'tarefas-pendentes.html'; } 
-    function carteira() { window.location.href = 'carteira.html'; }
-    function editarPerfil() { window.location.href = 'editar-perfil.html'; }
-    function gerenciarTarefas() { window.location.href = 'gerenciar-tarefas.html'; }
-    function gerenciarMultas() { window.location.href = 'multas.html'; }
-    function gerenciarCarteira() { window.location.href = 'gerenciar-carteira.html'; }
-
-    // --- Manter usuário logado ao atualizar ---
-    window.addEventListener('DOMContentLoaded', function() {
-        const usuarioSalvo = localStorage.getItem('usuarioLogado');
-        if (usuarioSalvo) {
+            // 2. Carregar Saldo e Área do Membro
             try {
-                const user = JSON.parse(usuarioSalvo);
-                showProfile(user);
-            } catch (e) {
-                localStorage.removeItem('usuarioLogado');
+                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const saldo = parseFloat(userData.saldo || 0);
+                    saldoValorEl.textContent = R$ ;
+                    
+                    if (!userInfo.isAdmin) {
+                       saldoAreaEl.style.display = 'block';
+                       memberDividerEl.style.display = 'block';
+                    } else {
+                        saldoAreaEl.style.display = 'none';
+                        memberDividerEl.style.display = 'none';
+                    }
+
+                } else {
+                    saldoValorEl.textContent = 'Erro: Usuário não cadastrado no Firestore.';
+                    saldoAreaEl.style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Erro ao carregar saldo:", error);
+                saldoValorEl.textContent = 'Erro ao carregar saldo.';
+                saldoAreaEl.style.display = 'block';
             }
+
+
+            // 3. Renderizar Links de Navegação
+            dashboardEl.innerHTML = '';
+            
+            const links = userInfo.isAdmin 
+                ? [
+                    // Links do Administrador
+                    { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas (Criar/Editar)', style: 'btn-admin-action' },
+                    { href: 'tarefas-pendentes.html', text: 'Ver Tarefas Pendentes', style: 'btn-tertiary' },
+                    { href: 'gerenciar-carteira.html', text: 'Gerenciar Carteiras (Adicionar/Multa)', style: 'btn-admin-action' },
+                    { href: 'multas.html', text: 'Histórico de Multas (Remover/Add)', style: 'btn-danger' },
+                    { href: 'tornar-admin.html', text: 'Gerenciar Permissões de Admin', style: 'btn-admin-action' },
+                    { href: 'editar-perfis.html', text: 'Excluir Perfis de Usuário', style: 'btn-danger' },
+                ]
+                : [
+                    // Links do Membro Comum
+                    { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis (Para Pegar)', style: 'btn-primary' },
+                    { href: 'minhas-tarefas.html', text: 'Minhas Tarefas (Para Concluir)', style: 'btn-tertiary' },
+                    { href: 'carteira.html', text: 'Minha Carteira (Histórico de Ganhos/Multas)', style: 'btn-primary' },
+                ];
+
+            links.forEach(link => {
+                const linkEl = document.createElement('a');
+                linkEl.href = link.href;
+                linkEl.className = tn-rounded  wide-button dashboard-link;
+                linkEl.textContent = link.text;
+                dashboardEl.appendChild(linkEl);
+            });
         }
-    });
+        
+        window.addEventListener('DOMContentLoaded', loadProfile);
     </script>
 </body>
 </html>

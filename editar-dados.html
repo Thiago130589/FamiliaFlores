@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Dados do Perfil</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title">Editar Dados Pessoais</h1>
+        <h2 id="user-title" class="main-title-green"></h2>
+        <hr class="divider">
+        
+        <form id="edit-form">
+            <label class="input-label" for="new-nome">Primeiro Nome (ID do Perfil):</label>
+            <input type="text" id="new-nome" class="input-rounded" disabled title="O nome primário não pode ser alterado, pois é a chave de acesso.">
+            
+            <label class="input-label" for="new-sobrenome">Sobrenome:</label>
+            <input type="text" id="new-sobrenome" class="input-rounded" required>
+
+            <label class="input-label" for="new-idade">Idade:</label>
+            <input type="number" id="new-idade" class="input-rounded" min="1" max="150" required>
+
+            <label class="input-label" for="new-senha">Nova Senha (Opcional):</label>
+            <input type="password" id="new-senha" class="input-rounded" placeholder="Deixe em branco para não alterar a senha">
+            
+            <label class="input-label" for="confirm-senha">Confirmar Nova Senha:</label>
+            <input type="password" id="confirm-senha" class="input-rounded">
+            
+            <div id="status-message" class="error-message" style="margin-top: 20px; min-height: 20px;"></div>
+
+            <button type="submit" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Salvar Alterações</button>
+        </form>
+
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao Gerenciamento</a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+        
+        let usuarioSendoEditado = '';
+
+        // Funções de Utilitário
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                const obj = JSON.parse(storedValue);
+                // Apenas Administradores podem acessar
+                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
+                    alert("Acesso negado. Apenas administradores podem editar perfis.");
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return obj;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        async function loadUserData() {
+            // Verifica acesso de Admin
+            if (!getUsuarioLogado()) return; 
+
+            usuarioSendoEditado = getQueryParam('user');
+            if (!usuarioSendoEditado) {
+                document.getElementById('status-message').className = 'error-message';
+                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
+                return;
+            }
+
+            document.getElementById('user-title').textContent = Usuário: ;
+
+            try {
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoEditado).get();
+                if (!userDoc.exists) {
+                    document.getElementById('status-message').className = 'error-message';
+                    document.getElementById('status-message').textContent = Erro: Perfil de '' não encontrado.;
+                    return;
+                }
+
+                const userData = userDoc.data();
+                
+                // Preenche os campos (Nome primário é desabilitado)
+                document.getElementById('new-nome').value = usuarioSendoEditado;
+                document.getElementById('new-sobrenome').value = userData.sobrenome || '';
+                document.getElementById('new-idade').value = userData.idade || '';
+                
+                document.getElementById('status-message').textContent = 'Dados carregados. Edite e salve.';
+
+            } catch (error) {
+                console.error("Erro ao carregar dados do usuário:", error);
+                document.getElementById('status-message').className = 'error-message';
+                document.getElementById('status-message').textContent = 'Erro ao carregar dados. Verifique a conexão.';
+            }
+        }
+
+        async function saveChanges(event) {
+            event.preventDefault();
+            const statusEl = document.getElementById('status-message');
+            statusEl.className = 'info-message';
+            statusEl.textContent = 'Verificando e salvando...';
+
+            const newSobrenome = document.getElementById('new-sobrenome').value.trim();
+            const newIdade = parseInt(document.getElementById('new-idade').value);
+            const newSenha = document.getElementById('new-senha').value;
+            const confirmSenha = document.getElementById('confirm-senha').value;
+
+            // 1. Validação de Senha
+            if (newSenha !== confirmSenha) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'As senhas não coincidem.';
+                return;
+            }
+
+            // 2. Monta o objeto de atualização
+            const updates = {};
+            updates.sobrenome = newSobrenome;
+            updates.idade = newIdade;
+
+            if (newSenha) {
+                updates.senha = newSenha; // Não estamos criptografando aqui, apenas salvando o valor
+            }
+
+            if (Object.keys(updates).length === 0) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Nenhuma alteração detectada.';
+                return;
+            }
+
+            // 3. Salva no Firestore
+            try {
+                const userRef = firestore.collection(USERS_COLLECTION).doc(usuarioSendoEditado);
+                await userRef.update(updates);
+
+                statusEl.className = 'success-message';
+                statusEl.textContent = 'Dados do perfil atualizados com sucesso!';
+                
+                // Limpa os campos de senha após o sucesso
+                document.getElementById('new-senha').value = '';
+                document.getElementById('confirm-senha').value = '';
+
+                // Se o ADMIN editou a própria conta, atualiza o localStorage
+                const adminData = getUsuarioLogado();
+                if (adminData && adminData.nome === usuarioSendoEditado) {
+                    const updatedData = { ...adminData, ...updates };
+                    localStorage.setItem('usuarioLogado', JSON.stringify(updatedData));
+                }
+
+            } catch (error) {
+                console.error("Erro ao salvar alterações:", error);
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Erro ao salvar alterações. Tente novamente.';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadUserData();
+            document.getElementById('edit-form').addEventListener('submit', saveChanges);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Histórico de Tarefas</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title-primary">Histórico de Tarefas Realizadas</h1>
+        <h2 id="user-title" class="main-title-green"></h2>
+        <hr class="divider">
+        
+        <div class="input-group-horizontal">
+            <div class="input-group-vertical">
+                <label class="input-label" for="data-inicio">De:</label>
+                <input type="date" id="data-inicio" class="input-rounded">
+            </div>
+            <div class="input-group-vertical">
+                <label class="input-label" for="data-fim">Até:</label>
+                <input type="date" id="data-fim" class="input-rounded">
+            </div>
+        </div>
+
+        <button id="btn-buscar-tarefas" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Buscar Tarefas Realizadas</button>
+
+        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;">Aguardando seleção de datas.</div>
+        
+        <h3 id="resultado-titulo" style="margin-top: 30px; display: none;"></h3>
+        
+        <ul id="lista-resultados" class="list-rounded">
+            </ul>
+        
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Gerenciamento</a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
+        
+        let usuarioSendoAnalisado = '';
+
+        // Funções de Utilitário
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                const obj = JSON.parse(storedValue);
+                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
+                    alert("Acesso negado. Apenas administradores podem ver históricos.");
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return obj;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // Função principal para buscar e renderizar as tarefas
+        async function fetchAndRenderTarefas() {
+            const statusEl = document.getElementById('status-message');
+            const listaEl = document.getElementById('lista-resultados');
+            const tituloEl = document.getElementById('resultado-titulo');
+            listaEl.innerHTML = '';
+            tituloEl.style.display = 'none';
+            statusEl.className = 'info-message';
+            statusEl.textContent = 'Buscando tarefas concluídas...';
+
+            const dataInicioStr = document.getElementById('data-inicio').value;
+            const dataFimStr = document.getElementById('data-fim').value;
+
+            if (!dataInicioStr || !dataFimStr) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Por favor, selecione as datas de início e fim.';
+                return;
+            }
+
+            // Garante que a data final inclui o dia inteiro (Usando a data de Conclusão)
+            const dataInicio = new Date(dataInicioStr);
+            const dataFim = new Date(dataFimStr);
+            dataFim.setDate(dataFim.getDate() + 1); 
+
+            try {
+                // Filtra pelo usuário e pelo campo de dataConclusao (se disponível na sua coleção)
+                let query = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
+                    .where('atribuidaPara', '==', usuarioSendoAnalisado);
+                
+                // Se a sua data de conclusão for 'dataConclusao' em formato de timestamp ou string ISO:
+                // query = query.where('dataConclusao', '>=', dataInicio.toISOString()) 
+                //              .where('dataConclusao', '<', dataFim.toISOString());
+                
+                // Para simplificar a busca por data (como você fez em Multas), se a data for 'data' em 'YYYY-MM-DD':
+                query = query.where('data', '>=', dataInicioStr)
+                             .where('data', '<=', dataFimStr); // Uso <= pois a data é string (o filtro não é perfeito, mas funciona na maioria dos casos)
+
+
+                const tarefasSnapshot = await query.get();
+                const tarefas = [];
+                let totalValor = 0;
+
+                tarefasSnapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    tarefas.push(tarefa);
+                    // O campo 'valor' está na tarefa concluída? Se sim, some aqui.
+                    totalValor += tarefa.valor || 0; 
+                });
+
+                if (tarefas.length === 0) {
+                    statusEl.className = 'info-message';
+                    statusEl.textContent = Nenhuma tarefa concluída encontrada para  no período selecionado.;
+                } else {
+                    tarefas.forEach(tarefa => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item list-item-primary';
+                        li.innerHTML = 
+                            <strong>Nome da Tarefa:</strong>  <br>
+                            <strong>Data de Conclusão:</strong>  <br>
+                            <strong>Valor Recebido:</strong> R$ 
+                        ;
+                        listaEl.appendChild(li);
+                    });
+                    
+                    tituloEl.textContent = Tarefas Concluídas ( tarefas) (Total de Ganhos: R$ );
+                    tituloEl.style.display = 'block';
+                    statusEl.className = 'success-message';
+                    statusEl.textContent = ${tarefas.length} tarefa(s) concluída(s) encontradas no período.;
+                }
+
+            } catch (error) {
+                console.error("Erro ao buscar tarefas concluídas:", error);
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Erro ao buscar tarefas. Verifique o console ou as Regras do Firestore.';
+            }
+        }
+
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!getUsuarioLogado()) return; 
+
+            usuarioSendoAnalisado = getQueryParam('user');
+            if (!usuarioSendoAnalisado) {
+                document.getElementById('status-message').className = 'error-message';
+                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
+                return;
+            }
+
+            document.getElementById('user-title').textContent = Usuário: ;
+            
+            document.getElementById('btn-buscar-tarefas').onclick = fetchAndRenderTarefas;
+
+            // Define datas padrão (Ex: Últimos 30 dias)
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setDate(today.getDate() - 30);
+
+            const formatDate = (date) => date.toISOString().split('T')[0];
+
+            document.getElementById('data-inicio').value = formatDate(lastMonth);
+            document.getElementById('data-fim').value = formatDate(today);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Histórico de Multas</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script> 
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title-danger">Histórico de Multas</h1>
+        <h2 id="user-title" class="main-title-green"></h2>
+        <hr class="divider">
+        
+        <div class="input-group-horizontal">
+            <div class="input-group-vertical">
+                <label class="input-label" for="data-inicio">De:</label>
+                <input type="date" id="data-inicio" class="input-rounded">
+            </div>
+            <div class="input-group-vertical">
+                <label class="input-label" for="data-fim">Até:</label>
+                <input type="date" id="data-fim" class="input-rounded">
+            </div>
+        </div>
+
+        <div class="action-grid" style="margin-top: 20px;">
+            <button id="btn-buscar-aberto" class="btn-rounded btn-warning">Buscar Multas em Aberto</button>
+            <button id="btn-buscar-executado" class="btn-rounded btn-danger">Buscar Multas Executadas</button>
+        </div>
+
+        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;">Aguardando seleção de data e tipo de multa.</div>
+        
+        <h3 id="resultado-titulo" style="margin-top: 30px; display: none;"></h3>
+        
+        <ul id="lista-resultados" class="list-rounded">
+            </ul>
+        
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Gerenciamento</a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+        
+        let usuarioSendoAnalisado = '';
+
+        // Funções de Utilitário
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                const obj = JSON.parse(storedValue);
+                // Apenas Administradores podem acessar
+                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
+                    alert("Acesso negado. Apenas administradores podem ver históricos.");
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return obj;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // Função principal para buscar e renderizar as multas
+        async function fetchAndRenderMultas(statusType) {
+            const statusEl = document.getElementById('status-message');
+            const listaEl = document.getElementById('lista-resultados');
+            const tituloEl = document.getElementById('resultado-titulo');
+            listaEl.innerHTML = '';
+            tituloEl.style.display = 'none';
+            statusEl.className = 'info-message';
+            statusEl.textContent = 'Buscando multas...';
+
+            const dataInicioStr = document.getElementById('data-inicio').value;
+            const dataFimStr = document.getElementById('data-fim').value;
+
+            if (!dataInicioStr || !dataFimStr) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Por favor, selecione as datas de início e fim.';
+                return;
+            }
+
+            // Garante que a data final inclui o dia inteiro
+            const dataInicio = new Date(dataInicioStr);
+            const dataFim = new Date(dataFimStr);
+            dataFim.setDate(dataFim.getDate() + 1); // Busca até o final do dia
+
+            try {
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoAnalisado).get();
+                if (!userDoc.exists) {
+                    statusEl.className = 'error-message';
+                    statusEl.textContent = Erro: Perfil de '' não encontrado.;
+                    return;
+                }
+
+                const userData = userDoc.data();
+                const multas = userData.multas || [];
+
+                const multasFiltradas = multas.filter(multa => {
+                    // Todas as multas no array 'multas' são consideradas 'Em Aberto'
+                    const multaDate = new Date(multa.data + 'T00:00:00'); // Adiciona horário para evitar problemas de fuso
+                    
+                    if (statusType === 'emAberto') {
+                        // Verifica se a data da multa está dentro do período
+                        return multaDate >= dataInicio && multaDate < dataFim;
+                    } 
+                    // Se o statusType é 'executadas', buscamos essa lógica em uma coleção separada se for implementada
+                    // Neste exemplo, vamos focar apenas no que está no array 'multas' (Em Aberto)
+                    // Para multas Executadas, seria ideal ter uma coleção 'multasExecutadas'
+                    return false; // Por enquanto, só suportamos 'Em Aberto' no array 'multas'
+                });
+
+
+                if (statusType === 'executadas') {
+                    statusEl.className = 'warning-message';
+                    statusEl.textContent = 'A funcionalidade de "Multas Executadas" requer uma coleção separada (ex: multasConcluidas) no Firestore para funcionar corretamente.';
+                    tituloEl.textContent = Multas Executadas para  (N/A);
+                    tituloEl.style.display = 'block';
+                    return;
+                }
+
+
+                if (multasFiltradas.length === 0) {
+                    statusEl.className = 'info-message';
+                    statusEl.textContent = Nenhuma multa  encontrada para o período selecionado.;
+                } else {
+                    let totalValor = 0;
+                    multasFiltradas.forEach(multa => {
+                        const li = document.createElement('li');
+                        li.className = 'list-item list-item-danger';
+                        li.innerHTML = 
+                            <strong>Tarefa:</strong>  <br>
+                            <strong>Data da Multa:</strong>  <br>
+                            <strong>Valor:</strong> R$ 
+                        ;
+                        listaEl.appendChild(li);
+                        totalValor += multa.valor;
+                    });
+                    
+                    tituloEl.textContent = Multas Em Aberto (Total: R$ );
+                    tituloEl.style.display = 'block';
+                    statusEl.className = 'success-message';
+                    statusEl.textContent = ${multasFiltradas.length} multa(s) em aberto encontradas no período.;
+                }
+
+            } catch (error) {
+                console.error("Erro ao buscar multas:", error);
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Erro ao buscar multas. Verifique o console.';
+            }
+        }
+
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', () => {
+            // 1. Verifica Admin e obtém o usuário
+            if (!getUsuarioLogado()) return; 
+
+            usuarioSendoAnalisado = getQueryParam('user');
+            if (!usuarioSendoAnalisado) {
+                document.getElementById('status-message').className = 'error-message';
+                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
+                return;
+            }
+
+            document.getElementById('user-title').textContent = Usuário: ;
+            
+            // 2. Define os eventos de clique
+            document.getElementById('btn-buscar-aberto').onclick = () => fetchAndRenderMultas('emAberto');
+            document.getElementById('btn-buscar-executado').onclick = () => fetchAndRenderMultas('executadas');
+
+            // 3. Define datas padrão (Ex: Últimos 30 dias)
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setDate(today.getDate() - 30);
+
+            const formatDate = (date) => date.toISOString().split('T')[0];
+
+            document.getElementById('data-inicio').value = formatDate(lastMonth);
+            document.getElementById('data-fim').value = formatDate(today);
+        });
+    </script>
+</body>
+</html>

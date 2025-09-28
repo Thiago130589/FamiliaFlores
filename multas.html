@@ -1,283 +1,182 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Multas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Multas</title>
     <link rel="stylesheet" href="style.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <script src="js/firebase-init.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <div class="header-container">
-            <h1 class="main-title">Multas</h1>
-            <div id="multas-clock" class="brasilia-clock"></div>
-        </div>
+        <h1 class="main-title error-color">Multas Aplicadas</h1>
         <hr class="divider">
-        <div id="multas-lista" class="multas-lista">
+        
+        <p class="error-message" style="margin-bottom: 20px;">Esta seção é apenas para administradores. Remover uma multa devolve o valor correspondente ao saldo do usuário.</p>
+
+        <div id="multas-lista" class="historico-lista">
             <p class="empty-message">Carregando multas...</p>
         </div>
-        <button id="btn-adicionar-multa" class="btn-rounded btn-primary wide-button">Adicionar multa</button>
-        
-        <div id="popup-multa" class="modal-overlay" style="display:none;">
+
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
+
+        <div id="popup-remover-multa" class="modal-overlay" style="display:none;">
             <div class="modal-content">
-                <h2 class="modal-title error-color">Adicionar Multa</h2>
-                
-                <label class="input-label">Nome do membro:</label>
-                <select id="multa-membro" class="input-rounded"></select> 
-                
-                <label class="input-label">Motivo:</label>
-                <input id="multa-motivo" class="input-rounded" type="text" placeholder="Motivo da multa">
-                
-                <label class="input-label">Valor:</label>
-                <input id="multa-valor" class="input-rounded" type="number" min="0" step="0.01" placeholder="Valor da multa">
-                
-                <div class="modal-actions">
-                    <button class="btn-rounded btn-primary" id="btn-finalizar-multa">Finalizar</button>
-                    <button class="btn-rounded btn-secondary" id="btn-cancelar-multa">Cancelar</button>
-                </div>
-                <div id="multa-erro" class="error-message"></div>
-            </div>
-        </div>
-        
-        <div id="popup-remover-multa" class="modal-overlay z-higher" style="display:none;">
-            <div class="modal-content">
-                <div id="remover-multa-msg" class="modal-message error-color"></div>
+                <h2 class="modal-title error-color">Confirmar Remoção</h2>
+                <div id="confirmacao-msg" class="modal-message"></div>
+                <p>O valor da multa será estornado para o saldo do usuário.</p>
                 <div class="modal-actions centered-actions">
-                    <button class="btn-rounded btn-danger" id="btn-confirmar-remover-multa">Remover</button>
+                    <button class="btn-rounded btn-danger" id="btn-confirmar-remover-multa">Sim, Remover Multa</button>
                     <button class="btn-rounded btn-secondary" id="btn-cancelar-remover-multa">Cancelar</button>
                 </div>
             </div>
         </div>
-        
-        <a href="index.html" class="btn-rounded wide-button btn-secondary-text">Voltar ao perfil</a>
     </div>
+
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
 
-        // Variável global para armazenar temporariamente o nome do membro e o índice da multa a ser removida
-        let multaParaRemover = { membro: null, indice: null, valor: null };
+        let multaParaRemover = null; // Objeto da multa a ser removida
+        let usuarioDaMulta = null;  // Nome do usuário que recebeu a multa
 
-        // --- RELÓGIO (Mantido da versão anterior) ---
-        function startBrasiliaClockMultas() {
-            function updateClock() {
-                const now = new Date();
-                const options = { 
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', 
-                    timeZone: 'America/Sao_Paulo' 
-                };
-                const timeString = now.toLocaleTimeString('pt-BR', options);
-                document.getElementById('multas-clock').textContent = `${timeString} (Brasília)`;
+        // Obtém o nome e status Admin do usuário logado
+        function getUsuarioInfo() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
             }
-            updateClock();
-            setInterval(updateClock, 1000);
+            try {
+                const obj = JSON.parse(storedValue);
+                // Apenas Administradores podem acessar esta página
+                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
+                    alert("Acesso negado. Apenas administradores podem gerenciar multas.");
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return obj;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
         }
 
-        // --- RENDERIZAÇÃO DE MULTAS (Agora usando Firestore) ---
+        // Função para carregar e renderizar todas as multas de todos os usuários
         async function renderMultas() {
-            const lista = document.getElementById('multas-lista');
-            lista.innerHTML = '<p class="empty-message">Carregando multas...</p>';
-            let temMulta = false;
-            let html = '';
+            const userInfo = getUsuarioInfo();
+            if (!userInfo) return;
+
+            const listaEl = document.getElementById('multas-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando multas aplicadas...</p>';
 
             try {
-                // Busca todos os usuários
-                const usersSnapshot = await firestore.collection('users').get();
-                
+                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+                todasMultas = []; // Reseta a variável global
+
                 usersSnapshot.forEach(doc => {
                     const userName = doc.id;
                     const userData = doc.data();
-                    
-                    // Verifica o campo 'multas' ou simula o filtro de 'carteira'
                     const multas = userData.multas || [];
 
-                    if (multas.length > 0) {
-                        temMulta = true;
-                        html += `
-                            <div class="member-multas-section">
-                                <b class="member-name-multa">${userName}</b>
-                                <ul class="multa-list-ul">`;
+                    multas.forEach(multa => {
+                        // A multa original no array do Firestore
+                        const multaOriginal = { ...multa };
                         
-                        multas.forEach((multa, i) => {
-                            // Valor da multa é sempre positivo para exibição, mas armazenado como negativo
-                            const valorAbsoluto = Math.abs(parseFloat(multa.valor || 0));
-                            const valor = valorAbsoluto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                            
-                            const dataHora = new Date(multa.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                            
-                            html += `
-                                <li class="multa-list-item">
-                                    <span class="multa-motivo">Motivo: <b>${multa.motivo}</b></span> 
-                                    <span class="multa-valor">Valor: <b>${valor}</b></span> 
-                                    <span class="multa-data">Data/Hora: ${dataHora}</span>
-                                    <button class="btn-rounded btn-remover-multa btn-danger small-btn" 
-                                            data-membro="${userName}" 
-                                            data-idx="${i}"
-                                            data-valor="${valorAbsoluto}">
-                                            Remover
-                                    </button>
-                                </li>`;
+                        // Objeto para exibição e referência
+                        todasMultas.push({
+                            usuario: userName,
+                            motivo: multa.motivo,
+                            valor: parseFloat(multa.valor || 0),
+                            data: new Date(multa.data),
+                            // Isso é crucial para remover exatamente a multa correta do array
+                            multaReferencia: multaOriginal 
                         });
-                        html += `</ul></div>`;
-                    }
+                    });
                 });
 
-                if (!temMulta) {
-                    html = `<div class="empty-message">Nenhuma multa registrada.</div>`;
+                // Ordenar por data (mais recente primeiro)
+                todasMultas.sort((a, b) => b.data.getTime() - a.data.getTime());
+
+                if (todasMultas.length === 0) {
+                    listaEl.innerHTML = '<p class="empty-message">Nenhuma multa registrada no sistema.</p>';
+                    return;
                 }
-                
-                lista.innerHTML = html;
-                
-                // Adiciona eventos de clique para o botão remover
-                document.querySelectorAll('.btn-remover-multa').forEach(btn => {
-                    btn.onclick = function() {
-                        const membro = this.getAttribute('data-membro');
-                        const idx = parseInt(this.getAttribute('data-idx'));
-                        const valor = parseFloat(this.getAttribute('data-valor'));
-                        abrirPopupRemoverMulta(membro, idx, valor);
-                    };
+
+                let html = '<ul class="transaction-list">';
+                todasMultas.forEach((multa, index) => {
+                    const valorAbsoluto = Math.abs(multa.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const dataFormatada = multa.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+                    html += 
+                        <li class="transaction-item negative">
+                            <div class="transaction-details" style="flex-grow: 1;">
+                                <span class="transaction-description">Motivo: </span>
+                                <span class="transaction-date">Usuário: <b></b> | Data: </span>
+                            </div>
+                            <span class="transaction-amount">- </span>
+                            <button class="btn-icon btn-danger" data-index="" onclick="openRemovePopup()" title="Remover Multa e Estornar Saldo">&#x2716;</button>
+                        </li>
+                    ;
                 });
+                html += '</ul>';
+                listaEl.innerHTML = html;
 
             } catch (error) {
                 console.error("Erro ao carregar multas:", error);
-                lista.innerHTML = `<p class="error-message">Erro ao carregar a lista de multas.</p>`;
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de multas.</p>';
             }
         }
 
-        // --- ADICIONAR MULTA (Usando Firestore) ---
-        document.getElementById('btn-adicionar-multa').onclick = async () => {
-            document.getElementById('multa-erro').textContent = '';
-            
-            try {
-                // Popula o select com todos os usuários do Firestore
-                const usersSnapshot = await firestore.collection('users').get();
-                const select = document.getElementById('multa-membro');
-                select.innerHTML = '';
-                
-                if (usersSnapshot.empty) {
-                    document.getElementById('multa-erro').textContent = 'Nenhum usuário encontrado.';
-                    return;
-                }
-                
-                usersSnapshot.forEach(doc => {
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = doc.id;
-                    select.appendChild(option);
-                });
+        // 1. Abrir Popup de Confirmação
+        function openRemovePopup(index) {
+            const multaData = todasMultas[index];
+            if (!multaData) return;
 
-                document.getElementById('multa-motivo').value = '';
-                document.getElementById('multa-valor').value = '';
-                document.getElementById('popup-multa').style.display = 'flex';
-                
-            } catch (error) {
-                console.error("Erro ao carregar membros:", error);
-                document.getElementById('multa-erro').textContent = 'Erro ao carregar a lista de membros.';
-            }
-        };
+            multaParaRemover = multaData.multaReferencia;
+            usuarioDaMulta = multaData.usuario;
+            const valor = Math.abs(multaData.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        document.getElementById('btn-cancelar-multa').onclick = () => {
-            document.getElementById('popup-multa').style.display = 'none';
-        };
-
-        document.getElementById('btn-finalizar-multa').onclick = async () => {
-            const membro = document.getElementById('multa-membro').value;
-            const motivo = document.getElementById('multa-motivo').value.trim();
-            const valorInput = document.getElementById('multa-valor').value;
-            const erroEl = document.getElementById('multa-erro');
-
-            if (!membro || !motivo || !valorInput) {
-                erroEl.textContent = 'Preencha todos os campos.';
-                return;
-            }
-            
-            const valor = parseFloat(valorInput);
-            if (isNaN(valor) || valor <= 0) {
-                erroEl.textContent = 'O valor deve ser um número positivo válido.';
-                return;
-            }
-
-            try {
-                const userRef = firestore.collection('users').doc(membro);
-                
-                // Prepara a nova multa
-                const novaMulta = { 
-                    motivo: motivo, 
-                    // Armazena valor como negativo e usa a data e hora atual
-                    valor: -valor, 
-                    data: new Date().toISOString() 
-                };
-
-                // 1. Adiciona a multa na lista 'multas' do usuário
-                await userRef.update({
-                    multas: firebase.firestore.FieldValue.arrayUnion(novaMulta),
-                    // 2. Diminui o saldo do usuário (se houver campo 'saldo')
-                    saldo: firebase.firestore.FieldValue.increment(-valor)
-                });
-                
-                document.getElementById('popup-multa').style.display = 'none';
-                renderMultas(); // Recarrega a lista
-                
-            } catch (error) {
-                console.error("Erro ao adicionar multa:", error);
-                // Dica: Se o erro for "No document to update", o usuário não existe ou o campo 'saldo' não existe.
-                erroEl.textContent = 'Erro ao salvar multa. Verifique se o usuário possui os campos necessários no Firestore.';
-            }
-        };
-
-        // --- REMOVER MULTA (Usando Firestore) ---
-        function abrirPopupRemoverMulta(membro, idx, valor) {
-            multaParaRemover = { membro: membro, indice: idx, valor: valor };
-            document.getElementById('remover-multa-msg').innerHTML = `Deseja remover a multa de <b>R$ ${valor.toFixed(2).replace('.', ',')}</b> de <b>${membro}</b>?`;
+            document.getElementById('confirmacao-msg').innerHTML = Você deseja remover a multa de  de <b></b> ()?;
             document.getElementById('popup-remover-multa').style.display = 'flex';
         }
-        
-        document.getElementById('btn-cancelar-remover-multa').onclick = () => {
-            document.getElementById('popup-remover-multa').style.display = 'none';
-        };
 
+        // 2. Lógica para Remover a Multa (Firestore Batch)
         document.getElementById('btn-confirmar-remover-multa').onclick = async () => {
-            const { membro, indice, valor } = multaParaRemover;
+            if (!multaParaRemover || !usuarioDaMulta) return;
+
+            const userRef = firestore.collection(USERS_COLLECTION).doc(usuarioDaMulta);
+            const valor = Math.abs(multaParaRemover.valor); 
             
-            if (!membro || indice === null) return;
-
             try {
-                const userRef = firestore.collection('users').doc(membro);
-                const userDoc = await userRef.get();
-                
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    let multas = userData.multas || [];
-                    
-                    if (indice >= 0 && indice < multas.length) {
-                        const multaRemovida = multas[indice];
-                        
-                        // NOTA: arrayRemove remove o valor exato, mas se duas multas forem idênticas, ambas podem ser removidas.
-                        // Usaremos o arrayUnion inverso (remove o item que foi adicionado)
-                        
-                        // 1. Remove a multa exata da lista 'multas'
-                        await userRef.update({
-                            multas: firebase.firestore.FieldValue.arrayRemove(multaRemovida),
-                            // 2. Adiciona o valor de volta ao saldo (Inverte a operação anterior)
-                            saldo: firebase.firestore.FieldValue.increment(valor)
-                        });
+                // 1. Remove a multa do array 'multas'
+                // 2. Adiciona o valor de volta ao 'saldo' (valor é positivo aqui)
+                await userRef.update({
+                    multas: firebase.firestore.FieldValue.arrayRemove(multaParaRemover),
+                    saldo: firebase.firestore.FieldValue.increment(valor) 
+                });
 
-                        document.getElementById('popup-remover-multa').style.display = 'none';
-                        renderMultas(); // Recarrega a lista
-                    }
-                }
+                document.getElementById('popup-remover-multa').style.display = 'none';
+                alert(Multa de  removida e  estornado.);
+                renderMultas(); // Recarrega a lista
+                
             } catch (error) {
                 console.error("Erro ao remover multa:", error);
                 alert('Erro ao remover multa. Tente novamente.');
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => {
-            startBrasiliaClockMultas();
-            renderMultas();
-        });
+        // 3. Cancelar Remoção
+        document.getElementById('btn-cancelar-remover-multa').onclick = () => {
+            document.getElementById('popup-remover-multa').style.display = 'none';
+        };
+
+        // Variável global para armazenar todas as multas carregadas (usado no popup)
+        let todasMultas = []; 
+        window.addEventListener('DOMContentLoaded', renderMultas);
     </script>
 </body>
 </html>
