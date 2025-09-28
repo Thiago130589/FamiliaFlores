@@ -3,144 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login / Cadastro</title>
+    <title>Login | Família Flores</title>
     <link rel="stylesheet" href="style.css">
-    
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title">Acesso ao Sistema</h1>
+    <div class="center-box small-box">
+        <h1 class="main-title-primary">Login</h1>
         <hr class="divider">
         
-        <div class="input-group">
-            <label for="username">Nome de Usuário:</label>
-            <input type="text" id="username" class="input-rounded" placeholder="Digite seu nome">
+        <div class="input-group-vertical">
+            <label class="input-label" for="username">Nome de Usuário:</label>
+            <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
         </div>
 
-        <div class="input-group">
-            <label for="password">Senha:</label>
-            <input type="password" id="password" class="input-rounded" placeholder="Digite sua senha">
+        <div class="input-group-vertical">
+            <label class="input-label" for="password">Senha:</label>
+            <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
         </div>
+        
+        <button id="login-button" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Entrar</button>
 
-        <div id="error-message" class="error-message"></div>
-
-        <button id="btn-login" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Fazer Login</button>
-        <button id="btn-register" class="btn-rounded btn-secondary wide-button">Cadastrar Novo Usuário</button>
+        <p id="error-message" class="error-message" style="margin-top: 10px; display: none;">Mensagem de Erro</p>
     </div>
 
     <script>
-        // Garante que o Firestore está inicializado
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        // --- Funções de Utilitário ---
+        document.getElementById('login-button').addEventListener('click', attemptLogin);
 
-        function getInputs() {
+        async function attemptLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
-            const errorEl = document.getElementById('error-message');
-            errorEl.textContent = '';
+            const errorMessageEl = document.getElementById('error-message');
             
+            errorMessageEl.style.display = 'none';
+
             if (!username || !password) {
-                errorEl.textContent = 'Preencha nome de usuário e senha.';
-                return null;
-            }
-            return { username, password, errorEl };
-        }
-
-        function logUserIn(userData, username, password) {
-            const userState = {
-                nome: username,
-                isAdmin: userData.isAdmin || false, // Garante que isAdmin seja um booleano
-                senha: password // Armazenamos a senha aqui para re-validações administrativas futuras
-            };
-            localStorage.setItem('usuarioLogado', JSON.stringify(userState));
-            window.location.href = 'index.html';
-        }
-
-        // --- Lógica Principal: LOGIN ---
-
-        document.getElementById('btn-login').onclick = async () => {
-            const inputs = getInputs();
-            if (!inputs) return;
-            const { username, password, errorEl } = inputs;
-            
-            try {
-                // O ID do documento é o nome de usuário (case sensitive)
-                const userRef = firestore.collection(USERS_COLLECTION).doc(username);
-                const userDoc = await userRef.get();
-
-                if (!userDoc.exists) {
-                    errorEl.textContent = 'Usuário não encontrado. Tente cadastrar.';
-                    return;
-                }
-                
-                const userData = userDoc.data();
-                
-                // Validação de Senha Simples (como não estamos usando Auth do Firebase, usamos o campo 'senha' no doc)
-                if (userData.senha !== password) {
-                    errorEl.textContent = 'Senha incorreta.';
-                    return;
-                }
-
-                // Login bem-sucedido
-                logUserIn(userData, username, password);
-
-            } catch (error) {
-                console.error("Erro no login:", error);
-                errorEl.textContent = 'Erro de conexão ou no login. Tente novamente.';
-            }
-        };
-
-        // --- Lógica Principal: REGISTRO ---
-
-        document.getElementById('btn-register').onclick = async () => {
-            const inputs = getInputs();
-            if (!inputs) return;
-            const { username, password, errorEl } = inputs;
-
-            if (username.toLowerCase() === 'thiago') {
-                errorEl.textContent = 'O nome "Thiago" é reservado para o administrador principal.';
+                errorMessageEl.textContent = 'Por favor, preencha nome e senha.';
+                errorMessageEl.style.display = 'block';
                 return;
             }
 
             try {
-                const userRef = firestore.collection(USERS_COLLECTION).doc(username);
-                const userDoc = await userRef.get();
+                // Tenta buscar o usuário usando o nome de usuário (que é o ID do documento)
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
-                if (userDoc.exists) {
-                    errorEl.textContent = 'Este nome de usuário já está em uso. Faça login.';
+                if (!userDoc.exists) {
+                    errorMessageEl.textContent = 'Usuário não encontrado.';
+                    errorMessageEl.style.display = 'block';
                     return;
                 }
 
-                // 1. Cria o novo documento do usuário com todos os campos necessários.
-                await userRef.set({
-                    senha: password,
-                    isAdmin: false,
-                    saldo: 0, // Campo crucial para a carteira
-                    multas: [] // Campo crucial para multas
-                });
-
-                // 2. Login bem-sucedido após o registro
-                const newUserData = { senha: password, isAdmin: false, saldo: 0, multas: [] };
-                logUserIn(newUserData, username, password);
+                const userData = userDoc.data();
                 
-            } catch (error) {
-                console.error("Erro no registro:", error);
-                errorEl.textContent = 'Erro de registro. Tente um nome de usuário diferente.';
-            }
-        };
+                // Verifica a senha (em um projeto real, NUNCA armazene senhas sem criptografia)
+                if (userData.senha !== password) {
+                    errorMessageEl.textContent = 'Senha incorreta.';
+                    errorMessageEl.style.display = 'block';
+                    return;
+                }
+                
+                // Sucesso: Salva os dados do usuário no localStorage
+                const userProfile = {
+                    nome: username,
+                    isAdmin: userData.isAdmin || false,
+                    // Inclua quaisquer outros dados de perfil essenciais
+                    // NUNCA salve a senha no localStorage
+                };
+                
+                localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));
 
-        // Redireciona se já estiver logado
-        (function checkLogin() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (storedValue) {
+                // Redireciona para o dashboard
                 window.location.href = 'index.html';
+
+            } catch (error) {
+                console.error("Erro no login:", error);
+                errorMessageEl.textContent = 'Ocorreu um erro na conexão. Tente novamente.';
+                errorMessageEl.style.display = 'block';
             }
-        })();
+        }
     </script>
 </body>
 </html>
