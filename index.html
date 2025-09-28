@@ -40,7 +40,7 @@
         // Variável global para armazenar os dados do usuário logado
         let usuarioLogadoData = null; 
 
-        // 1. Função de Utilitário para formatar a hora (se você ainda usa a função no index)
+        // 1. Função de Utilitário para formatar a hora
         function startBrasilClock(displayElementId) {
             const timeDisplay = document.getElementById(displayElementId);
             if (!timeDisplay) return;
@@ -77,7 +77,6 @@
             const storedValue = localStorage.getItem('usuarioLogado');
 
             if (!storedValue) {
-                // Se não há ninguém logado, redireciona para o login
                 window.location.href = 'login.html';
                 return;
             }
@@ -87,13 +86,13 @@
                 const nome = usuarioLogadoData.nome;
                 const isAdmin = usuarioLogadoData.isAdmin || false;
                 
-                pageTitle.textContent = 'Dashboard'; // Título da página
-                userNameEl.textContent = nome; // Nome do usuário
+                pageTitle.textContent = 'Dashboard';
+                userNameEl.textContent = nome;
                 userRoleEl.textContent = isAdmin ? 'Administrador' : 'Membro da Família';
                 
-                profileContainer.style.display = 'block'; // Mostra a foto e info
-                loadingContainer.style.display = 'none'; // Esconde o "Carregando links"
-                navMenu.style.display = 'block'; // Mostra o menu
+                profileContainer.style.display = 'block';
+                loadingContainer.style.display = 'none';
+                navMenu.style.display = 'block';
 
                 // Inicia o relógio
                 startBrasilClock('time-display');
@@ -108,14 +107,15 @@
                     // Links de Admin/Gerenciamento (APENAS se for Admin)
                     ...(isAdmin ? [
                         { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
-                        { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, // CORRIGIDO O LINK AQUI
+                        { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, 
                         { href: 'multas.html', text: 'Multas' },
                         { href: 'gerenciar-carteira.html', text: 'Gerenciar Carteira' }
                     ] : [])
                 ];
 
+                // CORREÇÃO: Usando a crase () para criar o HTML corretamente.
                 navMenu.innerHTML = links.map(link => 
-                    <a href="" class="menu-link"></a> // LINHA CORRIGIDA AQUI
+                    <a href="" class="menu-link"></a> 
                 ).join('');
 
 
@@ -127,7 +127,7 @@
                 
             } catch (e) {
                 console.error("Erro ao carregar dados do localStorage:", e);
-                // Em caso de erro, força o logout para evitar travamentos
+                // Em caso de erro, força o logout
                 localStorage.removeItem('usuarioLogado');
                 window.location.href = 'login.html';
             }
@@ -136,8 +136,6 @@
         // Inicia o processo de carregamento quando a página terminar de carregar
         window.addEventListener('DOMContentLoaded', loadProfileAndMenu);
         
-        // Se a sua função startBrasilClock estiver dentro do script.js, remova esta função daqui.
-        // Se a sua função de logout estiver no script.js, remova o onclick do botão.
     </script>
 </body>
 </html>
