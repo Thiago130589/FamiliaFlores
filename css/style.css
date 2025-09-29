@@ -1,5 +1,5 @@
 /* ======================================================== */
-/* ESTILOS GERAIS, LAYOUT E ELEMENTOS REUTILIZÁVEIS         */
+/* ESTILOS GERAIS, LAYOUT E ELEMENTOS REUTILIZÁVEIS         */
 /* ======================================================== */
 body {
     font-family: Arial, sans-serif;
@@ -34,6 +34,10 @@ body {
     margin: 0;
     color: #1976d2; /* Azul Principal */
     font-size: 2.2rem;
+}
+
+.main-title-primary {
+    color: #1976d2; /* Azul Principal */
 }
 
 .main-title-green {
@@ -82,6 +86,11 @@ body {
     margin-bottom: 5px;
 }
 
+.input-group-vertical {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
 .error-message {
     color: #d32f2f; 
     min-height: 20px; 
@@ -96,7 +105,7 @@ body {
 
 
 /* ======================================================== */
-/* CORES DE STATUS (Reutilizáveis)                          */
+/* CORES DE STATUS (Reutilizáveis)                          */
 /* ======================================================== */
 .success-color {
     color: #388e3c !important; /* Verde de Sucesso/Ganho */
@@ -108,7 +117,7 @@ body {
 
 
 /* ======================================================== */
-/* BOTÕES PADRONIZADOS (Baseados em .btn-rounded)           */
+/* BOTÕES PADRONIZADOS (Baseados em .btn-rounded)           */
 /* ======================================================== */
 .btn-rounded {
     border: none;
@@ -197,7 +206,7 @@ body {
 
 
 /* ======================================================== */
-/* ESTILOS DE POPUPS/MODAIS                                 */
+/* ESTILOS DE POPUPS/MODAIS                                 */
 /* ======================================================== */
 .modal-overlay {
     position: fixed; 
@@ -252,7 +261,77 @@ body {
 
 
 /* ======================================================== */
-/* ESTILOS ESPECÍFICOS: MULTAS                              */
+/* ESTILOS ESPECÍFICOS: DASHBOARD/INDEX                      */
+/* ======================================================== */
+.profile-card {
+    /* Força o profile-container a usar flex para alinhar o conteúdo */
+    display: flex; 
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px 0 20px 0;
+    margin-bottom: 20px;
+}
+
+.profile-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%; /* Torna a imagem redonda */
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 4px solid #1976d2; /* Borda azul */
+}
+
+.time-text {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.user-name-text {
+    font-size: 1.8rem;
+    color: #333;
+    margin: 5px 0 2px 0;
+}
+
+.user-role-text {
+    font-size: 1.1rem;
+    color: #1976d2;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* --- Menu de Navegação --- */
+.nav-menu {
+    display: flex;
+    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+    justify-content: center;
+    gap: 12px; /* Espaçamento entre os links */
+    width: 100%;
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+
+.menu-link {
+    text-decoration: none;
+    color: #1976d2;
+    background-color: #e3f2fd; /* Azul claro */
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: background-color 0.2s, color 0.2s;
+    white-space: nowrap; /* Impede quebras de linha dentro do link */
+}
+
+.menu-link:hover {
+    background-color: #1976d2;
+    color: white;
+}
+
+
+/* ======================================================== */
+/* ESTILOS ESPECÍFICOS: MULTAS                              */
 /* ======================================================== */
 .multas-lista {
     width: 100%; 
@@ -312,7 +391,7 @@ body {
 
 
 /* ======================================================== */
-/* ESTILOS ESPECÍFICOS: CARTEIRA                            */
+/* ESTILOS ESPECÍFICOS: CARTEIRA                            */
 /* ======================================================== */
 .saldo-card {
     width: 100%;
@@ -425,7 +504,7 @@ body {
 
 
 /* ======================================================== */
-/* ESTILOS ESPECÍFICOS: TAREFAS (Gerais e por Status)       */
+/* ESTILOS ESPECÍFICOS: TAREFAS (Gerais e por Status)       */
 /* ======================================================== */
 
 /* --- Elementos Reutilizáveis em Cards --- */

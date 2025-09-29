@@ -12,20 +12,22 @@
 </head>
 <body>
     <div class="center-box">
-        <h1 id="page-title" class="main-title">Carregando Perfil...</h1>
-        <div id="profile-container" style="display: none; text-align: center;">
+        <h1 id="page-title" class="main-title">Dashboard</h1>
+        <hr class="divider">
+
+        <div id="profile-container" class="profile-card" style="display: none; text-align: center;">
             <img id="profile-picture" src="assets/perfil-padrao.png" alt="Foto de Perfil" class="profile-img">
-            <p id="time-display" class="time-text"></p>
+            <p id="time-display" class="time-text brasilia-clock"></p>
             <h2 id="user-name" class="user-name-text"></h2>
             <p id="user-role" class="user-role-text"></p>
         </div>
 
-        <div id="loading-container" style="text-align: center;">
+        <div id="loading-container" style="display: none; text-align: center;">
             <h2 class="section-title">Ações Rápidas</h2>
             <p id="loading-links">Carregando links...</p>
         </div>
         
-        <nav id="nav-menu" class="nav-menu" style="display: none;">
+        <nav id="nav-menu" class="nav-menu">
             </nav>
         
         <button id="logout-button" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">Sair / Logout</button>
@@ -56,7 +58,7 @@
                     year: 'numeric'
                 };
                 const brasilTime = now.toLocaleTimeString('pt-BR', options);
-                timeDisplay.textContent = brasilTime.replace(',', ' (Brasil)');
+                timeDisplay.textContent = brasilTime.replace(',', ' (Brasília)');
             }
             updateTime();
             setInterval(updateTime, 1000);
@@ -65,16 +67,15 @@
         async function loadProfileAndMenu() {
             const pageTitle = document.getElementById('page-title');
             const profileContainer = document.getElementById('profile-container');
-            const loadingContainer = document.getElementById('loading-container');
             const navMenu = document.getElementById('nav-menu');
             const userNameEl = document.getElementById('user-name');
             const userRoleEl = document.getElementById('user-role');
             const logoutButton = document.getElementById('logout-button');
+            const profilePictureEl = document.getElementById('profile-picture');
             
             const storedValue = localStorage.getItem('usuarioLogado');
 
             if (!storedValue) {
-                // Redireciona para o login se não houver dados de usuário
                 window.location.href = 'login.html';
                 return;
             }
@@ -82,25 +83,38 @@
             try {
                 usuarioLogadoData = JSON.parse(storedValue);
                 const nome = usuarioLogadoData.nome;
-                const isAdmin = usuarioLogadoData.isAdmin || false;
                 
-                pageTitle.textContent = 'Dashboard';
+                // 1. Buscar isAdmin e foto diretamente do Firestore (Se faltou no login)
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(nome).get();
+                if (!userDoc.exists) {
+                     throw new Error("Perfil não encontrado no Firestore.");
+                }
+
+                const userData = userDoc.data();
+                const isAdmin = userData.isAdmin || false; // Assume false se não existir
+                const fotoURL = userData.foto || 'assets/perfil-padrao.png';
+
+                // 2. Atualizar o localStorage para consistência
+                usuarioLogadoData.isAdmin = isAdmin;
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogadoData));
+                
+                // 3. Exibir Dados
                 userNameEl.textContent = nome;
                 userRoleEl.textContent = isAdmin ? 'Administrador' : 'Membro da Família';
-                
-                profileContainer.style.display = 'block';
-                loadingContainer.style.display = 'none';
-                navMenu.style.display = 'block';
+                profilePictureEl.src = fotoURL; // Define a foto
 
+                profileContainer.style.display = 'flex'; // Exibe o container com o novo CSS
+                
                 startBrasilClock('time-display');
 
+                // 4. Montar os Links
                 const links = [
                     { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis' },
                     { href: 'minhas-tarefas.html', text: 'Minhas Tarefas' },
                     { href: 'tarefas-pendentes.html', text: 'Tarefas Pendentes' },
                     { href: 'tarefas-concluidas.html', text: 'Tarefas Concluídas' },
                     { href: 'carteira.html', text: 'Carteira' },
-                    // Links de Admin/Gerenciamento (APENAS se for Admin)
+                    // Links de Admin/Gerenciamento
                     ...(isAdmin ? [
                         { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
                         { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, 
@@ -109,7 +123,7 @@
                     ] : [])
                 ];
 
-                // CORREÇÃO ESSENCIAL: Uso correto da String Template (crase `)
+                // CORREÇÃO ESSENCIAL DO MENU: Uso de uma div interna para dar o espaçamento flexível (veja o CSS)
                 navMenu.innerHTML = links.map(link => 
                     `<a href="${link.href}" class="menu-link">${link.text}</a>` 
                 ).join('');
@@ -121,8 +135,8 @@
                 };
                 
             } catch (e) {
-                console.error("Erro ao carregar dados do localStorage ou inicialização:", e);
-                // Força o logout e redireciona
+                console.error("Erro ao carregar dados do perfil:", e);
+                // Força o logout e redireciona se houver erro grave
                 localStorage.removeItem('usuarioLogado');
                 window.location.href = 'login.html';
             }
