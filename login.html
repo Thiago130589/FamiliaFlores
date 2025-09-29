@@ -37,12 +37,9 @@
         const USERS_COLLECTION = 'users';
 
         document.getElementById('login-button').addEventListener('click', attemptLogin);
-        document.getElementById('register-button').addEventListener('click', redirectToRegister); // NOVO EVENTO
+        document.getElementById('register-button').addEventListener('click', redirectToRegister);
 
         function redirectToRegister() {
-            // Assume que a página de cadastro é 'cadastrar-perfil.html' ou 'editar-perfil.html' (que pode ser adaptada)
-            // Usaremos 'editar-perfil.html' por agora, com a intenção de adaptá-la para cadastro se necessário.
-            // Para simplificar o fluxo, vamos criar um novo arquivo chamado 'cadastrar-usuario.html'
             window.location.href = 'cadastrar-usuario.html'; 
         }
 
@@ -60,7 +57,6 @@
             }
 
             try {
-                // Tenta buscar o usuário usando o nome de usuário (que é o ID do documento)
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (!userDoc.exists) {
@@ -71,8 +67,8 @@
 
                 const userData = userDoc.data();
                 
-                // Verifica a senha 
-                if (userData.senha !== password) {
+                // CORREÇÃO APLICADA: Comparando com userData.password (campo do Firestore)
+                if (userData.password !== password) { 
                     errorMessageEl.textContent = 'Senha incorreta.';
                     errorMessageEl.style.display = 'block';
                     return;
