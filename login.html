@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="js/firebase-init.js"></script>
+    <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
 <body>
@@ -32,9 +32,8 @@
     </div>
 
     <script>
-        // Utiliza as variáveis globais 'db' e 'auth' definidas em firebase-init.js
+        // Utiliza a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const authService = typeof auth !== 'undefined' ? auth : firebase.auth();
         const USERS_COLLECTION = 'users';
 
         // O login do sistema usa o Firestore, NÃO o Firebase Auth (conforme a lógica original)
@@ -53,8 +52,11 @@
             }
 
             try {
+                // CORREÇÃO APLICADA AQUI: Converte o username para minúsculo antes de buscar.
+                const userIdToFetch = usernameInput.toLowerCase(); 
+                
                 // Tenta encontrar o usuário no Firestore (id do documento é o nome de usuário)
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usernameInput).get();
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
                 if (!userDoc.exists) {
                     errorMessage.textContent = 'Usuário não encontrado. Verifique o nome.';
@@ -64,21 +66,22 @@
 
                 const userData = userDoc.data();
                 
-                // Simulação de verificação de senha (ATENÇÃO: Senhas não devem ser salvas em texto puro!)
-                // Se a senha estiver incorreta OU a senha não existir no Firestore
-                if (userData.senha !== passwordInput || !userData.senha) {
+                // Simulação de verificação de senha
+                if (!userData.senha || userData.senha !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
                 // Login bem-sucedido
-                const isUserAdmin = (userData.isAdmin === true) || (usernameInput.toLowerCase() === 'thiago');
+                // Verifica se é admin ou se o nome é 'thiago' (como na sua lógica)
+                const isUserAdmin = (userData.isAdmin === true) || (userIdToFetch === 'thiago');
 
                 const usuarioLogado = {
-                    nome: usernameInput,
+                    // Mantenha o nome original digitado (usernameInput) ou o minúsculo (userIdToFetch)
+                    // Usaremos o minúsculo para consistência com o ID do documento
+                    nome: userIdToFetch,
                     isAdmin: isUserAdmin,
-                    // Outras informações de perfil podem ser adicionadas aqui se necessário
                 };
 
                 // Salva o objeto do usuário no localStorage
