@@ -54,19 +54,7 @@
     <script>
         const firestore = typeof db !== 'undefined' ? db : null;
         
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
+        // A função getUsuarioLogado AGORA ESTÁ EM js/script.js (Corrigida e Global)
 
         async function loadUserSelect(currentUser) {
             const selectEl = document.getElementById('user-select');
@@ -236,14 +224,17 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const userInfo = getUsuarioLogado();
+            // Usa a função getUsuarioLogado GLOBAL de js/script.js
+            const userInfo = getUsuarioLogado(); 
 
             if (!userInfo) return; 
 
-            const isAdmin = userInfo.isAdmin === true;
+            // isAdmin AGORA é um booleano confiável graças à correção em js/script.js
+            const isAdmin = userInfo.isAdmin; 
             
             if (isAdmin) {
-                document.getElementById('admin-options').style.display = 'block';
+                // Usa a classe CSS para mostrar o container (classe .admin-history-options)
+                document.getElementById('admin-options').style.display = 'block'; 
                 loadUserSelect(userInfo);
                 fetchAndRenderTransactions(userInfo.nome); 
             } else {

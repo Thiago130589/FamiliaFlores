@@ -401,7 +401,7 @@ input:focus, select:focus {
     margin-bottom: 15px;
 }
 
-/* Estilo para o botão "Voltar" */
+/* Estilo para o botão "Voltar" (compartilhado com histórico) */
 .wallet-back-button {
     margin-bottom: 20px;
 }
@@ -434,6 +434,33 @@ input:focus, select:focus {
 /* Estilo para o botão "Pedir Emprestado" */
 .wallet-action-button {
     margin-bottom: 10px;
+}
+
+/* ========================================================== */
+/* ESTILOS ESPECÍFICOS PARA HISTÓRICO DE PAGAMENTOS */
+/* ========================================================== */
+
+/* Título com o nome do usuário/perfil */
+.history-user-title {
+    font-size: 1.2rem; 
+    margin-bottom: 15px;
+}
+
+/* Container de opções de Admin (Visualizar Histórico) */
+.admin-history-options {
+    /* O display: none; inicial é definido no HTML/JS */
+    margin-bottom: 20px;
+}
+
+/* Botão de Apagar Histórico */
+.admin-delete-button {
+    margin-top: 10px;
+}
+
+/* Texto de Saldo Final no Resumo */
+.final-balance-text {
+    font-weight: bold; 
+    font-size: 1.2rem;
 }
 
 /* ========================================================== */
@@ -508,30 +535,4 @@ input:focus, select:focus {
         width: 30%;
         text-align: right;
     }
-}
-/* ========================================================== */
-/* ESTILOS ESPECÍFICOS PARA HISTÓRICO DE PAGAMENTOS */
-/* ========================================================== */
-
-/* Título com o nome do usuário/perfil */
-.history-user-title {
-    font-size: 1.2rem; 
-    margin-bottom: 15px;
-}
-
-/* Container de opções de Admin (Visualizar Histórico) */
-.admin-history-options {
-    display: none; /* Inicialmente oculto, revelado por JS se for Admin */
-    margin-bottom: 20px;
-}
-
-/* Botão de Apagar Histórico */
-.admin-delete-button {
-    margin-top: 10px;
-}
-
-/* Texto de Saldo Final no Resumo */
-.final-balance-text {
-    font-weight: bold; 
-    font-size: 1.2rem;
 }
