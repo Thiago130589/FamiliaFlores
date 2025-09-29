@@ -68,8 +68,24 @@ body {
 .header-actions {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start; /* Alinha a foto/mensagem e o botão Sair */
     margin-bottom: 20px;
+}
+
+/* NOVO ESTILO PARA CENTRALIZAR A FOTO/MENSAGEM */
+.profile-header-container {
+    /* Centraliza a imagem e o texto horizontalmente */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    
+    /* Permite que o botão Sair fique à direita do container */
+    flex-grow: 1; 
+    
+    /* Define uma largura máxima para o container, garantindo que o botão 'Sair' 
+       possa se posicionar bem à direita em telas grandes (desktop) */
+    max-width: 70%; 
 }
 
 /* =========================================================================
@@ -295,6 +311,9 @@ body {
 }
 .action-grid-three-cols {
     grid-template-columns: 1fr 1fr 1fr;
+}
+.action-grid-single-col {
+    grid-template-columns: 1fr;
 }
 
 .btn-icon {

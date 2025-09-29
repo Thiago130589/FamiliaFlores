@@ -15,7 +15,12 @@
 <body>
     <div class="center-box large-box">
         <div class="header-actions">
-            <h1 class="main-title" id="welcome-message" style="text-align: left;">Carregando...</h1>
+            <div class="profile-header-container">
+                <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
+                
+                <p id="welcome-message" class="info-message center-text" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
+            </div>
+            
             <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
         </div>
         
@@ -39,7 +44,7 @@
             <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
                 Histórico de Tarefas Pagas
             </a>
-            </div>
+        </div>
         
         <a id="admin-link" href="area-administrador.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
@@ -65,37 +70,37 @@
                 return;
             }
 
+            // 2. Busca dados (Nome, Foto e Saldo)
+            const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
+
+            // Configura a Mensagem de Boas-Vindas
             document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
 
-            // 2. Verifica e exibe o link do Admin
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                
+                // Carregar Foto
+                if (userData.fotoUrl) {
+                    document.getElementById('profile-pic').src = userData.fotoUrl;
+                }
+                
+                // Carregar Saldo
+                const saldo = userData.saldo || 0;
+                const saldoElement = document.getElementById('current-saldo');
+                saldoElement.textContent = formatarMoeda(saldo);
+                
+                saldoElement.classList.remove('positive-text', 'negative-text');
+                saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+            } else {
+                 document.getElementById('current-saldo').textContent = formatarMoeda(0);
+            }
+            
+            // 3. Verifica e exibe o link do Admin
             const adminLink = document.getElementById('admin-link');
             if (userInfo.isAdmin) {
                 adminLink.classList.remove('hidden-start');
             } else {
                 adminLink.classList.add('hidden-start');
-            }
-
-            // 3. Carrega o Saldo
-            try {
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
-                
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const saldo = userData.saldo || 0;
-                    
-                    const saldoElement = document.getElementById('current-saldo');
-                    saldoElement.textContent = formatarMoeda(saldo);
-                    
-                    saldoElement.classList.remove('positive-text', 'negative-text');
-                    saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
-                    
-                } else {
-                    document.getElementById('current-saldo').textContent = formatarMoeda(0);
-                }
-
-            } catch (error) {
-                console.error("Erro ao carregar saldo:", error);
-                document.getElementById('current-saldo').textContent = 'Erro ao carregar saldo';
             }
         }
 
