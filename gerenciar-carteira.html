@@ -1,134 +1,162 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Gerenciar Carteira</title>
-    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8">
+    <title>Gerenciar Carteira</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title-green">Gerenciar Carteira</h1>
-        <p id="user-info">Gerenciando a carteira de: <b>Carregando...</b></p>
-        <hr class="divider">
+    <div class="center-box large-box">
+        <h1 class="main-title-green">Gerenciar Carteira</h1>
+        <p id="user-info">Gerenciando a carteira de: <b>Carregando...</b></p>
+        <hr class="divider">
 
-        <h2 style="margin-top: 30px;">Saldo Atual: <span id="saldo-atual" class="saldo-display">R$ 0.00</span></h2>
-        
-        <div style="margin-top: 40px;">
-            <label class="input-label" for="valor-carteira">Valor (R$):</label>
-            <input type="number" id="valor-carteira" class="input-rounded" step="0.01" min="0" placeholder="Ex: 10.50">
-        </div>
+        <h2 style="margin-top: 30px;">Saldo Atual: <span id="saldo-atual" class="saldo-display">R$ 0.00</span></h2>
+        
+        <div style="margin-top: 40px;">
+            <label class="input-label" for="valor-carteira">Valor (R$):</label>
+            <input type="number" id="valor-carteira" class="input-rounded" step="0.01" min="0" placeholder="Ex: 10.50">
+        </div>
 
-        <div class="action-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-            <button id="btn-adicionar" class="btn-rounded btn-primary">Adicionar Valor</button>
-            <button id="btn-retirar" class="btn-rounded btn-danger">Retirar Valor</button>
-        </div>
+        <div class="action-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+            <button id="btn-adicionar" class="btn-rounded btn-primary" disabled>Adicionar Valor</button>
+            <button id="btn-retirar" class="btn-rounded btn-danger" disabled>Retirar Valor</button>
+        </div>
 
-        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;"></div>
+        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;"></div>
 
-        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 30px;">Voltar ao Gerenciamento de Perfis</a>
-    </div>
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 30px;">Voltar ao Gerenciamento de Perfis</a>
+    </div>
 
-    <script>
-        const CARTEIRA_PREFIX = 'carteira_';
-        let usuarioGerenciado = '';
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : null; 
+        let usuarioGerenciado = '';
 
-        // FunÃ§Ã£o para obter o parÃ¢metro 'user' da URL
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
+        // Usa a função de utilidade formatarMoeda do js/script.js
+        const formatarSaldo = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor).toFixed(2)}`;
 
-        // FunÃ§Ã£o para formatar o saldo (simples)
-        function formatarSaldo(valor) {
-            return `R$ ${parseFloat(valor).toFixed(2)}`;
-        }
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
 
-        // FunÃ§Ã£o principal para carregar o saldo e configurar a tela
-        function carregarCarteira() {
-            usuarioGerenciado = getQueryParam('user');
-            const statusEl = document.getElementById('status-message');
-            const saldoEl = document.getElementById('saldo-atual');
-            const userInfoEl = document.getElementById('user-info');
+        // Função para atualizar o Saldo na Tela
+        function atualizarSaldoDisplay(valor) {
+            const saldoEl = document.getElementById('saldo-atual');
+            saldoEl.textContent = formatarSaldo(valor);
+            saldoEl.classList.remove('positive-text', 'negative-text');
+            saldoEl.classList.add(valor >= 0 ? 'positive-text' : 'negative-text');
+        }
 
-            if (!usuarioGerenciado) {
-                userInfoEl.innerHTML = '<b>Erro: UsuÃ¡rio nÃ£o especificado.</b>';
-                statusEl.textContent = 'Retorne Ã  pÃ¡gina de gerenciamento de perfis.';
-                document.getElementById('btn-adicionar').disabled = true;
-                document.getElementById('btn-retirar').disabled = true;
-                return;
-            }
+        // Função principal para carregar o saldo e configurar a tela
+        async function carregarCarteira() {
+            usuarioGerenciado = getQueryParam('user');
+            const statusEl = document.getElementById('status-message');
+            const userInfoEl = document.getElementById('user-info');
+            const btnAdd = document.getElementById('btn-adicionar');
+            const btnRet = document.getElementById('btn-retirar');
 
-            userInfoEl.innerHTML = `Gerenciando a carteira de: <b>${usuarioGerenciado}</b>`;
+            btnAdd.disabled = true;
+            btnRet.disabled = true;
 
-            // O saldo Ã© armazenado no localStorage
-            const saldoStr = localStorage.getItem(CARTEIRA_PREFIX + usuarioGerenciado) || '0.00';
-            let saldo = parseFloat(saldoStr);
-            
-            if (isNaN(saldo)) {
-                saldo = 0.00;
-            }
-            
-            saldoEl.textContent = formatarSaldo(saldo);
-            statusEl.textContent = 'Pronto para alteraÃ§Ã£o.';
-        }
+            if (!usuarioGerenciado || !firestore || typeof formatarMoeda !== 'function') {
+                userInfoEl.innerHTML = '<b>Erro: Inicialização falhou.</b>';
+                statusEl.textContent = 'Recarregue a página ou verifique a conexão do Firebase.';
+                return;
+            }
 
-        // FunÃ§Ã£o para salvar o novo saldo no localStorage
-        function salvarNovoSaldo(novoSaldo) {
-            localStorage.setItem(CARTEIRA_PREFIX + usuarioGerenciado, novoSaldo.toFixed(2));
-            document.getElementById('saldo-atual').textContent = formatarSaldo(novoSaldo);
-        }
+            userInfoEl.innerHTML = `Gerenciando a carteira de: <b>${usuarioGerenciado}</b>`;
 
-        // FunÃ§Ã£o para processar a transaÃ§Ã£o (Adicionar ou Retirar)
-        function processarTransacao(tipo) {
-            const valorInput = document.getElementById('valor-carteira');
-            const valorStr = valorInput.value.replace(',', '.').trim();
-            const valor = parseFloat(valorStr);
-            const statusEl = document.getElementById('status-message');
-            
-            statusEl.className = 'info-message';
-            statusEl.textContent = '';
+            try {
+                const userDoc = await firestore.collection('users').doc(usuarioGerenciado).get();
+                
+                if (!userDoc.exists) {
+                    throw new Error('Usuário não encontrado no Firestore.');
+                }
 
-            if (isNaN(valor) || valor <= 0) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Por favor, insira um valor positivo e vÃ¡lido.';
-                return;
-            }
+                const saldo = parseFloat(userDoc.data().saldo || 0);
+                atualizarSaldoDisplay(saldo);
+                
+                statusEl.textContent = 'Pronto para alteração.';
+                btnAdd.disabled = false;
+                btnRet.disabled = false;
 
-            const saldoStr = localStorage.getItem(CARTEIRA_PREFIX + usuarioGerenciado) || '0.00';
-            let saldoAtual = parseFloat(saldoStr);
+            } catch (error) {
+                console.error("Erro ao carregar saldo:", error);
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Erro ao carregar saldo do Firestore. Verifique o console.';
+            }
+        }
 
-            let novoSaldo;
-            let mensagem;
+        // Função para processar a transação (Adicionar ou Retirar)
+        async function processarTransacao(tipo) {
+            const valorInput = document.getElementById('valor-carteira');
+            const valorStr = valorInput.value.replace(',', '.').trim();
+            const valor = parseFloat(valorStr);
+            const statusEl = document.getElementById('status-message');
+            
+            statusEl.className = 'info-message';
+            statusEl.textContent = 'Processando...';
+            
+            if (isNaN(valor) || valor <= 0) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Por favor, insira um valor positivo e válido.';
+                return;
+            }
 
-            if (tipo === 'adicionar') {
-                novoSaldo = saldoAtual + valor;
-                mensagem = `R$ ${valor.toFixed(2)} ADICIONADO(S) Ã  carteira de ${usuarioGerenciado}.`;
-            } else if (tipo === 'retirar') {
-                if (valor > saldoAtual) {
-                    if (!confirm(`O valor de retirada (R$ ${valor.toFixed(2)}) Ã© maior que o saldo atual (R$ ${saldoAtual.toFixed(2)}). Deseja permitir um saldo negativo?`)) {
-                        statusEl.className = 'error-message';
-                        statusEl.textContent = 'Retirada cancelada. Saldo nÃ£o alterado.';
-                        return;
-                    }
-                }
-                novoSaldo = saldoAtual - valor;
-                mensagem = `R$ ${valor.toFixed(2)} RETIRADO(S) da carteira de ${usuarioGerenciado}.`;
-            } else {
-                return;
-            }
+            try {
+                const userRef = firestore.collection('users').doc(usuarioGerenciado);
+                
+                // Use Transaction para garantir que a leitura e escrita do saldo sejam atômicas
+                const novoSaldo = await firestore.runTransaction(async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists) {
+                        throw new Error('Documento do usuário não encontrado.');
+                    }
 
-            salvarNovoSaldo(novoSaldo);
-            valorInput.value = ''; // Limpa o campo de valor
-            statusEl.className = 'success-message';
-            statusEl.textContent = `${mensagem} Novo saldo: ${formatarSaldo(novoSaldo)}`;
-        }
+                    const saldoAtual = parseFloat(userDoc.data().saldo || 0);
+                    let novoSaldoCalculado;
+                    
+                    if (tipo === 'adicionar') {
+                        novoSaldoCalculado = saldoAtual + valor;
+                    } else if (tipo === 'retirar') {
+                        novoSaldoCalculado = saldoAtual - valor;
+                    } else {
+                        return saldoAtual; 
+                    }
 
-        // Listeners
-        document.getElementById('btn-adicionar').addEventListener('click', () => processarTransacao('adicionar'));
-        document.getElementById('btn-retirar').addEventListener('click', () => processarTransacao('retirar'));
+                    // Atualiza o saldo no Firestore
+                    transaction.update(userRef, { saldo: novoSaldoCalculado });
+                    
+                    return novoSaldoCalculado; // Retorna o novo saldo
+                });
+                
+                // Se a transação for bem-sucedida
+                atualizarSaldoDisplay(novoSaldo); 
+                valorInput.value = ''; 
+                
+                const acao = tipo === 'adicionar' ? 'ADICIONADO(S)' : 'RETIRADO(S)';
+                statusEl.className = 'success-message';
+                statusEl.textContent = `R$ ${valor.toFixed(2)} ${acao} à carteira de ${usuarioGerenciado}. Novo saldo: ${formatarSaldo(novoSaldo)}`;
 
-        // InicializaÃ§Ã£o
-        window.addEventListener('DOMContentLoaded', carregarCarteira);
-    </script>
+            } catch (error) {
+                console.error("Erro ao processar transação:", error);
+                statusEl.className = 'error-message';
+                statusEl.textContent = `Falha na transação. Verifique o console. (${error.message})`;
+            }
+        }
+
+        // Listeners
+        document.getElementById('btn-adicionar').addEventListener('click', () => processarTransacao('adicionar'));
+        document.getElementById('btn-retirar').addEventListener('click', () => processarTransacao('retirar'));
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', carregarCarteira);
+    </script>
 </body>
 </html>

@@ -1,24 +1,29 @@
-/**
- * Inicializa��o do Firebase (usando o SDK v8 via CDN).
- * Garante que as inst�ncias 'db' e 'auth' estejam dispon�veis globalmente.
+﻿/**
+ * Inicialização do Firebase (usando o SDK v8 via CDN).
+ * Garante que as instâncias 'db' e 'auth' estejam disponíveis globalmente.
  */
 
-// 1. Suas credenciais do Firebase (USE A CHAVE REAL DO SEU PROJETO)
+// 1. Suas credenciais do Firebase (AGORA COM OS VALORES REAIS)
 const firebaseConfig = {
-    apiKey: "SUA_CHAVE_AQUI", // <--- *** SUBSTITUA PELA CHAVE REAL AQUI ***
-    authDomain: "familia-flores-2e6da.firebaseapp.com",
-    projectId: "familia-flores-2e6da",
-    storageBucket: "familia-flores-2e6da.appspot.com",
-    messagingSenderId: "1021517349",
-    appId: "1:1021517349:web:0fa6cfa86de5f9da338f494c",
-    measurementId: "G-9E95B6VFN8",
+    // API Key real obtida das configurações do projeto
+    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", 
+    
+    // Valores reais do seu projeto
+    authDomain: "familia-flores-2ed6a.firebaseapp.com",
+    projectId: "familia-flores-2ed6a",
+    storageBucket: "familia-flores-2ed6a.firebasestorage.app",
+    messagingSenderId: "102151517349",
+    // AppId real obtido das configurações do projeto
+    appId: "1:102151517349:web:0fa6cfa865f9da338f494c",
+    // measurementId real obtido das configurações do projeto
+    measurementId: "G-8E95B0VFNR", 
 };
 
-// 2. Inicializa o Firebase (Se ainda n�o foi inicializado)
+// 2. Inicializa o Firebase (Se ainda não foi inicializado)
 if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// 3. Cria e disponibiliza as refer�ncias de servi�os globalmente
+// 3. Cria e disponibiliza as referências de serviços globalmente
 const db = firebase.firestore();
 const auth = firebase.auth();

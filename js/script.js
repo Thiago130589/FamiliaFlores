@@ -16,8 +16,7 @@ function formatarMoeda(valor) {
     }
     
     // 2. Retorna o valor formatado como moeda brasileira (método recomendado)
-    // Usamos Math.abs() para garantir que o sinal seja tratado separadamente, se necessário.
-    return Math.abs(valor).toLocaleString('pt-BR', {
+    return valor.toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL',
         minimumFractionDigits: 2

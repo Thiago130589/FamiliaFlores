@@ -1,187 +1,193 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Carteira</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> </head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Carteira</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title">Minha Carteira</h1>
-        
-        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
-            &#8592; Voltar para o Dashboard
-        </a>
-        <hr class="divider">
+    <div class="center-box large-box">
+        <h1 class="main-title">Minha Carteira</h1>
+        
+        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
+            &#8592; Voltar para o Dashboard
+        </a>
+        <hr class="divider">
 
-        <div class="financial-summary-card">
-            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Visão Geral Financeira</h2>
-            
-            <div class="saldo-destaque-container">
-                <p>Seu Saldo Atual</p>
-                <p id="saldo-valor" class="balance-value">R$ 0,00</p>
-            </div>
+        <div class="financial-summary-card">
+            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Visão Geral Financeira</h2>
+            
+            <div class="saldo-destaque-container">
+                <p>Seu Saldo Atual</p>
+                <p id="saldo-valor" class="balance-value">R$ 0,00</p>
+            </div>
 
-            <hr class="divider-light">
-            
-            <div class="proximo-pagamento-info">
-                <p>Próximo Valor a Receber:</p>
-                <p style="font-size: 1.1rem; font-weight: bold;">
-                    Valor: <span id="next-payment-value" class="positive-text">R$ 0,00</span>
-                </p>
-                <p style="font-weight: 500; font-size: 0.95rem;">
-                    Data Prevista: <span id="next-payment-date">--/--/----</span>
-                </p>
-            </div>
-        </div>
+            <hr class="divider-light">
+            
+            <div class="proximo-pagamento-info">
+                <p>Próximo Valor a Receber:</p>
+                <p style="font-size: 1.1rem; font-weight: bold;">
+                    Valor: <span id="next-payment-value" class="positive-text">R$ 0,00</span>
+                </p>
+                <p style="font-weight: 500; font-size: 0.95rem;">
+                    Data Prevista: <span id="next-payment-date">--/--/----</span>
+                </p>
+            </div>
+        </div>
 
-        <hr class="divider">
+        <hr class="divider">
 
-        <div class="dashboard-links-grid">
-            <a href="pedir-emprestado.html" class="btn-rounded btn-primary wide-button" style="margin-bottom: 10px;">
-                Pedir Emprestado
-            </a>
-            </div>
-        
-        <hr class="divider">
+        <div class="dashboard-links-grid">
+            <a href="pedir-emprestado.html" class="btn-rounded btn-primary wide-button" style="margin-bottom: 10px;">
+                Pedir Emprestado
+            </a>
+            </div>
+        
+        <hr class="divider">
 
-        <h2 style="color: #444;">Últimas Transações</h2>
-        <p style="font-size: 0.9em; color: #888;">Ganhos (Verde) e Multas (Vermelho)</p>
-        
-        <div id="historico-lista" class="historico-lista">
-            <p class="empty-message">Carregando histórico...</p>
-        </div>
-        
-    </div>
+        <h2 style="color: #444;">Últimas Transações</h2>
+        <p style="font-size: 0.9em; color: #888;">Ganhos (Verde) e Multas (Vermelho)</p>
+        
+        <div id="historico-lista" class="historico-lista">
+            <p class="empty-message">Carregando histórico...</p>
+        </div>
+    </div>
 
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : null;
 
-        // Obtém o nome do usuário logado
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue); // Retorna o objeto completo
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
+        // Obtém o nome do usuário logado
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                return JSON.parse(storedValue); // Retorna o objeto completo
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
 
-        async function loadCarteira() {
-            const userInfo = getUsuarioLogado();
-            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') return;
+        async function loadCarteira() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') return;
 
-            const userName = userInfo.nome;
-            const saldoEl = document.getElementById('saldo-valor');
-            const historicoEl = document.getElementById('historico-lista');
-            historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
+            const userName = userInfo.nome;
+            const saldoEl = document.getElementById('saldo-valor');
+            const historicoEl = document.getElementById('historico-lista');
+            historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
 
-            // Simulação de Dados
-            const valorProximo = 120.00;
-            const dataProximo = new Date();
-            dataProximo.setDate(dataProximo.getDate() + 7); 
+            // Simulação de Dados
+            const valorProximo = 120.00;
+            const dataProximo = new Date();
+            dataProximo.setDate(dataProximo.getDate() + 7); 
 
-            document.getElementById('next-payment-date').textContent = dataProximo.toLocaleDateString('pt-BR');
-            document.getElementById('next-payment-value').textContent = formatarMoeda(valorProximo);
-            
+            document.getElementById('next-payment-date').textContent = dataProximo.toLocaleDateString('pt-BR');
+            document.getElementById('next-payment-value').textContent = formatarMoeda(valorProximo);
+            
 
-            try {
-                const userDoc = await firestore.collection('users').doc(userName).get();
-                if (!userDoc.exists) {
-                    saldoEl.textContent = formatarMoeda(0);
-                    historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
-                    return;
-                }
-                
-                const userData = userDoc.data();
-                const saldo = parseFloat(userData.saldo || 0);
-                
-                // Exibe o saldo formatado e define a cor
-                saldoEl.textContent = formatarMoeda(saldo); 
-                saldoEl.classList.remove('positive-text', 'negative-text');
-                saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+            try {
+                const userDoc = await firestore.collection('users').doc(userName).get();
+                if (!userDoc.exists) {
+                    saldoEl.textContent = formatarMoeda(0);
+                    historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                const saldo = parseFloat(userData.saldo || 0);
+                
+                // Exibe o saldo formatado e define a cor
+                saldoEl.textContent = formatarMoeda(saldo); 
+                saldoEl.classList.remove('positive-text', 'negative-text');
+                saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
-                // Lógica de Histórico 
-                const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
-                    .orderBy('dataConclusao', 'desc')
-                    .get();
+                // Lógica de Histórico 
+                const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
+                    .orderBy('dataConclusao', 'desc')
+                    .limit(10)
+                    .get();
 
-                let historico = [];
+                const multasSnapshot = await firestore.collection('multas')
+                    .where('usuario', '==', userName)
+                    .orderBy('dataCriacao', 'desc')
+                    .limit(10)
+                    .get();
 
-                // Mapear Ganhos
-                tarefasSnapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    const valor = parseFloat(tarefa.valor || 0);
-                    const dataConclusao = tarefa.dataConclusao ? (tarefa.dataConclusao.toDate ? tarefa.dataConclusao.toDate() : new Date(tarefa.dataConclusao)) : new Date();
+                let historico = [];
 
-                    historico.push({
-                        tipo: 'ganho',
-                        descricao: tarefa.nome || 'Tarefa Concluída',
-                        valor: valor,
-                        data: dataConclusao
-                    });
-                });
+                // Mapear Ganhos
+                tarefasSnapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    const valor = parseFloat(tarefa.valor || 0);
+                    const dataConclusao = tarefa.dataConclusao && tarefa.dataConclusao.toDate ? tarefa.dataConclusao.toDate() : new Date();
 
-                // Mapear Multas
-                const multas = userData.multas || []; 
-                multas.forEach(multa => {
-                    const valor = parseFloat(multa.valor || 0);
-                    const data = new Date(multa.data);
-                    
-                    historico.push({
-                        tipo: 'multa',
-                        descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
-                        valor: -Math.abs(valor), 
-                        data: data
-                    });
-                });
+                    historico.push({
+                        tipo: 'ganho',
+                        descricao: tarefa.nome || 'Tarefa Concluída',
+                        valor: valor,
+                        data: dataConclusao
+                    });
+                });
 
-                // Ordenar Histórico
-                historico.sort((a, b) => b.data.getTime() - a.data.getTime());
+                // Mapear Multas
+                multasSnapshot.forEach(doc => {
+                    const multa = doc.data();
+                    const valor = parseFloat(multa.valor || 0);
+                    const data = multa.dataCriacao && multa.dataCriacao.toDate ? multa.dataCriacao.toDate() : new Date();
+                    
+                    historico.push({
+                        tipo: 'multa',
+                        descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
+                        valor: -Math.abs(valor), 
+                        data: data
+                    });
+                });
 
-                // Renderizar
-                if (historico.length === 0) {
-                    historicoEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada.</p>';
-                    return;
-                }
+                // Ordenar Histórico
+                historico.sort((a, b) => b.data.getTime() - a.data.getTime());
 
-                let html = '<ul class="transaction-list">';
-                historico.forEach(item => {
-                    const valorAbsoluto = formatarMoeda(Math.abs(item.valor));
-                    const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                    const isPositive = item.tipo === 'ganho';
+                // Renderizar
+                if (historico.length === 0) {
+                    historicoEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada.</p>';
+                    return;
+                }
 
-                    html += `
-                        <li class="transaction-item ${isPositive ? 'positive' : 'negative'}">
-                            <div class="transaction-details">
-                                <span class="transaction-description">${item.descricao}</span>
-                                <span class="transaction-date">${dataFormatada}</span>
-                            </div>
-                            <span class="transaction-amount">${isPositive ? '+' : '-'} ${valorAbsoluto}</span>
-                        </li>
-                    `;
-                });
-                html += '</ul>';
-                historicoEl.innerHTML = html;
-                
+                let html = '<ul class="transaction-list">';
+                historico.forEach(item => {
+                    const valorAbsoluto = formatarMoeda(Math.abs(item.valor));
+                    const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                    const isPositive = item.tipo === 'ganho';
 
-            } catch (error) {
-                console.error("Erro ao carregar carteira:", error);
-                historicoEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira. Verifique o Console (F12).</p>';
-            }
-        }
+                    html += `
+                        <li class="transaction-item ${isPositive ? 'positive' : 'negative'}">
+                            <div class="transaction-details">
+                                <span class="transaction-description">${item.descricao}</span>
+                                <span class="transaction-date">${dataFormatada}</span>
+                            </div>
+                            <span class="transaction-amount">${isPositive ? '+' : '-'} ${valorAbsoluto}</span>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                historicoEl.innerHTML = html;
+                
 
-        window.addEventListener('DOMContentLoaded', loadCarteira);
-    </script>
+            } catch (error) {
+                console.error("Erro ao carregar carteira:", error);
+                historicoEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira. Verifique o Console (F12).</p>';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadCarteira);
+    </script>
 </body>
 </html>

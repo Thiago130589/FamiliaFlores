@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
+    
     <script src="js/script.js"></script> 
 </head>
 <body>
@@ -31,11 +32,11 @@
                 </a>
                 
                 <a href="minhas-tarefas.html" class="btn-secondary-text btn-rounded">Minhas Tarefas</a>
-                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Dispon�veis</a>
-                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Hist�rico de Tarefas</a>
+                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Disponíveis</a>
+                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Histórico de Tarefas</a>
                 
-                <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Hist�rico Financeiro</a>
-                <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Hist�rico de Multas</a>
+                <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
+                <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
             </div>
 
             <hr class="divider">
@@ -43,7 +44,7 @@
         
         <div id="admin-button-container" style="display: none; text-align: center; margin-top: 30px;">
             <a href="area-administrador.html" class="btn-rounded btn-primary" style="width: 300px;">
-                �rea do Administrador
+                Área do Administrador
             </a>
         </div>
 
@@ -51,6 +52,7 @@
     </div>
 
     <script>
+        // Garante que a variável 'firestore' use a instância 'db' do firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : null;
         
         function getUsuarioLogado() {
@@ -68,36 +70,50 @@
         }
 
         function logout() {
+            // Usa o método de logout do Firebase, se estiver disponível
+            if (typeof auth !== 'undefined' && typeof auth.signOut === 'function') {
+                auth.signOut();
+            }
+            
+            // Remove o item e redireciona (código já existente)
             localStorage.removeItem('usuarioLogado');
             window.location.href = 'login.html';
         }
 
         async function loadDashboard() {
+            // A função formatarMoeda é carregada via <script src="js/script.js">
             const userInfo = getUsuarioLogado();
+            
+            // Verifica a dependência de formatarMoeda (agora carregada externamente)
             if (!userInfo || !firestore || typeof formatarMoeda !== 'function') {
-                document.getElementById('loading-message').textContent = 'Erro de carregamento (fun��es). Tente novamente.';
+                document.getElementById('loading-message').textContent = 'Erro de carregamento (dependências). Verifique o Console.';
                 return;
             }
 
-            // 1. Carregar informa��es do usu�rio e Saldo
+            // 1. Carregar informações do usuário e Saldo
             document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
             
             try {
+                // Tenta buscar o documento do usuário (usa o nome como ID do documento)
                 const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
                 const userData = userDoc.data();
                 const saldo = parseFloat(userData.saldo || 0);
                 
                 const balanceEl = document.getElementById('current-balance');
-                balanceEl.textContent = formatarMoeda(saldo);
+                
+                // Usa a função formatarMoeda carregada do script.js
+                balanceEl.textContent = formatarMoeda(saldo); 
+                
+                // Aplica classes de cor baseado no saldo
                 balanceEl.classList.remove('positive-text', 'negative-text');
                 balanceEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
             } catch (error) {
                 console.error("Erro ao carregar saldo:", error);
-                document.getElementById('current-balance').textContent = 'R$ 0,00';
+                document.getElementById('current-balance').textContent = 'Erro (Firebase)';
             }
             
-            // 2. Exibir o bot�o de Admin se for Admin
+            // 2. Exibir o botão de Admin se for Admin
             const isAdmin = userInfo.isAdmin === true; 
             if (isAdmin) {
                 document.getElementById('admin-button-container').style.display = 'block'; 
