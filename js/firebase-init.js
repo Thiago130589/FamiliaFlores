@@ -1,28 +1,28 @@
 ﻿/**
  * Inicialização do Firebase e Firestore usando o SDK v8 (via CDN).
- * Garante que a instância 'db' esteja disponível globalmente.
+ * Garante que a instância 'db' e 'auth' estejam disponíveis globalmente.
+ * * NOTA: As credenciais devem ser inseridas manualmente.
  */
 
-// Se suas credenciais do Firebase
+// Se suas credenciais do Firebase (Baseado na imagem image_0ce1d4.png e image_0a90d4.png)
 const firebaseConfig = {
-    // Insira suas credenciais do Firebase aqui, baseadas na imagem image_0a90d4.png
-    apiKey: "SUA_API_KEY_AQUI", 
+    apiKey: "SUA_API_KEY_AQUI", // Insira sua chave real aqui!
     authDomain: "famila-flores-2ed6a.firebaseapp.com",
     projectId: "famila-flores-2ed6a",
     storageBucket: "famila-flores-2ed6a.appspot.com",
-    messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-    appId: "SEU_APP_ID",
-    measurementId: "SEU_MEASUREMENT_ID"
+    messagingSenderId: "102151517349",
+    appId: "1:102151517349:web:0fa6cfa86de5f9da338f494c",
+    measurementId: "G-9E9SBOVFNF"
 };
 
-// Inicializa o Firebase
+// Inicializa o Firebase (apenas se não tiver sido inicializado)
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
 // Cria a referência global para o Firestore (db)
-// Use firebase.firestore() apenas APÓS o firebase-app e o firebase-firestore terem carregado.
+// SÓ DEVE CHAMAR .firestore() DEPOIS QUE O SCRIPT firebase-firestore.js CARREGOU.
 const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
 
-// O Auth (autenticação) é necessário no login
+// Cria a referência global para o Auth (auth)
 const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
