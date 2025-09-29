@@ -20,12 +20,14 @@
 
         <div id="profileCard" class="profile-card">
             
+            <span id="usernameOverlay" class="time-text"></span> 
+
             <img id="profileImage" src="assets/default-profile.png" alt="" class="profile-img"> 
-            
-            <span id="usernameOverlay" class="time-text" style="margin-top: -30px;"></span> 
             
             <span id="brasiliaClock" class="brasilia-clock"></span>
             
+            <hr class="dashed-divider" style="margin-top: 5px;">
+
             <h2 id="userName" class="user-name-text">Carregando...</h2>
             
             <span id="userRole" class="user-role-text">Carregando Perfil...</span>
@@ -44,7 +46,7 @@
     </div>
 
     <script>
-        // Lógica de Logout no final do corpo (se já estiver no script.js, pode ser redundante)
+        // Lógica de Logout no final do corpo
         document.getElementById('logoutButton').onclick = function() {
             localStorage.removeItem('usuarioLogado');
             window.location.href = 'login.html';
