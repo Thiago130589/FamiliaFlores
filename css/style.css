@@ -2,7 +2,7 @@
 /* ESTILOS GERAIS E DE ESTRUTURA */
 /* ========================================================== */
 body {
-    font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: #f4f7f6;
     margin: 0;
     padding: 0;
@@ -147,6 +147,7 @@ input:focus, select:focus {
     background-color: #43a047;
 }
 
+/* Usado para links de navegação no Dashboard (index.html) */
 .btn-secondary-text {
     background-color: transparent;
     color: #1976d2;
@@ -170,6 +171,40 @@ input:focus, select:focus {
     font-size: 1rem;
     line-height: 1;
 }
+
+/* ========================================================== */
+/* ESTILOS DE LAYOUT ESPECÍFICOS PARA DASHBOARD E ADMIN */
+/* ========================================================== */
+
+/* Layout de Links Gerais do Dashboard (index.html) */
+.dashboard-links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.dashboard-links-grid a {
+    flex-basis: auto; /* Deixa o botão se ajustar ao conteúdo */
+    max-width: 180px;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+}
+
+/* Layout de Links da Área do Administrador */
+.admin-links-grid-full {
+    display: grid;
+    /* Faz os botões ficarem em colunas responsivas (mínimo 200px de largura por coluna) */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.admin-links-grid-full a {
+    font-size: 1rem;
+    padding: 15px 20px;
+}
+
 
 /* ========================================================== */
 /* ESTILOS DE LISTAS E HISTÓRICO (MULTAS/PAGAMENTOS/USUÁRIOS) */
@@ -357,5 +392,18 @@ input:focus, select:focus {
         min-width: auto;
         width: 30%;
         text-align: right;
+    }
+    
+    /* Ajuste para grids de links em telas pequenas */
+    .dashboard-links-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+    .dashboard-links-grid a {
+        width: 100%;
+        max-width: 90%;
+    }
+    .admin-links-grid-full {
+        grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
     }
 }

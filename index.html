@@ -3,66 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Família Flores</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script> 
 </head>
 <body>
-    <div class="center-box large-box">
+    <div class="center-box large-box" id="dashboard-container">
         <h1 class="main-title">Dashboard</h1>
         <hr class="divider">
         
-        <div id="loading-state" style="text-align: center;">
-            <div style="width: 50px; height: 50px; margin: 0 auto 15px; border: 5px solid #1976d2; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="color: #1976d2; font-weight: 500;">Carregando...</p>
-            <p style="font-size: 0.9rem; color: #888;">Carregando Perfil...</p>
-            <p style="margin-top: 15px; font-size: 0.9rem; color: #888;">Carregando links...</p>
+        <div id="loading-message" style="text-align: center;">Carregando Perfil...</div>
+
+        <div id="main-content" style="display: none;">
+            <h2 id="welcome-message" style="text-align: center; color: #333;"></h2>
+            <p style="text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 25px;">
+                Saldo Atual: <span id="current-balance" class="positive-text">R$ 0,00</span>
+            </p>
+
+            <div class="dashboard-links-grid">
+                <a href="minhas-tarefas.html" class="btn-secondary-text btn-rounded">Minhas Tarefas</a>
+                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Disponíveis</a>
+                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Histórico de Tarefas</a>
+                <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
+                <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico de Pagamentos</a>
+            </div>
+
+            <hr class="divider">
         </div>
         
-        <style>
-            @keyframes spin {
-                to { transform: rotate(360deg); }
-            }
-        </style>
-
-        <div id="dashboard-content" style="display: none;">
-            
-            <h2 id="user-title" style="text-align: center; color: #333; margin-top: 0;"></h2>
-            <p id="saldo-info" style="text-align: center; font-size: 1.5rem; font-weight: bold;"></p>
-            
-            <hr class="divider">
-            
-            <div id="dashboard-links" style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <a href="minhas-tarefas.html" class="btn-rounded btn-primary wide-button">Minhas Tarefas</a>
-                <a href="tarefas-disponiveis.html" class="btn-rounded btn-primary wide-button">Tarefas Disponíveis</a>
-                <a href="historico-tarefas.html" class="btn-rounded btn-secondary wide-button">Histórico de Tarefas</a>
-                <a href="historico-multas.html" class="btn-rounded btn-secondary wide-button">Histórico de Multas</a>
-                <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">Histórico de Pagamentos</a>
-                
-                <div id="admin-links" style="display: none; grid-column: 1 / -1; display: grid; gap: 15px; grid-template-columns: subgrid;">
-                    <h3 style="grid-column: 1 / -1; margin: 5px 0 0; color: #d32f2f; text-align: center;">Área do Administrador</h3>
-                    <a href="gerenciar-tarefas.html" class="btn-rounded btn-danger wide-button">Gerenciar Tarefas</a>
-                    <a href="gerenciar-perfis.html" class="btn-rounded btn-danger wide-button">Gerenciar Perfis</a>
-                    <a href="gerenciar-carteira.html" class="btn-rounded btn-danger wide-button">Gerenciar Carteira</a>
-                    <a href="multas.html" class="btn-rounded btn-danger wide-button">Aplicar Multa</a>
-                    <a href="tarefas-pendentes.html" class="btn-rounded btn-danger wide-button">Pagamentos Pendentes</a>
-                    <a href="tornar-administrador.html" class="btn-rounded btn-danger wide-button">Gerenciar Admins</a>
-                </div>
-
-            </div>
-            
-            <hr class="divider">
+        <div id="admin-button-container" style="display: none; text-align: center; margin-top: 30px;">
+            <a href="area-administrador.html" class="btn-rounded btn-primary" style="width: 300px;">
+                Área do Administrador
+            </a>
         </div>
 
-        <button class="btn-rounded btn-danger wide-button" id="btn-logout" style="margin-top: 20px;">Sair / Logout</button>
+        <button class="btn-rounded btn-danger wide-button" style="margin-top: 20px;" onclick="logout()">Sair / Logout</button>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const firestore = typeof db !== 'undefined' ? db : null;
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -78,42 +62,34 @@
             }
         }
 
-        async function loadDashboard() {
-            const userInfo = getUsuarioLogado();
-            if (!userInfo) return;
-
-            document.getElementById('loading-state').style.display = 'none';
-            document.getElementById('dashboard-content').style.display = 'block';
-
-            document.getElementById('user-title').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
-            
-            // 1. Carregar Saldo
-            try {
-                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
-                const saldo = userDoc.exists ? (userDoc.data().saldo || 0) : 0;
-                
-                const saldoEl = document.getElementById('saldo-info');
-                saldoEl.innerHTML = `Saldo Atual: <span style="color: ${saldo >= 0 ? '#4CAF50' : '#d32f2f'}">${formatarMoeda(saldo)}</span>`;
-
-                // 2. Exibir links de Admin se for Admin
-                const isAdmin = (userInfo.isAdmin === true) || (userInfo.nome.toLowerCase() === 'thiago');
-                if (isAdmin) {
-                    document.getElementById('admin-links').style.display = 'grid';
-                }
-
-            } catch (e) {
-                console.error("Erro ao carregar saldo ou links de admin:", e);
-                document.getElementById('saldo-info').textContent = 'Erro ao carregar saldo.';
-            }
-
-            // 3. Lógica de Logout
-            document.getElementById('btn-logout').onclick = () => {
-                localStorage.removeItem('usuarioLogado');
-                window.location.href = 'login.html';
-            };
+        function logout() {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
         }
 
-        window.addEventListener('DOMContentLoaded', loadDashboard);
+        async function loadDashboard() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !firestore) {
+                document.getElementById('loading-message').textContent = 'Erro de carregamento. Tente novamente.';
+                return;
+            }
+
+            // 1. Carregar informações do usuário (apenas um exemplo para exibir o nome)
+            document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
+            // Implementar a lógica real de saldo aqui. Por enquanto, é 0.
+
+            // 2. Exibir o botão de Admin se for Admin
+            const isAdmin = userInfo.isAdmin === true; 
+            if (isAdmin) {
+                document.getElementById('admin-button-container').style.display = 'block'; 
+            }
+
+            // 3. Finalizar carregamento
+            document.getElementById('loading-message').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
