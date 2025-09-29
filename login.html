@@ -4,93 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Família Flores</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <div class="center-box small-box">
+    <div class="center-box">
         <h1 class="main-title-primary">Login</h1>
         <hr class="divider">
-        
-        <div class="input-group-vertical">
-            <label class="input-label" for="username">Nome de Usuário:</label>
-            <input type="text" id="username" class="input-rounded" placeholder="Seu nome (ID do Firestore)" required>
-        </div>
 
-        <div class="input-group-vertical">
-            <label class="input-label" for="password">Senha:</label>
-            <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
-        </div>
-        
-        <button id="login-button" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Entrar</button>
-
-        <button id="register-button" class="btn-rounded btn-secondary wide-button" style="margin-top: 10px;">Cadastrar Novo Usuário</button>
-
-        <p id="error-message" class="error-message" style="margin-top: 10px; display: none;">Mensagem de Erro</p>
-    </div>
-
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
-
-        document.getElementById('login-button').addEventListener('click', attemptLogin);
-        document.getElementById('register-button').addEventListener('click', redirectToRegister);
-
-        function redirectToRegister() {
-            window.location.href = 'cadastrar-usuario.html'; 
-        }
-
-        async function attemptLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const errorMessageEl = document.getElementById('error-message');
+        <form id="loginForm" style="width: 100%; text-align: center;">
             
-            errorMessageEl.style.display = 'none';
+            <div class="input-group-vertical">
+                <label for="username" class="input-label">Nome de Usuário</label>
+                <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
+            </div>
 
-            if (!username || !password) {
-                errorMessageEl.textContent = 'Por favor, preencha nome e senha.';
-                errorMessageEl.style.display = 'block';
-                return;
-            }
+            <div class="input-group-vertical">
+                <label for="password" class="input-label">Senha</label>
+                <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
+            </div>
 
-            try {
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+            <p id="errorMessage" class="error-message" style="margin-top: 10px;"></p>
+            
+            <button type="submit" class="btn-rounded btn-primary wide-button" style="margin: 10px auto;">Entrar</button>
 
-                if (!userDoc.exists) {
-                    errorMessageEl.textContent = 'Usuário não encontrado.';
-                    errorMessageEl.style.display = 'block';
+            <button type="button" id="cadastrarNovoUsuario" class="btn-rounded btn-secondary wide-button" style="margin-top: 15px;">Cadastrar Novo Usuário</button>
+        </form>
+
+        <script>
+            // Garante que o db esteja disponível
+            const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+            const USERS_COLLECTION = 'users';
+            const loginForm = document.getElementById('loginForm');
+            const errorMessageEl = document.getElementById('errorMessage');
+            const cadastrarButton = document.getElementById('cadastrarNovoUsuario');
+
+            // 1. Lógica de Login
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                errorMessageEl.textContent = ''; 
+
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    errorMessageEl.textContent = 'Preencha todos os campos.';
                     return;
                 }
 
-                const userData = userDoc.data();
-                
-                // CORREÇÃO APLICADA: Comparando com userData.password (campo do Firestore)
-                if (userData.password !== password) { 
-                    errorMessageEl.textContent = 'Senha incorreta.';
-                    errorMessageEl.style.display = 'block';
-                    return;
+                try {
+                    // Busca o usuário pelo nome (ID do documento)
+                    const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+
+                    if (!userDoc.exists) {
+                        errorMessageEl.textContent = 'Nome de usuário incorreto.';
+                        return;
+                    }
+
+                    const userData = userDoc.data();
+                    
+                    // Verifica a senha (em um projeto real, NUNCA armazene senhas como texto simples!)
+                    if (userData.password === password) {
+                        
+                        // Login bem-sucedido: Armazena o nome e redireciona
+                        localStorage.setItem('usuarioLogado', JSON.stringify({ nome: username }));
+                        
+                        // Redireciona para o Dashboard (index.html)
+                        window.location.href = 'index.html';
+
+                    } else {
+                        errorMessageEl.textContent = 'Senha incorreta.';
+                    }
+
+                } catch (error) {
+                    console.error("Erro ao tentar login:", error);
+                    errorMessageEl.textContent = 'Erro de conexão ou sistema. Tente novamente.';
                 }
-                
-                // Sucesso: Salva os dados do usuário no localStorage
-                const userProfile = {
-                    nome: username,
-                    isAdmin: userData.isAdmin || false,
-                };
-                
-                localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));
+            });
 
-                // Redireciona para o dashboard
-                window.location.href = 'index.html';
-
-            } catch (error) {
-                console.error("Erro no login:", error);
-                errorMessageEl.textContent = 'Ocorreu um erro na conexão. Tente novamente.';
-                errorMessageEl.style.display = 'block';
-            }
-        }
-    </script>
+            // 2. Lógica do Botão de Cadastro
+            cadastrarButton.onclick = function() {
+                // Supondo que você tenha uma página de cadastro. Se não tiver, ajuste o link.
+                alert("Redirecionando para a página de cadastro. Crie o arquivo 'cadastro.html'.");
+                // window.location.href = 'cadastro.html'; 
+            };
+        </script>
+    </div>
 </body>
 </html>

@@ -262,15 +262,17 @@ body {
 
 /* ======================================================== */
 /* ESTILOS ESPECÍFICOS: DASHBOARD/INDEX                      */
+/* PADRONIZADO PARA TODOS OS PERFIS                         */
 /* ======================================================== */
 .profile-card {
-    /* Força o profile-container a usar flex para alinhar o conteúdo */
+    /* Garante alinhamento central dos elementos da coluna */
     display: flex; 
     flex-direction: column;
     align-items: center;
     text-align: center;
     padding: 10px 0 20px 0;
     margin-bottom: 20px;
+    width: 100%; /* Ocupa a largura total do center-box */
 }
 
 .profile-img {
@@ -280,22 +282,25 @@ body {
     object-fit: cover;
     margin-bottom: 15px;
     border: 4px solid #1976d2; /* Borda azul */
+    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra para destacar */
 }
 
 .time-text {
-    font-size: 1.1rem;
-    color: #555;
-    margin-bottom: 10px;
+    font-size: 1.0rem; /* Padronizado: Um pouco menor para dar destaque ao nome */
+    color: #666; /* Cor mais suave */
+    margin-bottom: 8px; /* Espaço menor antes do nome */
+    font-weight: normal; /* Garante que não tenha negrito */
 }
 
 .user-name-text {
-    font-size: 1.8rem;
+    font-size: 2.0rem; /* Padronizado: Fonte maior para o nome */
     color: #333;
     margin: 5px 0 2px 0;
+    font-weight: bold; /* Garante que o nome seja o principal destaque */
 }
 
 .user-role-text {
-    font-size: 1.1rem;
+    font-size: 1.1rem; /* Padronizado */
     color: #1976d2;
     font-weight: bold;
     margin-bottom: 20px;
