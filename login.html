@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Gerenciador de Tarefas</title>
     <link rel="stylesheet" href="css/style.css"> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
@@ -26,9 +28,9 @@
 
         <button onclick="loginUser()" class="btn-rounded btn-primary wide-button">Entrar</button>
         
-        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button" style="text-align: center; display: block; margin-top: 15px;">Primeiro acesso? Cadastre-se.</a>
+        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button center-text button-spacing-top">Primeiro acesso? Cadastre-se.</a>
 
-        <p id="error-message" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
+        <p id="error-message" class="error-message hidden-start button-spacing-top center-text" role="alert"></p>
     </div>
 
     <script>
@@ -36,8 +38,8 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        // O login do sistema usa o Firestore, NÃO o Firebase Auth (conforme a lógica original)
         async function loginUser() {
+            // Remove espaços e pega os valores
             const usernameInput = document.getElementById('username').value.trim();
             const passwordInput = document.getElementById('password').value.trim();
             const errorMessage = document.getElementById('error-message');
@@ -52,10 +54,10 @@
             }
 
             try {
-                // CORREÇÃO APLICADA AQUI: Converte o username para minúsculo antes de buscar.
+                // CORREÇÃO CRÍTICA: Converte para minúsculo para garantir que o ID do documento seja encontrado
                 const userIdToFetch = usernameInput.toLowerCase(); 
                 
-                // Tenta encontrar o usuário no Firestore (id do documento é o nome de usuário)
+                // 1. Busca o documento do usuário usando o ID minúsculo (ex: 'thiago')
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
                 if (!userDoc.exists) {
@@ -66,28 +68,31 @@
 
                 const userData = userDoc.data();
                 
-                // Simulação de verificação de senha
-                if (!userData.senha || userData.senha !== passwordInput) {
+                // 2. Verifica a senha (campo no Firestore é 'password' ou 'senha'?)
+                // Baseado na sua imagem, o campo é 'password' (embora o código use 'senha').
+                // Vamos ajustar para ser compatível com o que está na sua imagem (password).
+                const storedPassword = userData.password || userData.senha; 
+
+                // Verifica se a senha existe OU se a senha não bate.
+                if (!storedPassword || storedPassword !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
-                // Login bem-sucedido
-                // Verifica se é admin ou se o nome é 'thiago' (como na sua lógica)
+                // 3. Login bem-sucedido
+                // Verifica se é admin ou se o ID (minúsculo) é 'thiago'
                 const isUserAdmin = (userData.isAdmin === true) || (userIdToFetch === 'thiago');
 
                 const usuarioLogado = {
-                    // Mantenha o nome original digitado (usernameInput) ou o minúsculo (userIdToFetch)
-                    // Usaremos o minúsculo para consistência com o ID do documento
                     nome: userIdToFetch,
                     isAdmin: isUserAdmin,
                 };
 
-                // Salva o objeto do usuário no localStorage
+                // 4. Salva o objeto do usuário no localStorage
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
 
-                // Redireciona para o dashboard
+                // 5. Redireciona para o dashboard
                 window.location.href = 'index.html';
 
             } catch (error) {
