@@ -39,8 +39,8 @@
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : null;
-        const auth = typeof auth !== 'undefined' ? auth : null;
+        // Referencia o Firestore global 'db' criado em firebase-init.js
+        const firestore = typeof db !== 'undefined' ? db : null; 
         
         const form = document.getElementById('login-form');
         const usernameInput = document.getElementById('username');
@@ -61,8 +61,7 @@
             }
             
             if (!firestore) {
-                // Se a inicialização falhou (Firebase não carregou), exibe erro.
-                errorMessage.textContent = 'Erro de inicialização. Verifique a configuração do Firebase.';
+                errorMessage.textContent = 'Erro de inicialização do Banco de Dados. Recarregue a página.';
                 errorMessage.style.display = 'block';
                 return;
             }
@@ -73,16 +72,16 @@
                 const userDoc = await userDocRef.get();
 
                 if (!userDoc.exists) {
-                    errorMessage.textContent = 'Usuário não encontrado.';
+                    errorMessage.textContent = 'Usuário ou Senha incorreta.';
                     errorMessage.style.display = 'block';
                     return;
                 }
 
                 const userData = userDoc.data();
                 
-                // 2. Compara a senha (ASSUMIMOS QUE A SENHA NÃO ESTÁ CRIPTOGRAFADA)
+                // 2. Compara a senha (aqui assumimos que 'password' no banco não está criptografado)
                 if (userData.password !== password) {
-                    errorMessage.textContent = 'Senha incorreta.';
+                    errorMessage.textContent = 'Usuário ou Senha incorreta.';
                     errorMessage.style.display = 'block';
                     return;
                 }
@@ -91,7 +90,6 @@
                 const userSession = {
                     nome: userData.nome,
                     isAdmin: userData.isAdmin === true,
-                    // Poderia incluir mais campos úteis aqui
                 };
 
                 localStorage.setItem('usuarioLogado', JSON.stringify(userSession));
@@ -100,16 +98,16 @@
                 window.location.href = 'index.html';
 
             } catch (error) {
-                // 4. Trata erros de conexão ou outros erros do Firebase
-                console.error("Erro durante o login:", error);
-                errorMessage.textContent = 'Erro de conexão ou sistema. Verifique suas regras de segurança no Firebase.';
+                // 4. Trata erros de conexão
+                console.error("Erro durante o login (Firestore/Conexão):", error);
+                errorMessage.textContent = 'Erro de conexão ou sistema (Código 400). Verifique suas regras e a API Key.';
                 errorMessage.style.display = 'block';
             }
         });
 
         // Verifica se o usuário já está logado ao carregar a página
         if (localStorage.getItem('usuarioLogado')) {
-            window.location.href = 'index.html'; // Redireciona se já houver sessão
+            window.location.href = 'index.html';
         }
     </script>
 </body>
