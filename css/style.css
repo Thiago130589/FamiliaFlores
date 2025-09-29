@@ -183,6 +183,31 @@ input:focus, select:focus {
 /* ESTILOS DE LAYOUT ESPECÍFICOS PARA DASHBOARD E ADMIN */
 /* ========================================================== */
 
+/* NOVO: Container para a foto, mensagem e data/hora (Dashboard) */
+.user-profile-header {
+    display: flex;
+    justify-content: space-between; /* Empurra o conteúdo para os cantos */
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+/* Container da Mensagem (Texto e Data/Hora) - Alinha à esquerda */
+.user-info-text {
+    flex-grow: 1;
+    text-align: left;
+}
+
+/* NOVO: Estilo da Foto: Tamanho maior, circular, borda */
+.user-profile-photo {
+    width: 120px; 
+    height: 120px;
+    border-radius: 50%; /* Circular */
+    object-fit: cover;
+    border: 3px solid #1976d2; /* Borda azul principal */
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+    margin-left: 20px; /* Espaçamento da foto para a esquerda */
+}
+
 /* Layout de Links Gerais do Dashboard (index.html) */
 .dashboard-links-grid {
     display: flex;
@@ -394,6 +419,20 @@ input:focus, select:focus {
         font-size: 2rem; /* Reduz o tamanho do saldo em telas pequenas */
     }
 
+    /* Ajuste para a seção da foto em telas pequenas */
+    .user-profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .user-profile-photo {
+        margin-left: 0;
+        margin-bottom: 15px;
+    }
+    .user-info-text {
+        text-align: center;
+    }
+    
     /* Ajuste para grids de links em telas pequenas */
     .dashboard-links-grid {
         flex-direction: column;

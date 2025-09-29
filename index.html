@@ -20,15 +20,19 @@
         <div id="loading-message" style="text-align: center;">Carregando Perfil...</div>
 
         <div id="main-content" style="display: none;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img id="user-photo" src="img/default-avatar.png" alt="Foto do Usuário" 
-                     style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 2px solid #ccc;">
-                <h2 id="welcome-message" style="color: #333;"></h2>
+            
+            <div class="user-profile-header">
+                <div class="user-info-text">
+                    <h2 id="welcome-message" style="color: #333;"></h2>
+                    <p id="datetime-display" style="font-weight: bold; color: red;"></p>
+                </div>
+
+                <div>
+                    <img id="user-photo" src="img/default-avatar.png" alt="Foto do Usuário" 
+                         class="user-profile-photo">
+                </div>
             </div>
             
-            <p id="datetime-display" style="text-align: center; font-weight: bold; color: red; margin-bottom: 25px;">
-                </p>
-
             <div class="dashboard-links-grid">
                 <a href="carteira.html" class="btn-rounded btn-primary" style="font-weight: bold; max-width: 250px;">
                     Minha Carteira
@@ -102,7 +106,6 @@
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
             
-            // 🚨 Importante: Removemos a checagem por 'formatarMoeda' pois ela não é mais usada neste arquivo
             if (!userInfo || !firestore) {
                 document.getElementById('loading-message').textContent = 'Erro de carregamento (Firebase ou Usuário). Verifique o Console.';
                 return;
@@ -112,28 +115,25 @@
             document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
             
             try {
-                // Tenta buscar o documento completo do Firebase
                 const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
                 const userData = userDoc.data();
                 
-                // 1.1. Lógica da Foto: Assume que o campo da foto é 'fotoUrl' ou 'photoURL'
-                const photoUrl = userData.fotoUrl || userData.photoURL;
+                // 1.1. Lógica da Foto: AJUSTADA para usar o campo 'foto' (Base64)
+                const photoUrl = userData.foto; // <<< CORRIGIDO PARA USAR O CAMPO 'foto'
                 if (photoUrl) {
                     document.getElementById('user-photo').src = photoUrl;
                 }
                 
-                // O Saldo Atual não está mais sendo carregado/exibido.
+                // 2. Exibir o botão de Admin
+                const isAdmin = userInfo.isAdmin === true; 
+                if (isAdmin) {
+                    document.getElementById('admin-button-container').style.display = 'block'; 
+                }
 
             } catch (error) {
                 console.error("Erro ao carregar dados do Firebase:", error);
             }
             
-            // 2. Exibir o botão de Admin
-            const isAdmin = userInfo.isAdmin === true; 
-            if (isAdmin) {
-                document.getElementById('admin-button-container').style.display = 'block'; 
-            }
-
             // 3. Finalizar carregamento
             document.getElementById('loading-message').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
@@ -144,7 +144,6 @@
         // ----------------------------------------------------------------------
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
-            // Atualiza a data e hora a cada segundo (real-time)
             updateDateTime();
             setInterval(updateDateTime, 1000); 
         });
