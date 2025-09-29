@@ -183,7 +183,7 @@ input:focus, select:focus {
 /* ESTILOS DE LAYOUT ESPECÍFICOS PARA DASHBOARD E ADMIN */
 /* ========================================================== */
 
-/* NOVO: Container para a foto, mensagem e data/hora (Dashboard) */
+/* Container para a foto, mensagem e data/hora (Dashboard) */
 .user-profile-header {
     display: flex;
     justify-content: space-between; /* Empurra o conteúdo para os cantos */
@@ -197,7 +197,7 @@ input:focus, select:focus {
     text-align: left;
 }
 
-/* NOVO: Estilo da Foto: Tamanho maior, circular, borda */
+/* Estilo da Foto: Tamanho maior, circular, borda */
 .user-profile-photo {
     width: 120px; 
     height: 120px;
@@ -425,10 +425,15 @@ input:focus, select:focus {
         align-items: center;
         text-align: center;
     }
+    
+    /* CORREÇÃO PARA A FOTO NO CELULAR */
     .user-profile-photo {
+        width: 80px; 
+        height: 80px;
         margin-left: 0;
         margin-bottom: 15px;
     }
+    
     .user-info-text {
         text-align: center;
     }
