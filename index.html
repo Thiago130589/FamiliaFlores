@@ -9,20 +9,106 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
     <script src="js/firebase-init.js"></script>
-    
     <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box large-box" id="dashboard-container">
+        <h1 class="main-title">Dashboard</h1>
+        <hr class="divider">
+        
+        <div id="loading-message" style="text-align: center;">Carregando Perfil...</div>
+
+        <div id="main-content" style="display: none;">
+            <h2 id="welcome-message" style="text-align: center; color: #333;"></h2>
+            <p style="text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 25px;">
+                Saldo Atual: <span id="current-balance" class="positive-text">R$ 0,00</span>
+            </p>
+
+            <div class="dashboard-links-grid">
+                <a href="carteira.html" class="btn-rounded btn-primary" style="font-weight: bold; max-width: 250px;">
+                    Minha Carteira
+                </a>
+                
+                <a href="minhas-tarefas.html" class="btn-secondary-text btn-rounded">Minhas Tarefas</a>
+                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Disponíveis</a>
+                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Histórico de Tarefas</a>
+                
+                <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
+                <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
+            </div>
+
+            <hr class="divider">
+        </div>
+        
+        <div id="admin-button-container" style="display: none; text-align: center; margin-top: 30px;">
+            <a href="area-administrador.html" class="btn-rounded btn-primary" style="width: 300px;">
+                Área do Administrador
+            </a>
         </div>
 
+        <button class="btn-rounded btn-danger wide-button" style="margin-top: 20px;" onclick="logout()">Sair / Logout</button>
+    </div>
+
     <script>
-        // AGORA, 'db' DEVE SER GLOBALMENTE DISPONÍVEL
-        const firestore = typeof db !== 'undefined' ? db : null; 
+        const firestore = typeof db !== 'undefined' ? db : null;
         
-        // ... resto da função loadDashboard ...
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                return JSON.parse(storedValue);
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        }
+
+        async function loadDashboard() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') {
+                document.getElementById('loading-message').textContent = 'Erro de carregamento (funções). Tente novamente.';
+                return;
+            }
+
+            // 1. Carregar informações do usuário e Saldo
+            document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
+            
+            try {
+                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
+                const userData = userDoc.data();
+                const saldo = parseFloat(userData.saldo || 0);
+                
+                const balanceEl = document.getElementById('current-balance');
+                balanceEl.textContent = formatarMoeda(saldo);
+                balanceEl.classList.remove('positive-text', 'negative-text');
+                balanceEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+
+            } catch (error) {
+                console.error("Erro ao carregar saldo:", error);
+                document.getElementById('current-balance').textContent = 'R$ 0,00';
+            }
+            
+            // 2. Exibir o botão de Admin se for Admin
+            const isAdmin = userInfo.isAdmin === true; 
+            if (isAdmin) {
+                document.getElementById('admin-button-container').style.display = 'block'; 
+            }
+
+            // 3. Finalizar carregamento
+            document.getElementById('loading-message').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>

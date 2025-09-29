@@ -46,10 +46,7 @@
             <a href="pedir-emprestado.html" class="btn-rounded btn-primary wide-button" style="margin-bottom: 10px;">
                 Pedir Emprestado
             </a>
-            
-            <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
-            <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
-        </div>
+            </div>
         
         <hr class="divider">
 
@@ -64,9 +61,6 @@
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-
-        // REMOVEMOS A DUPLA DECLARAÇÃO DE 'formatarMoeda' AQUI.
-        // Assumimos que 'formatarMoeda' está acessível globalmente via js/script.js
 
         // Obtém o nome do usuário logado
         function getUsuarioLogado() {
@@ -92,15 +86,14 @@
             const historicoEl = document.getElementById('historico-lista');
             historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
 
-            // Simulação de Dados (mantida, mas você deve implementar a lógica real no Firebase)
-            // ------------------------------------------------------------------------
+            // Simulação de Dados
             const valorProximo = 120.00;
             const dataProximo = new Date();
-            dataProximo.setDate(dataProximo.getDate() + 7); // Daqui a 7 dias (Exemplo)
+            dataProximo.setDate(dataProximo.getDate() + 7); 
 
             document.getElementById('next-payment-date').textContent = dataProximo.toLocaleDateString('pt-BR');
             document.getElementById('next-payment-value').textContent = formatarMoeda(valorProximo);
-            // ------------------------------------------------------------------------
+            
 
             try {
                 const userDoc = await firestore.collection('users').doc(userName).get();
@@ -118,9 +111,7 @@
                 saldoEl.classList.remove('positive-text', 'negative-text');
                 saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
-                // Lógica de Histórico (Mantida e ajustada para usar formatarMoeda)
-                // ------------------------------------------------------------------
-                // 1. Buscar Ganhos (Tarefas Concluídas)
+                // Lógica de Histórico 
                 const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
                     .orderBy('dataConclusao', 'desc')
                     .get();
@@ -141,8 +132,8 @@
                     });
                 });
 
-                // 2. Mapear Multas
-                const multas = userData.multas || []; // Multas como array dentro do documento do usuário
+                // Mapear Multas
+                const multas = userData.multas || []; 
                 multas.forEach(multa => {
                     const valor = parseFloat(multa.valor || 0);
                     const data = new Date(multa.data);
@@ -150,15 +141,15 @@
                     historico.push({
                         tipo: 'multa',
                         descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
-                        valor: -Math.abs(valor), // Multa é sempre negativa
+                        valor: -Math.abs(valor), 
                         data: data
                     });
                 });
 
-                // 3. Ordenar Histórico (Mais recente primeiro)
+                // Ordenar Histórico
                 historico.sort((a, b) => b.data.getTime() - a.data.getTime());
 
-                // 4. Renderizar
+                // Renderizar
                 if (historico.length === 0) {
                     historicoEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada.</p>';
                     return;
@@ -170,7 +161,6 @@
                     const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                     const isPositive = item.tipo === 'ganho';
 
-                    // Usa as classes CSS 'positive' e 'negative' para estilo de card
                     html += `
                         <li class="transaction-item ${isPositive ? 'positive' : 'negative'}">
                             <div class="transaction-details">
@@ -183,7 +173,7 @@
                 });
                 html += '</ul>';
                 historicoEl.innerHTML = html;
-                // ------------------------------------------------------------------
+                
 
             } catch (error) {
                 console.error("Erro ao carregar carteira:", error);
