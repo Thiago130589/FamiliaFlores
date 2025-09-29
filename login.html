@@ -31,6 +31,7 @@
     </div>
 
     <script>
+        // Tenta usar a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
@@ -50,7 +51,7 @@
             }
 
             try {
-                // Tenta buscar o usuário usando o nome de usuário (que é o ID do documento)
+                // Tenta buscar o usuário usando o nome de usuário (ID do documento)
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (!userDoc.exists) {
@@ -72,8 +73,6 @@
                 const userProfile = {
                     nome: username,
                     isAdmin: userData.isAdmin || false,
-                    // Inclua quaisquer outros dados de perfil essenciais
-                    // NUNCA salve a senha no localStorage
                 };
                 
                 localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));

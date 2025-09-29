@@ -74,6 +74,7 @@
             const storedValue = localStorage.getItem('usuarioLogado');
 
             if (!storedValue) {
+                // Redireciona para o login se não houver dados de usuário
                 window.location.href = 'login.html';
                 return;
             }
@@ -99,6 +100,7 @@
                     { href: 'tarefas-pendentes.html', text: 'Tarefas Pendentes' },
                     { href: 'tarefas-concluidas.html', text: 'Tarefas Concluídas' },
                     { href: 'carteira.html', text: 'Carteira' },
+                    // Links de Admin/Gerenciamento (APENAS se for Admin)
                     ...(isAdmin ? [
                         { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
                         { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, 
@@ -107,9 +109,9 @@
                     ] : [])
                 ];
 
-                // CORREÇÃO ESSENCIAL: Uso correto da String Template (crase) para o HTML
+                // CORREÇÃO ESSENCIAL: Uso correto da String Template (crase `)
                 navMenu.innerHTML = links.map(link => 
-                    <a href="" class="menu-link"></a> 
+                    `<a href="${link.href}" class="menu-link">${link.text}</a>` 
                 ).join('');
 
 
@@ -119,8 +121,8 @@
                 };
                 
             } catch (e) {
-                console.error("Erro ao carregar dados do localStorage:", e);
-                // Força o logout
+                console.error("Erro ao carregar dados do localStorage ou inicialização:", e);
+                // Força o logout e redireciona
                 localStorage.removeItem('usuarioLogado');
                 window.location.href = 'login.html';
             }

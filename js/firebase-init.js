@@ -1,5 +1,9 @@
-﻿// Configuração do Firebase
+﻿// Inicialização do Firebase
+// Adicione este arquivo ao seu HTML após o firebase-app.js e firebase-firestore.js
+
+// Configuração do Firebase
 const firebaseConfig = {
+    // Atenção: Use sua chave real aqui. Usei a que você enviou anteriormente.
     apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM",
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
@@ -9,8 +13,7 @@ const firebaseConfig = {
     measurementId: "G-8E95B0VFNR"
 };
 
-// Inicializar o Firebase
-// Usa try-catch para evitar erro de "already initialized" se for carregado várias vezes
+// Inicializar o Firebase (usando try-catch para evitar erro de "already initialized")
 let app;
 try {
     app = firebase.initializeApp(firebaseConfig);
@@ -21,14 +24,6 @@ try {
     app = firebase.app(); // Usa a instância existente
 }
 
-
-// Exportar serviços (se necessário para módulos, mas para scripts simples, pode ser global)
+// Criar a instância do Firestore e torná-la global
 const db = firebase.firestore();
-const analytics = firebase.analytics ? firebase.analytics(app) : null;
-
-// Opcional: Se quiser que db seja global e acessível em outros scripts
-window.db = db;
-window.firebaseApp = app;
-if (analytics) {
-    window.firebaseAnalytics = analytics;
-}
+window.db = db; // Torna db acessível em qualquer script
