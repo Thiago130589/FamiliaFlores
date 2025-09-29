@@ -1,100 +1,125 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Família Flores</title>
-    <link rel="stylesheet" href="css/style.css"> 
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title-primary">Login</h1>
-        <hr class="divider">
+    <div class="center-box" id="login-container">
+        <h1 class="main-title">Login</h1>
+        
+        <div class="form-group">
+            <label for="username">Nome de Usuário</label>
+            <input type="text" id="username" placeholder="Seu nome (ex: Thiago)" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="Sua senha" required>
+        </div>
+        
+        <div id="auth-message" class="error-message" style="display: none; margin-top: 15px;"></div>
 
-        <form id="loginForm" style="width: 100%; text-align: center;">
-            
-            <div class="input-group-vertical">
-                <label for="username" class="input-label">Nome de Usuário</label>
-                <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
-            </div>
+        <button class="btn-rounded btn-primary wide-button" onclick="handleLogin()">Entrar</button>
+        
+        <p style="text-align: center; margin-top: 15px;">
+            Não tem uma conta? <a href="cadastrar-usuario.html" style="color: #1976d2; text-decoration: none;">Cadastre-se</a>
+        </p>
+    </div>
 
-            <div class="input-group-vertical">
-                <label for="password" class="input-label">Senha</label>
-                <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
-            </div>
+    <script>
+    // As variáveis globais 'db' e 'auth' devem ser definidas em firebase-init.js
+    const firestore = typeof db !== 'undefined' ? db : null;
 
-            <p id="errorMessage" class="error-message" style="margin-top: 10px;"></p>
-            
-            <button type="submit" class="btn-rounded btn-primary wide-button" style="margin: 10px auto;">Entrar</button>
+    async function handleLogin() {
+        if (!firestore) {
+            document.getElementById('auth-message').textContent = 'Erro de inicialização do Firebase. Verifique o console.';
+            document.getElementById('auth-message').style.display = 'block';
+            console.error("Firebase Firestore não inicializado.");
+            return;
+        }
 
-            <button type="button" id="cadastrarNovoUsuario" class="btn-rounded btn-secondary wide-button" style="margin-top: 15px;">Cadastrar Novo Usuário</button>
-        </form>
+        const nome = document.getElementById('username').value.trim();
+        const senha = document.getElementById('password').value.trim();
+        const messageEl = document.getElementById('auth-message');
+        
+        messageEl.style.display = 'block';
+        messageEl.classList.remove('error-message');
+        messageEl.classList.add('info-message');
+        messageEl.textContent = 'Verificando credenciais...';
 
-        <script>
-            // Garante que o db esteja disponível
-            const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-            const USERS_COLLECTION = 'users';
-            const loginForm = document.getElementById('loginForm');
-            const errorMessageEl = document.getElementById('errorMessage');
-            const cadastrarButton = document.getElementById('cadastrarNovoUsuario');
+        if (!nome || !senha) {
+            messageEl.classList.remove('info-message');
+            messageEl.classList.add('error-message');
+            messageEl.textContent = 'Preencha o nome de usuário e a senha.';
+            return;
+        }
 
-            // 1. Lógica de Login
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                errorMessageEl.textContent = ''; 
+        try {
+            // 1. Busca os dados do usuário no Firestore (Assumindo que o nome é o Document ID)
+            const userDoc = await firestore.collection('users').doc(nome).get();
+            
+            if (!userDoc.exists) {
+                messageEl.classList.remove('info-message');
+                messageEl.classList.add('error-message');
+                messageEl.textContent = 'Usuário não encontrado.';
+                return;
+            }
 
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
+            const userData = userDoc.data();
+            
+            // 2. VERIFICAÇÃO MANUAL DA SENHA
+            if (userData.password !== senha) { 
+                messageEl.classList.remove('info-message');
+                messageEl.classList.add('error-message');
+                messageEl.textContent = 'Senha incorreta.';
+                return;
+            }
 
-                if (!username || !password) {
-                    errorMessageEl.textContent = 'Preencha todos os campos.';
-                    return;
-                }
+            // 3. SUCESSO: SALVA O PERFIL COMPLETO NO LOCAL STORAGE
+            const userProfile = {
+                nome: nome,
+                // O campo crucial para o Dashboard!
+                isAdmin: userData.isAdmin || false, 
+                // Você pode adicionar mais dados aqui, se necessário.
+            };
 
-                try {
-                    // Busca o usuário pelo nome (ID do documento)
-                    const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+            localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));
+            
+            messageEl.classList.remove('error-message');
+            messageEl.classList.add('info-message');
+            messageEl.textContent = 'Login realizado com sucesso! Redirecionando...';
 
-                    if (!userDoc.exists) {
-                        errorMessageEl.textContent = 'Nome de usuário incorreto.';
-                        return;
-                    }
+            // Redireciona para o Dashboard
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
 
-                    const userData = userDoc.data();
-                    
-                    // Verifica a senha (em um projeto real, NUNCA armazene senhas como texto simples!)
-                    if (userData.password === password) {
-                        
-                        // Login bem-sucedido: Armazena o nome e o status isAdmin (CORRIGIDO AQUI)
-                        localStorage.setItem('usuarioLogado', JSON.stringify({ 
-                            nome: username, 
-                            isAdmin: userData.isAdmin || false 
-                        }));
-                        
-                        // Redireciona para o Dashboard (index.html)
-                        window.location.href = 'index.html';
+        } catch (error) {
+            console.error("Erro no processo de login:", error);
+            messageEl.classList.remove('info-message');
+            messageEl.classList.add('error-message');
+            // A mensagem original da sua imagem era "Erro de conexão ou sistema. Tente novamente."
+            messageEl.textContent = 'Erro de conexão ou sistema. Tente novamente.'; 
+        }
+    }
+    
+    // Opcional: Adicionar evento de Enter para o formulário
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
 
-                    } else {
-                        errorMessageEl.textContent = 'Senha incorreta.';
-                    }
-
-                } catch (error) {
-                    console.error("Erro ao tentar login:", error);
-                    errorMessageEl.textContent = 'Erro de conexão ou sistema. Tente novamente.';
-                }
-            });
-
-            // 2. Lógica do Botão de Cadastro
-            cadastrarButton.onclick = function() {
-                // Supondo que você tenha uma página de cadastro. Se não tiver, ajuste o link.
-                alert("Redirecionando para a página de cadastro. Crie o arquivo 'cadastro.html'.");
-                // window.location.href = 'cadastro.html'; 
-            };
-        </script>
-    </div>
+    </script>
 </body>
 </html>
