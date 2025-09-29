@@ -52,11 +52,9 @@
             }
 
             try {
-                // CORREÇÃO: Usa o nome digitado EXATAMENTE como está para buscar o documento (ex: 'Thiago').
-                // Removido .toLowerCase()
+                // Usa o nome digitado EXATAMENTE como está (ex: 'Thiago')
                 const userIdToFetch = usernameInput; 
                 
-                // 1. Busca o documento no Firestore
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
                 if (!userDoc.exists) {
@@ -67,30 +65,25 @@
 
                 const userData = userDoc.data();
                 
-                // Verifica a senha (usa 'password' ou 'senha' para compatibilidade)
                 const storedPassword = userData.password || userData.senha; 
 
-                // 2. Verifica a senha (é sensível a maiúsculas/minúsculas)
                 if (!storedPassword || storedPassword !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
-                // 3. Login bem-sucedido
-                // Usa o ID em minúsculo para verificar o status de Admin (prática segura)
-                const userIdMin = usernameInput.toLowerCase(); 
-                const isUserAdmin = (userData.isAdmin === true) || (userIdMin === 'thiago');
+                // CORREÇÃO APLICADA AQUI: Apenas verifica se isAdmin é true, 
+                // sem a verificação manual de nome.
+                const isUserAdmin = (userData.isAdmin === true);
 
                 const usuarioLogado = {
-                    nome: userIdToFetch, // Usa o nome com a capitalização do Firestore
+                    nome: userIdToFetch,
                     isAdmin: isUserAdmin,
                 };
 
-                // 4. Salva o objeto do usuário no localStorage
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
 
-                // 5. Redireciona para o dashboard
                 window.location.href = 'index.html';
 
             } catch (error) {
