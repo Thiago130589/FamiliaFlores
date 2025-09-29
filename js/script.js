@@ -1,16 +1,25 @@
-Ôªø/**
- * Este arquivo script.js cont√©m fun√ß√µes Javascript auxiliares reutiliz√°veis.
+/**
+ * FunÁıes JavaScript globais e de utilidade.
+ * Deve ser carregado AP”S as bibliotecas do Firebase e ANTES dos scripts da p·gina.
  */
 
-// A inicializa√ß√£o do Firebase e a cria√ß√£o da inst√¢ncia do Firestore (db, auth)
-// devem estar no firebase-init.js para evitar conflitos.
-
 /**
- * Fun√ß√£o auxiliar para formatar um valor num√©rico para moeda BRL (R$ X.XXX,XX).
+ * FunÁ„o auxiliar para formatar um valor numÈrico para moeda BRL (R$ X.XXX,XX).
  * @param {number} valor
  * @returns {string} Valor formatado
  */
 function formatarMoeda(valor) {
-    // Garante que o valor seja um n√∫mero absoluto, formatado como BRL
-    return 'R$ ' + (Math.abs(parseFloat(valor) || 0)).toFixed(2).replace('.', ',');
+    // 1. Garante que o valor È um n˙mero
+    valor = parseFloat(valor);
+    if (isNaN(valor)) {
+        valor = 0;
+    }
+    
+    // 2. Retorna o valor formatado como moeda brasileira (mÈtodo recomendado)
+    // Usamos Math.abs() para garantir que o sinal seja tratado separadamente, se necess·rio.
+    return Math.abs(valor).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2
+    });
 }
