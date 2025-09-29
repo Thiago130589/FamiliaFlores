@@ -20,9 +20,9 @@
 
         <div id="profileCard" class="profile-card">
             
-            <img id="profileImage" src="assets/default-profile.png" alt="Foto de Perfil" class="profile-img"> 
+            <img id="profileImage" src="assets/default-profile.png" alt="" class="profile-img"> 
             
-            <span id="usernameOverlay" style="color: #1976d2; font-weight: bold; font-size: 1.0rem; margin-top: -30px; margin-bottom: 5px;"></span> 
+            <span id="usernameOverlay" class="time-text" style="margin-top: -30px;"></span> 
             
             <span id="brasiliaClock" class="brasilia-clock"></span>
             
@@ -44,9 +44,7 @@
     </div>
 
     <script>
-        // Mantenha esta estrutura JS aqui para garantir que o script seja executado após o HTML
-
-        // Função do Botão de Logout (Se estiver no script.js, remova daqui)
+        // Lógica de Logout no final do corpo (se já estiver no script.js, pode ser redundante)
         document.getElementById('logoutButton').onclick = function() {
             localStorage.removeItem('usuarioLogado');
             window.location.href = 'login.html';
@@ -54,7 +52,7 @@
 
         // Inicia o processo de carregamento quando a página terminar de carregar
         window.addEventListener('DOMContentLoaded', () => {
-            // Supondo que essas funções estejam no seu script.js
+            // Supondo que essas funções estão definidas no seu arquivo script.js
             if (typeof loadProfileAndMenu === 'function') {
                 loadProfileAndMenu();
             }

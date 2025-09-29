@@ -52,9 +52,10 @@ body {
 }
 
 .brasilia-clock {
-    font-size: 1.1rem; 
-    color: #d32f2f; /* Vermelho de alerta */
-    font-weight: bold;
+    font-size: 0.9rem; /* Ajustado */
+    color: #666; /* Ajustado */
+    font-weight: normal; /* Ajustado */
+    margin-bottom: 5px;
 }
 
 /* --- Divisores --- */
@@ -276,32 +277,32 @@ body {
 }
 
 .profile-img {
-    /* REDUÇÃO MÁXIMA DA FOTO: 48px */
-    width: 48px;
-    height: 48px;
+    /* REDUÇÃO MÁXIMA E FORÇADA DA FOTO: 48px */
+    width: 48px !important; 
+    height: 48px !important;
     border-radius: 50%; /* Torna a imagem redonda */
     object-fit: cover;
     margin-bottom: 10px; 
     border: 2px solid #1976d2; /* Borda mais fina */
-    box-shadow: 0 0 8px rgba(0,0,0,0.1); /* Sombra para destacar */
+    box-shadow: 0 0 8px rgba(0,0,0,0.1); 
 }
 
 .time-text {
-    font-size: 0.9rem; /* Reduzi um pouco */
+    font-size: 0.9rem; 
     color: #666; 
     margin-bottom: 5px; 
     font-weight: normal; 
 }
 
 .user-name-text {
-    font-size: 1.6rem; /* Reduzi um pouco o nome para ficar mais compacto */
+    font-size: 1.6rem; 
     color: #333;
     margin: 5px 0 2px 0;
     font-weight: bold; 
 }
 
 .user-role-text {
-    font-size: 0.95rem; /* Reduzi um pouco o cargo */
+    font-size: 0.95rem; 
     color: #1976d2;
     font-weight: bold;
     margin-bottom: 20px;
