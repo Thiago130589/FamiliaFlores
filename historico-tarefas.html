@@ -2,57 +2,51 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Tarefas</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title-primary">Histórico de Tarefas Realizadas</h1>
-        <h2 id="user-title" class="main-title-green"></h2>
-        <hr class="divider">
+        <h1 class="main-title">Histórico de Tarefas</h1>
         
-        <div class="input-group-horizontal">
-            <div class="input-group-vertical">
-                <label class="input-label" for="data-inicio">De:</label>
-                <input type="date" id="data-inicio" class="input-rounded">
+        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
+            &#8592; Voltar para o Dashboard
+        </a>
+        <hr class="divider">
+
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Histórico de: <span id="user-title">Meu Perfil</span></h2>
+        
+        <div id="admin-options" style="display: none; margin-bottom: 20px;">
+            <div class="form-group">
+                <label for="user-select">Visualizar Histórico de:</label>
+                <select id="user-select" class="wide-button">
+                    </select>
             </div>
-            <div class="input-group-vertical">
-                <label class="input-label" for="data-fim">Até:</label>
-                <input type="date" id="data-fim" class="input-rounded">
-            </div>
+            
+            <button class="btn-rounded btn-danger wide-button" onclick="confirmDeleteHistory()" style="margin-top: 10px;">
+                Apagar Histórico de Tarefas (Admin)
+            </button>
+            <hr class="divider">
         </div>
 
-        <button id="btn-buscar-tarefas" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Buscar Tarefas Realizadas</button>
-
-        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;">Aguardando seleção de datas.</div>
+        <div id="status-message" class="info-message" style="display: block;">Carregando histórico...</div>
         
-        <h3 id="resultado-titulo" style="margin-top: 30px; display: none;"></h3>
-        
-        <ul id="lista-resultados" class="list-rounded">
-        </ul>
-        
-        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Gerenciamento</a>
+        <ul id="tarefa-list" class="transaction-list">
+            </ul>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
+        const firestore = typeof db !== 'undefined' ? db : null;
         
-        let usuarioSendoAnalisado = '';
-
-        // Funções de Utilitário
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-
-        function formatCurrency(value) {
-            return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
+        // Garante que a função formatarMoeda esteja acessível
+        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -61,114 +55,137 @@
                 return null;
             }
             try {
-                const obj = JSON.parse(storedValue);
-                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
-                    alert("Acesso negado. Apenas administradores podem ver históricos.");
-                    window.location.href = 'index.html';
-                    return null;
-                }
-                return obj;
+                return JSON.parse(storedValue);
             } catch (e) {
                 window.location.href = 'login.html';
                 return null;
             }
         }
 
-        // Função principal para buscar e renderizar as tarefas
-        async function fetchAndRenderTarefas() {
-            const statusEl = document.getElementById('status-message');
-            const listaEl = document.getElementById('lista-resultados');
-            const tituloEl = document.getElementById('resultado-titulo');
-            listaEl.innerHTML = '';
-            tituloEl.style.display = 'none';
-            statusEl.className = 'info-message';
-            statusEl.textContent = 'Buscando tarefas concluídas...';
+        /**
+         * Carrega a lista de usuários do Firestore e preenche o select (apenas para Admin).
+         */
+        async function loadUserSelect(currentUser) {
+            const selectEl = document.getElementById('user-select');
+            selectEl.innerHTML = ''; // Limpa opções antigas
 
-            const dataInicioStr = document.getElementById('data-inicio').value;
-            const dataFimStr = document.getElementById('data-fim').value;
-
-            if (!dataInicioStr || !dataFimStr) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Por favor, selecione as datas de início e fim.';
-                return;
-            }
+            const allOption = document.createElement('option');
+            allOption.value = currentUser.nome;
+            allOption.textContent = `Meu Perfil (${currentUser.nome})`;
+            selectEl.appendChild(allOption);
 
             try {
-                // Filtra pelo usuário e pelo campo de data (em formato 'YYYY-MM-DD')
-                let query = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
-                    .where('atribuidaPara', '==', usuarioSendoAnalisado)
-                    .where('data', '>=', dataInicioStr)
-                    .where('data', '<=', dataFimStr); 
-
-                const tarefasSnapshot = await query.get();
-                const tarefas = [];
-                let totalValor = 0;
-
-                tarefasSnapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    tarefas.push(tarefa);
-                    // Assume que o campo 'valor' está na tarefa concluída
-                    totalValor += tarefa.valor || 0; 
+                const usersSnapshot = await firestore.collection('users').get();
+                usersSnapshot.docs.forEach(doc => {
+                    const user = doc.data();
+                    if (user.nome !== currentUser.nome) {
+                        const option = document.createElement('option');
+                        option.value = user.nome;
+                        option.textContent = user.nome;
+                        selectEl.appendChild(option);
+                    }
                 });
 
-                if (tarefas.length === 0) {
-                    statusEl.className = 'info-message';
-                    // CORREÇÃO: Uso de template literal
-                    statusEl.textContent = `Nenhuma tarefa concluída encontrada para ${usuarioSendoAnalisado} no período selecionado.`;
-                } else {
-                    tarefas.forEach(tarefa => {
-                        const li = document.createElement('li');
-                        li.className = 'list-item list-item-primary';
-                        // CORREÇÃO: Uso de template literal e dados corretos
-                        li.innerHTML = `
-                            <strong>Nome da Tarefa:</strong> ${tarefa.nome}<br>
-                            <strong>Data de Conclusão:</strong> ${tarefa.data}<br>
-                            <strong>Valor Recebido:</strong> ${formatCurrency(tarefa.valor || 0)}
-                        `;
-                        listaEl.appendChild(li);
-                    });
-                    
-                    // CORREÇÃO: Uso de template literal e exibição do total
-                    tituloEl.textContent = `Tarefas Concluídas (${tarefas.length} tarefas) (Total de Ganhos: ${formatCurrency(totalValor)})`;
-                    tituloEl.style.display = 'block';
-                    statusEl.className = 'success-message';
-                    // CORREÇÃO: Uso de template literal
-                    statusEl.textContent = `${tarefas.length} tarefa(s) concluída(s) encontradas no período.`;
-                }
+                // Adiciona o listener de mudança
+                selectEl.addEventListener('change', () => {
+                    const selectedUser = selectEl.value;
+                    fetchAndRenderTarefas(selectedUser);
+                });
 
             } catch (error) {
-                console.error("Erro ao buscar tarefas concluídas:", error);
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Erro ao buscar tarefas. Verifique o console ou as Regras do Firestore.';
+                console.error("Erro ao carregar lista de usuários:", error);
             }
         }
 
 
-        // Inicialização
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!getUsuarioLogado()) return; 
-
-            usuarioSendoAnalisado = getQueryParam('user');
-            if (!usuarioSendoAnalisado) {
-                document.getElementById('status-message').className = 'error-message';
-                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
-                return;
-            }
-
-            // CORREÇÃO: Uso de template literal
-            document.getElementById('user-title').textContent = `Usuário: ${usuarioSendoAnalisado}`;
+        /**
+         * Busca as tarefas concluídas no Firestore e as exibe na lista.
+         */
+        async function fetchAndRenderTarefas(usuarioNome) {
+            const messageEl = document.getElementById('status-message');
+            const listEl = document.getElementById('tarefa-list');
             
-            document.getElementById('btn-buscar-tarefas').onclick = fetchAndRenderTarefas;
+            listEl.innerHTML = '';
+            messageEl.textContent = `Carregando histórico de tarefas para ${usuarioNome}...`;
+            messageEl.classList.remove('error-message');
+            messageEl.classList.add('info-message');
+            messageEl.style.display = 'block';
 
-            // Define datas padrão (Ex: Últimos 30 dias)
-            const today = new Date();
-            const lastMonth = new Date();
-            lastMonth.setDate(today.getDate() - 30);
+            document.getElementById('user-title').textContent = usuarioNome;
 
-            const formatDate = (date) => date.toISOString().split('T')[0];
+            try {
+                // Busca a subcoleção 'tarefasConcluidas' dentro do documento do usuário
+                const tarefasRef = firestore.collection('users').doc(usuarioNome).collection('tarefasConcluidas');
+                const snapshot = await tarefasRef.orderBy('dataConclusao', 'desc').get();
+                
+                if (snapshot.empty) {
+                    messageEl.textContent = `Nenhuma tarefa concluída encontrada para ${usuarioNome}.`;
+                    messageEl.style.display = 'block';
+                    return;
+                }
 
-            document.getElementById('data-inicio').value = formatDate(lastMonth);
-            document.getElementById('data-fim').value = formatDate(today);
+                messageEl.style.display = 'none';
+
+                snapshot.docs.forEach(doc => {
+                    const tarefa = doc.data();
+                    const dataObj = tarefa.dataConclusao ? tarefa.dataConclusao.toDate() : new Date(); 
+                    
+                    const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+                    const horaFormatada = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                    const listItem = document.createElement('li');
+                    // Usamos a classe 'positive' para indicar que é um crédito (valor ganho)
+                    listItem.classList.add('transaction-item', 'positive'); 
+                    listItem.innerHTML = `
+                        <div class="transaction-details">
+                            <span class="transaction-description">Tarefa: ${tarefa.nome}</span>
+                            <span class="transaction-date">
+                                Concluído por: ${usuarioNome} em ${dataFormatada} às ${horaFormatada}
+                            </span>
+                        </div>
+                        <span class="transaction-amount">${formatarMoeda(tarefa.valor || 0)}</span>
+                    `;
+                    listEl.appendChild(listItem);
+                });
+
+            } catch (error) {
+                console.error("Erro ao carregar tarefas:", error);
+                messageEl.textContent = 'Erro ao buscar o histórico de tarefas. Verifique o console.';
+                messageEl.classList.remove('info-message');
+                messageEl.classList.add('error-message');
+                messageEl.style.display = 'block';
+            }
+        }
+        
+        /**
+         * Função placeholder para exclusão.
+         */
+        function confirmDeleteHistory() {
+            const selectedUser = document.getElementById('user-select').value;
+            if (confirm(`ATENÇÃO: Você realmente deseja APAGAR TODO o histórico de tarefas de ${selectedUser}? Esta ação é IRREVERSÍVEL!`)) {
+                alert(`Funcionalidade de exclusão em desenvolvimento para o usuário: ${selectedUser}.`);
+                // **TODO: Implementar a função real de exclusão aqui**
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = getUsuarioLogado();
+
+            if (!userInfo) return; // Redirecionado no getUsuarioLogado()
+
+            const isAdmin = userInfo.isAdmin === true;
+            
+            if (isAdmin) {
+                // Se for Admin, mostra as opções e carrega o select
+                document.getElementById('admin-options').style.display = 'block';
+                loadUserSelect(userInfo);
+                // Inicia visualizando o próprio histórico do admin
+                fetchAndRenderTarefas(userInfo.nome); 
+            } else {
+                // Se não for Admin, apenas carrega o próprio histórico
+                document.getElementById('user-title').textContent = userInfo.nome;
+                fetchAndRenderTarefas(userInfo.nome);
+            }
         });
     </script>
 </body>

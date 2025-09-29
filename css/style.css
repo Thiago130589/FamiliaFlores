@@ -2,7 +2,7 @@
 /* ESTILOS GERAIS E DE ESTRUTURA */
 /* ========================================================== */
 body {
-    font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: #f4f7f6;
     margin: 0;
     padding: 0;
@@ -219,7 +219,7 @@ input:focus, select:focus {
     padding: 0;
 }
 
-/* ESTILO DO ITEM DA LISTA DE TRANSAÇÃO (NOVO ESTILO DE CARD ARREDONDADO) */
+/* ESTILO DO ITEM DA LISTA DE TRANSAÇÃO (CARD ARREDONDADO) */
 .transaction-item {
     display: flex;
     justify-content: space-between;
@@ -269,26 +269,31 @@ input:focus, select:focus {
 }
 
 /* Cores específicas de Transação/Item */
-.transaction-item.positive .transaction-amount, .positive-text {
-    color: #4CAF50; /* Verde - Crédito/Pagamento */
-}
-
-/* Aplicando a cor de erro na borda do item de multa para destaque */
-.transaction-item.negative {
-    border-left: 5px solid #d32f2f; /* Borda lateral vermelha */
-}
-.transaction-item.negative .transaction-amount, .negative-text {
-    color: #d32f2f; /* Vermelho - Débito/Multa */
-}
 
 .positive-text {
     color: #4CAF50; /* Verde */
     font-weight: bold;
 }
-
 .negative-text {
     color: #f44336; /* Vermelho */
 }
+
+/* Aplicando a cor de sucesso (verde) na borda do item de tarefa (crédito) */
+.transaction-item.positive {
+    border-left: 5px solid #4CAF50; 
+}
+.transaction-item.positive .transaction-amount {
+    color: #4CAF50; /* Verde - Crédito/Pagamento */
+}
+
+/* Aplicando a cor de erro (vermelho) na borda do item de multa (débito) */
+.transaction-item.negative {
+    border-left: 5px solid #d32f2f; 
+}
+.transaction-item.negative .transaction-amount {
+    color: #d32f2f; /* Vermelho - Débito/Multa */
+}
+
 
 .empty-message {
     color: #888;
@@ -297,7 +302,7 @@ input:focus, select:focus {
 }
 
 /* ========================================================== */
-/* ESTILO PARA CARDS DE TAREFAS */
+/* ESTILO PARA CARDS DE TAREFAS (Admin: Pagamentos Pendentes) */
 /* ========================================================== */
 
 /* Tarefas Pendentes de Pagamento (Admin) */
