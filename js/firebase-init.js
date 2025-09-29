@@ -3,8 +3,9 @@
  * Configuração e inicialização do Firebase (usando a sintaxe de Namespace Global do v8)
  */
 
-// NOTA: Este arquivo depende dos SDKs do Firebase v8 (firebase-app.js, firebase-firestore.js, firebase-auth.js)
+// NOTA: Este arquivo depende dos SDKs do Firebase v8 (firebase-app.js, firebase-firestore.js)
 // serem carregados "antes" no seu HTML.
+// Não é necessário carregar firebase-auth.js, pois o login é manual via Firestore.
 
 // Se o objeto "firebase" não estiver definido (o que deve ser feito pela tag script no HTML),
 // este script pode falhar. Assumimos que as tags foram carregadas.
@@ -25,11 +26,10 @@ if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
 }
 
 // 2. Define as variáveis globais para acesso fácil
-// Acessamos essas variáveis 'db' e 'auth' em todos os outros scripts (login.html, index.html, etc.)
+// Acessamos a variável 'db' em todos os outros scripts
 const db = firebase.firestore();
 
 // ----------------------------------------------------------------------------------
-// CORREÇÃO: Remova ou comente a linha abaixo, pois o SDK de autenticação não foi carregado.
-// Se você está usando login por Firestore (como Thiago), esta linha não é necessária.
+// LINHA DE ERRO REMOVIDA/COMENTADA: Não precisamos do Auth para login manual no Firestore.
 // const auth = firebase.auth(); 
 // ----------------------------------------------------------------------------------
