@@ -34,12 +34,10 @@
     </div>
 
     <script>
-        // Utiliza a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
         async function loginUser() {
-            // Remove espaços e pega os valores
             const usernameInput = document.getElementById('username').value.trim();
             const passwordInput = document.getElementById('password').value.trim();
             const errorMessage = document.getElementById('error-message');
@@ -54,10 +52,11 @@
             }
 
             try {
-                // CORREÇÃO CRÍTICA: Converte para minúsculo para garantir que o ID do documento seja encontrado
-                const userIdToFetch = usernameInput.toLowerCase(); 
+                // CORREÇÃO: Usa o nome digitado EXATAMENTE como está para buscar o documento (ex: 'Thiago').
+                // Removido .toLowerCase()
+                const userIdToFetch = usernameInput; 
                 
-                // 1. Busca o documento do usuário usando o ID minúsculo (ex: 'thiago')
+                // 1. Busca o documento no Firestore
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
                 if (!userDoc.exists) {
@@ -68,12 +67,10 @@
 
                 const userData = userDoc.data();
                 
-                // 2. Verifica a senha (campo no Firestore é 'password' ou 'senha'?)
-                // Baseado na sua imagem, o campo é 'password' (embora o código use 'senha').
-                // Vamos ajustar para ser compatível com o que está na sua imagem (password).
+                // Verifica a senha (usa 'password' ou 'senha' para compatibilidade)
                 const storedPassword = userData.password || userData.senha; 
 
-                // Verifica se a senha existe OU se a senha não bate.
+                // 2. Verifica a senha (é sensível a maiúsculas/minúsculas)
                 if (!storedPassword || storedPassword !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
@@ -81,11 +78,12 @@
                 }
 
                 // 3. Login bem-sucedido
-                // Verifica se é admin ou se o ID (minúsculo) é 'thiago'
-                const isUserAdmin = (userData.isAdmin === true) || (userIdToFetch === 'thiago');
+                // Usa o ID em minúsculo para verificar o status de Admin (prática segura)
+                const userIdMin = usernameInput.toLowerCase(); 
+                const isUserAdmin = (userData.isAdmin === true) || (userIdMin === 'thiago');
 
                 const usuarioLogado = {
-                    nome: userIdToFetch,
+                    nome: userIdToFetch, // Usa o nome com a capitalização do Firestore
                     isAdmin: isUserAdmin,
                 };
 
