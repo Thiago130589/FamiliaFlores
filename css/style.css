@@ -426,4 +426,29 @@ input:focus, select:focus {
     .admin-links-grid-full {
         grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
     }
+
+    
+}
+/* ... [Restante do CSS, que é o mesmo que você já tem] ... */
+
+/* Adicionado ao final do CSS para garantir um layout limpo para o resumo */
+.summary-container {
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin-top: 15px;
+}
+
+.summary-container p {
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.summary-container hr {
+    border-top: 1px dashed #ccc;
+    margin: 10px 0;
 }

@@ -2,57 +2,61 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Histórico de Pagamentos</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title-green">Histórico de Pagamentos Realizados</h1>
-        <h2 id="user-title" class="main-title-primary"></h2>
-        <hr class="divider">
+        <h1 class="main-title">Histórico de Pagamentos</h1>
         
-        <div class="input-group-horizontal">
-            <div class="input-group-vertical">
-                <label class="input-label" for="data-inicio">De:</label>
-                <input type="date" id="data-inicio" class="input-rounded">
+        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
+            &#8592; Voltar para o Dashboard
+        </a>
+        <hr class="divider">
+
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Transações de: <span id="user-title">Meu Perfil</span></h2>
+        
+        <div id="admin-options" style="display: none; margin-bottom: 20px;">
+            <div class="form-group">
+                <label for="user-select">Visualizar Histórico de:</label>
+                <select id="user-select" class="wide-button">
+                    </select>
             </div>
-            <div class="input-group-vertical">
-                <label class="input-label" for="data-fim">Até:</label>
-                <input type="date" id="data-fim" class="input-rounded">
-            </div>
+            
+            <button class="btn-rounded btn-danger wide-button" onclick="confirmDeleteHistory()" style="margin-top: 10px;">
+                Apagar Histórico de Pagamentos (Admin)
+            </button>
+            <hr class="divider">
         </div>
 
-        <button id="btn-buscar-pagamentos" class="btn-rounded btn-green wide-button" style="margin-top: 20px;">Buscar Pagamentos Realizados</button>
+        <div id="status-message" class="info-message" style="display: block;">Carregando histórico...</div>
+        
+        <ul id="transaction-list" class="transaction-list">
+            </ul>
+        
+        <hr class="divider">
 
-        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;">Aguardando seleção de datas.</div>
-        
-        <h3 id="resultado-titulo" style="margin-top: 30px; display: none;"></h3>
-        
-        <ul id="lista-resultados" class="list-rounded">
-        </ul>
-        
-        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Gerenciamento</a>
+        <div class="summary-container">
+            <p>Subtotal Tarefas (Crédito): <span id="subtotal-tarefas" class="positive-text">R$ 0,00</span></p>
+            <p>Subtotal Multas (Débito): <span id="subtotal-multas" class="negative-text">R$ 0,00</span></p>
+            <hr>
+            <p style="font-weight: bold; font-size: 1.2rem;">
+                Saldo Final: <span id="saldo-final">R$ 0,00</span>
+            </p>
+        </div>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
+        const firestore = typeof db !== 'undefined' ? db : null;
         
-        let usuarioSendoAnalisado = '';
-
-        // Funções de Utilitário
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-
-        function formatCurrency(value) {
-            return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
+        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -61,120 +65,186 @@
                 return null;
             }
             try {
-                const obj = JSON.parse(storedValue);
-                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
-                    alert("Acesso negado. Apenas administradores podem ver históricos.");
-                    window.location.href = 'index.html';
-                    return null;
-                }
-                return obj;
+                return JSON.parse(storedValue);
             } catch (e) {
                 window.location.href = 'login.html';
                 return null;
             }
         }
 
-        // Função principal para buscar e renderizar os pagamentos
-        async function fetchAndRenderPagamentos() {
-            const statusEl = document.getElementById('status-message');
-            const listaEl = document.getElementById('lista-resultados');
-            const tituloEl = document.getElementById('resultado-titulo');
-            listaEl.innerHTML = '';
-            tituloEl.style.display = 'none';
-            statusEl.className = 'info-message';
-            statusEl.textContent = 'Buscando pagamentos realizados...';
+        async function loadUserSelect(currentUser) {
+            const selectEl = document.getElementById('user-select');
+            selectEl.innerHTML = ''; 
 
-            const dataInicioStr = document.getElementById('data-inicio').value;
-            const dataFimStr = document.getElementById('data-fim').value;
-
-            if (!dataInicioStr || !dataFimStr) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Por favor, selecione as datas de início e fim.';
-                return;
-            }
-
-            const dataInicio = new Date(dataInicioStr);
-            const dataFim = new Date(dataFimStr);
-            dataFim.setDate(dataFim.getDate() + 1); 
+            const allOption = document.createElement('option');
+            allOption.value = currentUser.nome;
+            allOption.textContent = `Meu Perfil (${currentUser.nome})`;
+            selectEl.appendChild(allOption);
 
             try {
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoAnalisado).get();
-                if (!userDoc.exists) {
-                    statusEl.className = 'error-message';
-                    // CORREÇÃO: Uso de template literal
-                    statusEl.textContent = `Erro: Perfil de '${usuarioSendoAnalisado}' não encontrado.`;
-                    return;
-                }
-
-                const userData = userDoc.data();
-                // Estrutura esperada: [{ data: 'YYYY-MM-DD', valor: 5.00, nome: 'Pagamento de Multa X' }]
-                const pagamentos = userData.pagamentosRealizados || []; 
-
-                const pagamentosFiltrados = pagamentos.filter(pagamento => {
-                    const pagamentoDate = new Date(pagamento.data + 'T00:00:00');
-                    return pagamentoDate >= dataInicio && pagamentoDate < dataFim;
+                const usersSnapshot = await firestore.collection('users').get();
+                usersSnapshot.docs.forEach(doc => {
+                    const user = doc.data();
+                    if (user.nome !== currentUser.nome) {
+                        const option = document.createElement('option');
+                        option.value = user.nome;
+                        option.textContent = user.nome;
+                        selectEl.appendChild(option);
+                    }
                 });
 
-                if (pagamentosFiltrados.length === 0) {
-                    statusEl.className = 'info-message';
-                    // CORREÇÃO: Uso de template literal
-                    statusEl.textContent = `Nenhum pagamento realizado encontrado para ${usuarioSendoAnalisado} no período selecionado.`;
-                } else {
-                    let totalValorPago = 0;
-                    pagamentosFiltrados.forEach(pagamento => {
-                        const li = document.createElement('li');
-                        li.className = 'list-item list-item-green';
-                        // CORREÇÃO: Uso de template literal e dados corretos
-                        li.innerHTML = `
-                            <strong>Nome:</strong> ${pagamento.nome || 'Pagamento Desconhecido'}<br>
-                            <strong>Data do Pagamento:</strong> ${pagamento.data}<br>
-                            <strong>Valor Pago:</strong> ${formatCurrency(pagamento.valor)}
-                        `;
-                        listaEl.appendChild(li);
-                        totalValorPago += pagamento.valor;
-                    });
-                    
-                    // CORREÇÃO: Uso de template literal e exibição do total
-                    tituloEl.textContent = `Pagamentos Realizados (${pagamentosFiltrados.length} ocorrências) (Total: ${formatCurrency(totalValorPago)})`;
-                    tituloEl.style.display = 'block';
-                    statusEl.className = 'success-message';
-                    // CORREÇÃO: Uso de template literal
-                    statusEl.textContent = `${pagamentosFiltrados.length} pagamento(s) realizado(s) encontrado(s) no período.`;
-                }
+                selectEl.addEventListener('change', () => {
+                    const selectedUser = selectEl.value;
+                    fetchAndRenderTransactions(selectedUser);
+                });
 
             } catch (error) {
-                console.error("Erro ao buscar pagamentos:", error);
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Erro ao buscar pagamentos. Verifique o console.';
+                console.error("Erro ao carregar lista de usuários:", error);
             }
         }
 
-
-        // Inicialização
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!getUsuarioLogado()) return; 
-
-            usuarioSendoAnalisado = getQueryParam('user');
-            if (!usuarioSendoAnalisado) {
-                document.getElementById('status-message').className = 'error-message';
-                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
-                return;
-            }
-
-            // CORREÇÃO: Uso de template literal
-            document.getElementById('user-title').textContent = `Usuário: ${usuarioSendoAnalisado}`;
+        /**
+         * Busca e renderiza todas as transações (tarefas concluídas e multas) de um usuário.
+         */
+        async function fetchAndRenderTransactions(usuarioNome) {
+            const messageEl = document.getElementById('status-message');
+            const listEl = document.getElementById('transaction-list');
             
-            document.getElementById('btn-buscar-pagamentos').onclick = fetchAndRenderPagamentos;
+            listEl.innerHTML = '';
+            messageEl.textContent = `Carregando transações de ${usuarioNome}...`;
+            messageEl.classList.remove('error-message');
+            messageEl.classList.add('info-message');
+            messageEl.style.display = 'block';
 
-            // Define datas padrão (Ex: Últimos 30 dias)
-            const today = new Date();
-            const lastMonth = new Date();
-            lastMonth.setDate(today.getDate() - 30);
+            document.getElementById('user-title').textContent = usuarioNome;
 
-            const formatDate = (date) => date.toISOString().split('T')[0];
+            try {
+                // 1. Buscar Tarefas Concluídas (Crédito)
+                const tarefasRef = firestore.collection('users').doc(usuarioNome).collection('tarefasConcluidas');
+                const tarefasSnapshot = await tarefasRef.get();
+                
+                let transacoes = [];
+                let subtotalTarefas = 0;
+                let subtotalMultas = 0;
 
-            document.getElementById('data-inicio').value = formatDate(lastMonth);
-            document.getElementById('data-fim').value = formatDate(today);
+                tarefasSnapshot.docs.forEach(doc => {
+                    const tarefa = doc.data();
+                    const dataObj = tarefa.dataConclusao ? tarefa.dataConclusao.toDate() : new Date(0); 
+                    
+                    subtotalTarefas += (tarefa.valor || 0);
+
+                    transacoes.push({
+                        type: 'tarefa',
+                        description: `Pagamento por Tarefa: ${tarefa.nome}`,
+                        value: tarefa.valor || 0,
+                        timestamp: dataObj.getTime(),
+                        dateObj: dataObj
+                    });
+                });
+
+                // 2. Buscar Multas (Débito)
+                const multasRef = firestore.collection('multas');
+                const multasSnapshot = await multasRef.where('usuario', '==', usuarioNome).get();
+                
+                multasSnapshot.docs.forEach(doc => {
+                    const multa = doc.data();
+                    const dataObj = multa.dataCriacao ? multa.dataCriacao.toDate() : new Date(0); 
+
+                    subtotalMultas += (multa.valor || 0);
+
+                    transacoes.push({
+                        type: 'multa',
+                        description: `Multa Recebida: ${multa.motivo || 'Multa Padrão'}`,
+                        value: multa.valor || 0,
+                        timestamp: dataObj.getTime(),
+                        dateObj: dataObj
+                    });
+                });
+
+                // 3. Ordenar todas as transações por data/hora (do mais novo para o mais antigo)
+                transacoes.sort((a, b) => b.timestamp - a.timestamp);
+                
+                if (transacoes.length === 0) {
+                    messageEl.textContent = `Nenhuma transação (tarefas ou multas) encontrada para ${usuarioNome}.`;
+                    messageEl.style.display = 'block';
+                    return;
+                }
+
+                // 4. Renderizar a lista ordenada
+                messageEl.style.display = 'none';
+
+                transacoes.forEach(transacao => {
+                    const dataFormatada = transacao.dateObj.toLocaleDateString('pt-BR');
+                    const horaFormatada = transacao.dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                    const isNegative = transacao.type === 'multa';
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('transaction-item', isNegative ? 'negative' : 'positive');
+                    
+                    // O valor da multa é negativo no cálculo do saldo, mas exibido como positivo no histórico de débito
+                    const displayValue = isNegative ? `-${formatarMoeda(transacao.value)}` : `+${formatarMoeda(transacao.value)}`;
+                    
+                    listItem.innerHTML = `
+                        <div class="transaction-details">
+                            <span class="transaction-description">${transacao.description}</span>
+                            <span class="transaction-date">
+                                Data: ${dataFormatada} | Hora: ${horaFormatada}
+                            </span>
+                        </div>
+                        <span class="transaction-amount">${displayValue}</span>
+                    `;
+                    listEl.appendChild(listItem);
+                });
+
+                // 5. Calcular e exibir o resumo
+                document.getElementById('subtotal-tarefas').textContent = formatarMoeda(subtotalTarefas);
+                document.getElementById('subtotal-multas').textContent = formatarMoeda(subtotalMultas);
+                
+                const saldoFinal = subtotalTarefas - subtotalMultas;
+                const saldoEl = document.getElementById('saldo-final');
+                saldoEl.textContent = formatarMoeda(Math.abs(saldoFinal));
+                
+                saldoEl.classList.remove('positive-text', 'negative-text');
+                saldoEl.classList.add(saldoFinal >= 0 ? 'positive-text' : 'negative-text');
+                
+                // Adiciona um sinal para o saldo final, a menos que seja zero
+                if (saldoFinal < 0) {
+                    saldoEl.textContent = `- ${saldoEl.textContent}`;
+                }
+
+
+            } catch (error) {
+                console.error("Erro ao carregar transações:", error);
+                messageEl.textContent = 'Erro ao buscar o histórico de transações. Verifique o console.';
+                messageEl.classList.remove('info-message');
+                messageEl.classList.add('error-message');
+                messageEl.style.display = 'block';
+            }
+        }
+        
+        function confirmDeleteHistory() {
+            const selectedUser = document.getElementById('user-select').value;
+            if (confirm(`ATENÇÃO: Você realmente deseja APAGAR TODO o histórico de transações (tarefas e multas) de ${selectedUser}? Esta ação é IRREVERSÍVEL!`)) {
+                alert(`Funcionalidade de exclusão em desenvolvimento para o usuário: ${selectedUser}.`);
+                // **TODO: Implementar a função real de exclusão aqui**
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userInfo = getUsuarioLogado();
+
+            if (!userInfo) return; 
+
+            const isAdmin = userInfo.isAdmin === true;
+            
+            if (isAdmin) {
+                document.getElementById('admin-options').style.display = 'block';
+                loadUserSelect(userInfo);
+                fetchAndRenderTransactions(userInfo.nome); 
+            } else {
+                document.getElementById('user-title').textContent = userInfo.nome;
+                fetchAndRenderTransactions(userInfo.nome);
+            }
         });
     </script>
 </body>
