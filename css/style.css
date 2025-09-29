@@ -19,7 +19,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 500px; /* Padrão para Login/Cadastro */
+    max-width: 500px; /* Padrão para Login/Cadastro/Carteira */
     box-sizing: border-box;
 }
 
@@ -38,13 +38,14 @@ body {
     color: #d32f2f !important; /* Vermelho para multas e erros */
 }
 
-.info-message, .error-message {
+/* Mensagens de Status (usadas no login, admin e gerenciar tarefas) */
+.info-message, .error-message, .success-message {
     font-size: 0.95rem;
     margin-bottom: 15px;
-    padding: 8px;
+    padding: 10px;
     border-radius: 4px;
     text-align: center;
-    display: none; /* Inicia oculto, será exibido via JS */
+    display: none; /* Inicia oculto, deve ser exibido via JS */
 }
 
 .info-message {
@@ -58,6 +59,13 @@ body {
     background-color: #ffebee;
     border: 1px solid #ef9a9a;
 }
+
+.success-message {
+    color: #2e7d32;
+    background-color: #e8f5e9;
+    border: 1px solid #c8e6c9;
+}
+
 
 .divider {
     width: 100%;
@@ -80,12 +88,15 @@ body {
     margin-bottom: 15px;
 }
 
+/* Usamos a classe input-rounded para maior compatibilidade */
 input[type="text"],
 input[type="number"],
 input[type="password"],
 input[type="email"],
 input[type="date"],
-select {
+input[type="time"],
+select,
+.input-rounded { 
     width: 100%;
     padding: 12px;
     margin: 5px 0;
@@ -97,9 +108,16 @@ select {
     transition: border-color 0.3s;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, .input-rounded:focus {
     border-color: #1976d2;
     outline: none;
+}
+
+.input-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #555;
 }
 
 /* ========================================================== */
@@ -116,6 +134,12 @@ input:focus, select:focus {
     text-decoration: none;
     display: inline-block;
     text-align: center;
+}
+
+.wide-button {
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
 }
 
 .btn-primary {
@@ -154,6 +178,15 @@ input:focus, select:focus {
     background-color: #43a047;
 }
 
+.btn-warning {
+    background-color: #ff9800; /* Laranja/Amarelo */
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #fb8c00;
+}
+
 /* Usado para links de navegação no Dashboard (index.html) */
 .btn-secondary-text {
     background-color: transparent;
@@ -165,12 +198,6 @@ input:focus, select:focus {
     background-color: #e3f2fd;
 }
 
-.wide-button {
-    width: 100%;
-    display: block;
-    box-sizing: border-box;
-}
-
 .btn-icon {
     padding: 8px 12px;
     border-radius: 50%;
@@ -179,9 +206,93 @@ input:focus, select:focus {
     line-height: 1;
 }
 
+.btn-blue {
+    background-color: #2196f3;
+    color: white;
+}
+.btn-blue:hover {
+    background-color: #1e88e5;
+}
+
+
+/* ========================================================== */
+/* ESTILOS DE MODAIS (Popups) - NOVAS CLASSES */
+/* ========================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Garante que o modal fique por cima de tudo */
+}
+
+.modal-content {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 450px;
+    box-sizing: border-box;
+}
+
+.large-modal {
+    max-width: 600px;
+}
+
+.modal-title {
+    color: #1976d2;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.modal-section-title {
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.modal-message {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    color: #555;
+    text-align: center;
+}
+
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.centered-actions {
+    justify-content: center;
+}
+
+/* Z-index para empilhamento de modais (Admin) */
+.z-higher { z-index: 1001; }
+.z-higher-2 { z-index: 1002; }
+
 /* ========================================================== */
 /* ESTILOS DE LAYOUT ESPECÍFICOS PARA DASHBOARD E ADMIN */
 /* ========================================================== */
+
+/* Admin: Estilo do Relógio */
+.admin-clock {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #1976d2;
+    padding: 5px 0;
+}
 
 /* Container para a foto, mensagem e data/hora (Dashboard) */
 .user-profile-header {
@@ -223,21 +334,85 @@ input:focus, select:focus {
     font-size: 0.95rem;
 }
 
-/* Layout de Links da Área do Administrador */
-.admin-links-grid-full {
+/* Layout de Links da Área do Administrador (Gerenciar Usuários) */
+.admin-action-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: 1fr 1fr; /* Duas colunas */
     gap: 15px;
-    margin-top: 20px;
 }
 
-.admin-links-grid-full a {
-    font-size: 1rem;
-    padding: 15px 20px;
+.admin-action-grid a, .admin-action-grid button {
+    font-size: 0.95rem;
+    padding: 12px 15px;
 }
+
 
 /* ========================================================== */
-/* ESTILOS DE CARTEIRA E RESUMO FINANCEIRO */
+/* ESTILOS DE CARDS DE TAREFAS (Gerenciar Tarefas) - NOVAS CLASSES */
+/* ========================================================== */
+.tarefa-card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    margin-bottom: 12px;
+    border-left: 5px solid #1976d2; /* Padrão */
+}
+
+/* Card de Tarefa Disponível (Verde) */
+.tarefa-card.admin-card:has(.status-available) {
+    border-left-color: #4CAF50; 
+}
+/* Card de Tarefa Em Andamento/Atribuída (Azul) */
+.tarefa-card.admin-card:has(.status-in-progress) {
+    border-left-color: #2196f3; 
+}
+/* Card de Tarefa Pendente Pagamento (Laranja) */
+.tarefa-card.admin-card:has(.status-pending) {
+    border-left-color: #ff9800; 
+}
+
+.tarefa-header-admin {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tarefa-nome-admin {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.tarefa-details-admin {
+    display: flex;
+    flex-direction: column;
+}
+
+.tarefa-info-admin {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+.tarefa-status-line {
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-top: 1px solid #eee;
+    margin-top: 5px;
+}
+
+/* Cores de Status dentro do Card */
+.status-available { color: #4CAF50; font-weight: bold; }
+.status-in-progress { color: #1976d2; font-weight: bold; }
+.status-pending { color: #ff9800; font-weight: bold; }
+
+
+/* ========================================================== */
+/* ESTILOS DE LISTAS E HISTÓRICO (Existentes) */
 /* ========================================================== */
 .financial-summary-card {
     background-color: #f7f9fa; /* Fundo leve para o card */
@@ -258,7 +433,6 @@ input:focus, select:focus {
     margin-bottom: 5px;
 }
 
-/* Destaque visual forte para o valor do saldo */
 .balance-value {
     font-size: 2.5rem; 
     font-weight: 700;
@@ -270,21 +444,16 @@ input:focus, select:focus {
 .proximo-pagamento-info {
     padding-top: 10px;
     text-align: center;
-    /* Destaque para o card de recebimento */
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     padding: 10px;
-    background-color: #e8f5e9; /* Fundo levemente verde */
+    background-color: #e8f5e9; 
 }
 .proximo-pagamento-info p {
     margin: 5px 0;
     color: #333;
 }
 
-
-/* ========================================================== */
-/* ESTILOS DE LISTAS E HISTÓRICO */
-/* ========================================================== */
 .historico-lista {
     width: 100%;
     margin-top: 15px;
@@ -295,7 +464,6 @@ input:focus, select:focus {
     padding: 0;
 }
 
-/* ESTILO DO ITEM DA LISTA DE TRANSAÇÃO (CARD ARREDONDADO) */
 .transaction-item {
     display: flex;
     justify-content: space-between;
@@ -339,17 +507,15 @@ input:focus, select:focus {
     text-align: right;
 }
 
-/* Cores de Texto */
 .positive-text {
-    color: #4CAF50 !important; /* Verde - Saldo Positivo/Crédito */
+    color: #4CAF50 !important; 
     font-weight: bold;
 }
 .negative-text {
-    color: #f44336 !important; /* Vermelho - Saldo Negativo/Débito */
+    color: #f44336 !important; 
     font-weight: bold;
 }
 
-/* Destaque Lateral da Lista */
 .transaction-item.positive {
     border-left: 5px solid #4CAF50; 
 }
@@ -369,7 +535,6 @@ input:focus, select:focus {
     padding: 20px;
 }
 
-/* Resumo Financeiro (Subtotal/Saldo Final - Para historico-pagamentos) */
 .summary-container {
     padding: 15px;
     border: 1px solid #e0e0e0;
@@ -391,27 +556,19 @@ input:focus, select:focus {
     margin: 10px 0;
 }
 
-/* ========================================================== */
-/* ESTILOS ESPECÍFICOS PARA MINHA CARTEIRA (carteira.html) */
-/* ========================================================== */
-
-/* Estilo para títulos dentro de cards */
 .card-title {
     font-size: 1.2rem; 
     margin-bottom: 15px;
 }
 
-/* Estilo para o botão "Voltar" (compartilhado com histórico) */
 .wallet-back-button {
     margin-bottom: 20px;
 }
 
-/* Estilo para o título de "Últimas Transações" */
 .transaction-history-title {
     color: #444; 
 }
 
-/* Estilo para o subtítulo "Ganhos (Verde) e Multas (Vermelho)" */
 .transaction-history-subtitle {
     font-size: 0.9em; 
     color: #888;
@@ -419,45 +576,33 @@ input:focus, select:focus {
     margin-bottom: 15px;
 }
 
-/* Estilo para o texto do valor do próximo pagamento */
 .next-payment-value-text {
     font-size: 1.1rem; 
     font-weight: bold;
 }
 
-/* Estilo para o texto da data do próximo pagamento */
 .next-payment-date-text {
     font-weight: 500; 
     font-size: 0.95rem;
 }
 
-/* Estilo para o botão "Pedir Emprestado" */
 .wallet-action-button {
     margin-bottom: 10px;
 }
 
-/* ========================================================== */
-/* ESTILOS ESPECÍFICOS PARA HISTÓRICO DE PAGAMENTOS */
-/* ========================================================== */
-
-/* Título com o nome do usuário/perfil */
 .history-user-title {
     font-size: 1.2rem; 
     margin-bottom: 15px;
 }
 
-/* Container de opções de Admin (Visualizar Histórico) */
 .admin-history-options {
-    /* O display: none; inicial é definido no HTML/JS */
     margin-bottom: 20px;
 }
 
-/* Botão de Apagar Histórico */
 .admin-delete-button {
     margin-top: 10px;
 }
 
-/* Texto de Saldo Final no Resumo */
 .final-balance-text {
     font-weight: bold; 
     font-size: 1.2rem;
@@ -476,6 +621,10 @@ input:focus, select:focus {
         max-width: 95%;
         margin: 0 10px;
     }
+    
+    .modal-content {
+        padding: 20px;
+    }
 
     .main-title {
         font-size: 1.5rem;
@@ -487,17 +636,15 @@ input:focus, select:focus {
     }
     
     .balance-value {
-        font-size: 2rem; /* Reduz o tamanho do saldo em telas pequenas */
+        font-size: 2rem; 
     }
 
-    /* Ajuste para a seção da foto em telas pequenas */
     .user-profile-header {
         flex-direction: column;
         align-items: center;
         text-align: center;
     }
     
-    /* CORREÇÃO PARA A FOTO NO CELULAR */
     .user-profile-photo {
         width: 80px; 
         height: 80px;
@@ -509,7 +656,6 @@ input:focus, select:focus {
         text-align: center;
     }
     
-    /* Ajuste para grids de links em telas pequenas */
     .dashboard-links-grid {
         flex-direction: column;
         align-items: center;
@@ -518,7 +664,9 @@ input:focus, select:focus {
         width: 100%;
         max-width: 90%;
     }
-    .admin-links-grid-full {
+    
+    /* Ajuste para grid de ações do admin em mobile */
+    .admin-action-grid {
         grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
     }
     
@@ -534,5 +682,26 @@ input:focus, select:focus {
         min-width: auto;
         width: 30%;
         text-align: right;
+    }
+    
+    /* Ajuste para card de tarefa em mobile */
+    .tarefa-header-admin {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .tarefa-header-admin .btn-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        margin: 0;
+    }
+    .tarefa-nome-admin {
+        width: 100%;
+        padding-right: 50px; /* Espaço para o botão */
+    }
+    .tarefa-status-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
     }
 }
