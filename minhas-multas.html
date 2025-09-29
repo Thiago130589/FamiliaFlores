@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Multas</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title main-title-error">Meu Histórico de Multas</h1>
+        <p class="center-text info-message">Aqui você encontra todas as multas aplicadas.</p>
+        <hr class="divider">
+        
+        <div id="multas-lista" class="historico-lista">
+            <p class="empty-message">Carregando suas multas...</p>
+        </div>
+
+        <a href="index.html" class="btn-rounded btn-secondary wide-button button-spacing-top">← Voltar ao Dashboard</a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+
+        // Função para carregar e renderizar as multas do usuário logado
+        async function renderMinhasMultas() {
+            const userInfo = getUsuarioLogado(); 
+            const listaEl = document.getElementById('multas-lista');
+
+            if (!userInfo) return; // getUsuarioLogado já redireciona se necessário
+
+            listaEl.innerHTML = '<p class="empty-message">Buscando seu histórico...</p>';
+
+            try {
+                // Busca APENAS o documento do usuário logado
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
+                
+                if (!userDoc.exists) {
+                     listaEl.innerHTML = '<p class="empty-message">Usuário não encontrado no sistema.</p>';
+                     return;
+                }
+
+                const userData = userDoc.data();
+                let multas = userData.multas || [];
+
+                // 1. Converte e enriquece os dados para ordenação
+                let multasFormatadas = multas.map(multa => ({
+                    motivo: multa.motivo,
+                    valor: parseFloat(multa.valor || 0),
+                    // Converte para objeto Date para ordenação
+                    data: multa.data ? new Date(multa.data) : new Date(0), 
+                }));
+
+                // 2. Ordenar por data (mais recente primeiro)
+                multasFormatadas.sort((a, b) => b.data.getTime() - a.data.getTime());
+
+                if (multasFormatadas.length === 0) {
+                    listaEl.innerHTML = '<p class="empty-message">Parabéns! Nenhuma multa registrada no seu nome.</p>';
+                    return;
+                }
+
+                // 3. Renderiza o HTML
+                let html = '<ul class="transaction-list">';
+                multasFormatadas.forEach((multa) => {
+                    const valorAbsoluto = formatarMoeda(Math.abs(multa.valor));
+                    const dataFormatada = multa.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+                    html += `
+                        <li class="transaction-item negative card-border-error">
+                            <div class="transaction-details flex-col">
+                                <span class="transaction-description">Motivo: <strong>${multa.motivo}</strong></span>
+                                <span class="transaction-date">Data: ${dataFormatada}</span>
+                            </div>
+                            <span class="transaction-amount negative-text status-bold">- ${valorAbsoluto}</span>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                listaEl.innerHTML = html;
+
+            } catch (error) {
+                console.error("Erro ao carregar multas:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de multas.</p>';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', renderMinhasMultas);
+    </script>
+</body>
+</html>

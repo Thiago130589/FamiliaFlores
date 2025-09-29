@@ -40,10 +40,7 @@
             <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
                 Histórico de Tarefas Pagas
             </a>
-            <a href="historico-multas.html" class="btn-rounded btn-warning wide-button">
-                Histórico de Multas
-            </a>
-        </div>
+            </div>
         
         <a id="admin-link" href="area-administrador.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
@@ -62,16 +59,13 @@
 
         // 1. Carrega informações e checa o login
         async function loadDashboard() {
-            // Verifica login e redireciona se necessário (função no script.js)
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
-                // getUsuarioLogado() já deve redirecionar, mas este é um fallback
                 window.location.href = 'login.html'; 
                 return;
             }
 
-            // Exibe o nome do usuário
             document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
 
             // 2. Verifica e exibe o link do Admin
@@ -84,18 +78,15 @@
 
             // 3. Carrega o Saldo
             try {
-                // Usa o nome exato (com capitalização, ex: 'Thiago') para buscar no Firestore
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
                     const saldo = userData.saldo || 0;
                     
-                    // Usa a função formatarMoeda do script.js
-                    document.getElementById('current-saldo').textContent = formatarMoeda(saldo);
-                    
-                    // Define a cor do saldo (opcional)
                     const saldoElement = document.getElementById('current-saldo');
+                    saldoElement.textContent = formatarMoeda(saldo);
+                    
                     saldoElement.classList.remove('positive-text', 'negative-text');
                     saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
                     
@@ -109,7 +100,6 @@
             }
         }
 
-        // Garante que a função seja executada quando a página carregar
         window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
