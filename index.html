@@ -51,17 +51,55 @@
         </a>
 
         <div class="action-grid button-spacing-top">
-             <a href="gerenciar-perfil.html" class="btn-rounded btn-secondary-text wide-button">
+             <button onclick="openProfileModal()" class="btn-rounded btn-secondary-text wide-button">
                  Configurações do Perfil
-             </a>
+             </button>
         </div>
     </div>
 
+    <div id="profile-modal" class="modal-overlay hidden-start" onclick="closeProfileModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 class="modal-title">Configurações do Perfil</h2>
+            
+            <p class="info-message center-text" style="margin-bottom: 20px;">Selecione qual informação deseja atualizar.</p>
+            
+            <div class="action-grid action-grid-single-col">
+                <button class="btn-rounded btn-info wide-button" onclick="alert('Funcionalidade de troca de foto em desenvolvimento.')">
+                    Trocar Foto de Perfil
+                </button>
+                <button class="btn-rounded btn-primary wide-button" onclick="alert('Funcionalidade de troca de Nome e Sobrenome em desenvolvimento.')">
+                    Trocar Nome/Sobrenome
+                </button>
+                <button class="btn-rounded btn-primary wide-button" onclick="alert('Funcionalidade de troca de Idade em desenvolvimento.')">
+                    Trocar Idade
+                </button>
+                <button class="btn-rounded btn-danger wide-button" onclick="alert('Funcionalidade de troca de Senha em desenvolvimento.')">
+                    Trocar Senha
+                </button>
+            </div>
+            
+            <div class="modal-actions centered-actions button-spacing-top">
+                <button class="btn-rounded btn-secondary" onclick="closeProfileModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        // 1. Carrega informações e checa o login
+        // LÓGICA DO MODAL
+        function openProfileModal() {
+            document.getElementById('profile-modal').classList.remove('hidden-start');
+        }
+
+        function closeProfileModal(event) {
+            // Fecha apenas se o clique for no overlay (e não no conteúdo do modal)
+            if (!event || event.target.id === 'profile-modal') {
+                document.getElementById('profile-modal').classList.add('hidden-start');
+            }
+        }
+
+        // LÓGICA DO DASHBOARD (MANTIDA)
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
             
@@ -70,21 +108,17 @@
                 return;
             }
 
-            // 2. Busca dados (Nome, Foto e Saldo)
             const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
 
-            // Configura a Mensagem de Boas-Vindas
             document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
 
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 
-                // Carregar Foto
                 if (userData.fotoUrl) {
                     document.getElementById('profile-pic').src = userData.fotoUrl;
                 }
                 
-                // Carregar Saldo
                 const saldo = userData.saldo || 0;
                 const saldoElement = document.getElementById('current-saldo');
                 saldoElement.textContent = formatarMoeda(saldo);
@@ -95,7 +129,6 @@
                  document.getElementById('current-saldo').textContent = formatarMoeda(0);
             }
             
-            // 3. Verifica e exibe o link do Admin
             const adminLink = document.getElementById('admin-link');
             if (userInfo.isAdmin) {
                 adminLink.classList.remove('hidden-start');
