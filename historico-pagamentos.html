@@ -1,9 +1,9 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hist√≥rico de Pagamentos</title>
+    <title>HistÛrico de Pagamentos</title>
     <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -14,29 +14,29 @@
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title">Hist√≥rico de Pagamentos</h1>
+        <h1 class="main-title">HistÛrico de Pagamentos</h1>
         
         <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
             &#8592; Voltar para o Dashboard
         </a>
         <hr class="divider">
 
-        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Transa√ß√µes de: <span id="user-title">Meu Perfil</span></h2>
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">TransaÁıes de: <span id="user-title">Meu Perfil</span></h2>
         
         <div id="admin-options" style="display: none; margin-bottom: 20px;">
             <div class="form-group">
-                <label for="user-select">Visualizar Hist√≥rico de:</label>
+                <label for="user-select">Visualizar HistÛrico de:</label>
                 <select id="user-select" class="wide-button">
                     </select>
             </div>
             
             <button class="btn-rounded btn-danger wide-button" onclick="confirmDeleteHistory()" style="margin-top: 10px;">
-                Apagar Hist√≥rico de Pagamentos (Admin)
+                Apagar HistÛrico de Pagamentos (Admin)
             </button>
             <hr class="divider">
         </div>
 
-        <div id="status-message" class="info-message" style="display: block;">Carregando hist√≥rico...</div>
+        <div id="status-message" class="info-message" style="display: block;">Carregando histÛrico...</div>
         
         <ul id="transaction-list" class="transaction-list">
             </ul>
@@ -44,8 +44,8 @@
         <hr class="divider">
 
         <div class="summary-container">
-            <p>Subtotal Tarefas (Cr√©dito): <span id="subtotal-tarefas" class="positive-text">R$ 0,00</span></p>
-            <p>Subtotal Multas (D√©bito): <span id="subtotal-multas" class="negative-text">R$ 0,00</span></p>
+            <p>Subtotal Tarefas (CrÈdito): <span id="subtotal-tarefas" class="positive-text">R$ 0,00</span></p>
+            <p>Subtotal Multas (DÈbito): <span id="subtotal-multas" class="negative-text">R$ 0,00</span></p>
             <hr>
             <p style="font-weight: bold; font-size: 1.2rem;">
                 Saldo Final: <span id="saldo-final">R$ 0,00</span>
@@ -56,7 +56,8 @@
     <script>
         const firestore = typeof db !== 'undefined' ? db : null;
         
-        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
+        // REMOVEMOS A DUPLA DECLARA«√O DE 'formatarMoeda' AQUI.
+        // Assumimos que 'formatarMoeda' est· acessÌvel globalmente via js/script.js
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -99,19 +100,22 @@
                 });
 
             } catch (error) {
-                console.error("Erro ao carregar lista de usu√°rios:", error);
+                console.error("Erro ao carregar lista de usu·rios:", error);
             }
         }
 
         /**
-         * Busca e renderiza todas as transa√ß√µes (tarefas conclu√≠das e multas) de um usu√°rio.
+         * Busca e renderiza todas as transaÁıes (tarefas concluÌdas e multas) de um usu·rio.
          */
         async function fetchAndRenderTransactions(usuarioNome) {
+            // Se formatarMoeda ainda n„o estiver carregada
+            if (typeof formatarMoeda !== 'function') return;
+
             const messageEl = document.getElementById('status-message');
             const listEl = document.getElementById('transaction-list');
             
             listEl.innerHTML = '';
-            messageEl.textContent = `Carregando transa√ß√µes de ${usuarioNome}...`;
+            messageEl.textContent = `Carregando transaÁıes de ${usuarioNome}...`;
             messageEl.classList.remove('error-message');
             messageEl.classList.add('info-message');
             messageEl.style.display = 'block';
@@ -119,7 +123,7 @@
             document.getElementById('user-title').textContent = usuarioNome;
 
             try {
-                // 1. Buscar Tarefas Conclu√≠das (Cr√©dito)
+                // 1. Buscar Tarefas ConcluÌdas (CrÈdito)
                 const tarefasRef = firestore.collection('users').doc(usuarioNome).collection('tarefasConcluidas');
                 const tarefasSnapshot = await tarefasRef.get();
                 
@@ -142,7 +146,7 @@
                     });
                 });
 
-                // 2. Buscar Multas (D√©bito)
+                // 2. Buscar Multas (DÈbito)
                 const multasRef = firestore.collection('multas');
                 const multasSnapshot = await multasRef.where('usuario', '==', usuarioNome).get();
                 
@@ -154,18 +158,18 @@
 
                     transacoes.push({
                         type: 'multa',
-                        description: `Multa Recebida: ${multa.motivo || 'Multa Padr√£o'}`,
+                        description: `Multa Recebida: ${multa.motivo || 'Multa Padr„o'}`,
                         value: multa.valor || 0,
                         timestamp: dataObj.getTime(),
                         dateObj: dataObj
                     });
                 });
 
-                // 3. Ordenar todas as transa√ß√µes por data/hora (do mais novo para o mais antigo)
+                // 3. Ordenar todas as transaÁıes por data/hora (do mais novo para o mais antigo)
                 transacoes.sort((a, b) => b.timestamp - a.timestamp);
                 
                 if (transacoes.length === 0) {
-                    messageEl.textContent = `Nenhuma transa√ß√£o (tarefas ou multas) encontrada para ${usuarioNome}.`;
+                    messageEl.textContent = `Nenhuma transaÁ„o (tarefas ou multas) encontrada para ${usuarioNome}.`;
                     messageEl.style.display = 'block';
                     return;
                 }
@@ -181,7 +185,7 @@
                     const listItem = document.createElement('li');
                     listItem.classList.add('transaction-item', isNegative ? 'negative' : 'positive');
                     
-                    // O valor da multa √© negativo no c√°lculo do saldo, mas exibido como positivo no hist√≥rico de d√©bito
+                    // O valor da multa È negativo no c·lculo do saldo, mas exibido como positivo no histÛrico de dÈbito
                     const displayValue = isNegative ? `-${formatarMoeda(transacao.value)}` : `+${formatarMoeda(transacao.value)}`;
                     
                     listItem.innerHTML = `
@@ -214,8 +218,8 @@
 
 
             } catch (error) {
-                console.error("Erro ao carregar transa√ß√µes:", error);
-                messageEl.textContent = 'Erro ao buscar o hist√≥rico de transa√ß√µes. Verifique o console.';
+                console.error("Erro ao carregar transaÁıes:", error);
+                messageEl.textContent = 'Erro ao buscar o histÛrico de transaÁıes. Verifique o console.';
                 messageEl.classList.remove('info-message');
                 messageEl.classList.add('error-message');
                 messageEl.style.display = 'block';
@@ -224,9 +228,9 @@
         
         function confirmDeleteHistory() {
             const selectedUser = document.getElementById('user-select').value;
-            if (confirm(`ATEN√á√ÉO: Voc√™ realmente deseja APAGAR TODO o hist√≥rico de transa√ß√µes (tarefas e multas) de ${selectedUser}? Esta a√ß√£o √© IRREVERS√çVEL!`)) {
-                alert(`Funcionalidade de exclus√£o em desenvolvimento para o usu√°rio: ${selectedUser}.`);
-                // **TODO: Implementar a fun√ß√£o real de exclus√£o aqui**
+            if (confirm(`ATEN«√O: VocÍ realmente deseja APAGAR TODO o histÛrico de transaÁıes (tarefas e multas) de ${selectedUser}? Esta aÁ„o È IRREVERSÕVEL!`)) {
+                alert(`Funcionalidade de exclus„o em desenvolvimento para o usu·rio: ${selectedUser}.`);
+                // **TODO: Implementar a funÁ„o real de exclus„o aqui**
             }
         }
 

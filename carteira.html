@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,7 @@
         <hr class="divider">
 
         <div class="financial-summary-card">
-            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">VisÃ£o Geral Financeira</h2>
+            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Visão Geral Financeira</h2>
             
             <div class="saldo-destaque-container">
                 <p>Seu Saldo Atual</p>
@@ -30,7 +30,7 @@
             <hr class="divider-light">
             
             <div class="proximo-pagamento-info">
-                <p>PrÃ³ximo Valor a Receber:</p>
+                <p>Próximo Valor a Receber:</p>
                 <p style="font-size: 1.1rem; font-weight: bold;">
                     Valor: <span id="next-payment-value" class="positive-text">R$ 0,00</span>
                 </p>
@@ -47,17 +47,17 @@
                 Pedir Emprestado
             </a>
             
-            <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">HistÃ³rico Financeiro</a>
-            <a href="historico-multas.html" class="btn-secondary-text btn-rounded">HistÃ³rico de Multas</a>
+            <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
+            <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
         </div>
         
         <hr class="divider">
 
-        <h2 style="color: #444;">Ãšltimas TransaÃ§Ãµes</h2>
+        <h2 style="color: #444;">Últimas Transações</h2>
         <p style="font-size: 0.9em; color: #888;">Ganhos (Verde) e Multas (Vermelho)</p>
         
         <div id="historico-lista" class="historico-lista">
-            <p class="empty-message">Carregando histÃ³rico...</p>
+            <p class="empty-message">Carregando histórico...</p>
         </div>
         
     </div>
@@ -65,10 +65,10 @@
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        // Garante que a funÃ§Ã£o formatarMoeda seja a do script.js
-        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
+        // REMOVEMOS A DUPLA DECLARAÇÃO DE 'formatarMoeda' AQUI.
+        // Assumimos que 'formatarMoeda' está acessível globalmente via js/script.js
 
-        // ObtÃ©m o nome do usuÃ¡rio logado
+        // Obtém o nome do usuário logado
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
             if (!storedValue) {
@@ -85,14 +85,14 @@
 
         async function loadCarteira() {
             const userInfo = getUsuarioLogado();
-            if (!userInfo || !firestore) return;
+            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') return;
 
             const userName = userInfo.nome;
             const saldoEl = document.getElementById('saldo-valor');
             const historicoEl = document.getElementById('historico-lista');
-            historicoEl.innerHTML = '<p class="empty-message">Buscando transaÃ§Ãµes...</p>';
+            historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
 
-            // SimulaÃ§Ã£o de Dados (VocÃª precisa implementar a lÃ³gica real no Firebase)
+            // Simulação de Dados (mantida, mas você deve implementar a lógica real no Firebase)
             // ------------------------------------------------------------------------
             const valorProximo = 120.00;
             const dataProximo = new Date();
@@ -106,7 +106,7 @@
                 const userDoc = await firestore.collection('users').doc(userName).get();
                 if (!userDoc.exists) {
                     saldoEl.textContent = formatarMoeda(0);
-                    historicoEl.innerHTML = '<p class="error-message">UsuÃ¡rio nÃ£o encontrado.</p>';
+                    historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
                     return;
                 }
                 
@@ -118,11 +118,9 @@
                 saldoEl.classList.remove('positive-text', 'negative-text');
                 saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
-                // LÃ³gica de HistÃ³rico (Mantida e ajustada para usar formatarMoeda)
+                // Lógica de Histórico (Mantida e ajustada para usar formatarMoeda)
                 // ------------------------------------------------------------------
-                // 1. Buscar Ganhos (Tarefas ConcluÃ­das) - Mantenha sua lÃ³gica de busca ou ajuste para a estrutura do Firestore
-                // NOTE: Sua lÃ³gica estava buscando em 'tarefasConcluidas' globalmente. Ajustando para buscar na subcoleÃ§Ã£o do usuÃ¡rio,
-                // que Ã© o padrÃ£o que vÃ­nhamos utilizando, para consistÃªncia.
+                // 1. Buscar Ganhos (Tarefas Concluídas)
                 const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
                     .orderBy('dataConclusao', 'desc')
                     .get();
@@ -137,33 +135,32 @@
 
                     historico.push({
                         tipo: 'ganho',
-                        descricao: tarefa.nome || 'Tarefa ConcluÃ­da',
+                        descricao: tarefa.nome || 'Tarefa Concluída',
                         valor: valor,
                         data: dataConclusao
                     });
                 });
 
                 // 2. Mapear Multas
-                // NOTE: A multas do seu cÃ³digo base Ã© um array dentro do documento do usuÃ¡rio.
-                const multas = userData.multas || [];
+                const multas = userData.multas || []; // Multas como array dentro do documento do usuário
                 multas.forEach(multa => {
                     const valor = parseFloat(multa.valor || 0);
                     const data = new Date(multa.data);
                     
                     historico.push({
                         tipo: 'multa',
-                        descricao: `Multa: ${multa.motivo || 'Motivo nÃ£o especificado'}`,
-                        valor: -Math.abs(valor), 
+                        descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
+                        valor: -Math.abs(valor), // Multa é sempre negativa
                         data: data
                     });
                 });
 
-                // 3. Ordenar HistÃ³rico (Mais recente primeiro)
+                // 3. Ordenar Histórico (Mais recente primeiro)
                 historico.sort((a, b) => b.data.getTime() - a.data.getTime());
 
                 // 4. Renderizar
                 if (historico.length === 0) {
-                    historicoEl.innerHTML = '<p class="empty-message">Nenhuma transaÃ§Ã£o registrada.</p>';
+                    historicoEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada.</p>';
                     return;
                 }
 

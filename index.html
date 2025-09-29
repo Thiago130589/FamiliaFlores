@@ -1,4 +1,4 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -31,8 +31,8 @@
                 </a>
                 
                 <a href="minhas-tarefas.html" class="btn-secondary-text btn-rounded">Minhas Tarefas</a>
-                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Dispon√≠veis</a>
-                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Hist√≥rico de Tarefas</a>
+                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas DisponÌveis</a>
+                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">HistÛrico de Tarefas</a>
             </div>
 
             <hr class="divider">
@@ -40,7 +40,7 @@
         
         <div id="admin-button-container" style="display: none; text-align: center; margin-top: 30px;">
             <a href="area-administrador.html" class="btn-rounded btn-primary" style="width: 300px;">
-                √Årea do Administrador
+                ¡rea do Administrador
             </a>
         </div>
 
@@ -50,8 +50,8 @@
     <script>
         const firestore = typeof db !== 'undefined' ? db : null;
         
-        // Garante que a fun√ß√£o formatarMoeda esteja acess√≠vel
-        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
+        // REMOVEMOS A DUPLA DECLARA«√O DE 'formatarMoeda' AQUI.
+        // Assumimos que 'formatarMoeda' est· acessÌvel globalmente via js/script.js
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -74,17 +74,19 @@
 
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
-            if (!userInfo || !firestore) {
-                document.getElementById('loading-message').textContent = 'Erro de carregamento. Tente novamente.';
+            // Adicionando a verificaÁ„o de existÍncia da funÁ„o 'formatarMoeda'
+            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') {
+                document.getElementById('loading-message').textContent = 'Erro de carregamento (funÁıes). Tente novamente.';
                 return;
             }
 
-            // 1. Carregar informa√ß√µes do usu√°rio e Saldo
+            // 1. Carregar informaÁıes do usu·rio e Saldo
             document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
             
             try {
                 const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
                 const userData = userDoc.data();
+                // Usamos formatarMoeda diretamente
                 const saldo = parseFloat(userData.saldo || 0);
                 
                 const balanceEl = document.getElementById('current-balance');
@@ -97,7 +99,7 @@
                 document.getElementById('current-balance').textContent = 'R$ 0,00';
             }
             
-            // 2. Exibir o bot√£o de Admin se for Admin
+            // 2. Exibir o bot„o de Admin se for Admin
             const isAdmin = userInfo.isAdmin === true; 
             if (isAdmin) {
                 document.getElementById('admin-button-container').style.display = 'block'; 

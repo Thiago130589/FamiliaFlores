@@ -1,9 +1,9 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HistÃ³rico de Multas</title>
+    <title>Histórico de Multas</title>
     <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -14,7 +14,7 @@
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title">HistÃ³rico de Multas</h1>
+        <h1 class="main-title">Histórico de Multas</h1>
         
         <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
             &#8592; Voltar para o Dashboard
@@ -23,7 +23,7 @@
 
         <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Multas Recebidas: <span id="user-title"></span></h2>
         
-        <div id="status-message" class="info-message" style="display: block;">Carregando histÃ³rico...</div>
+        <div id="status-message" class="info-message" style="display: block;">Carregando histórico...</div>
         
         <ul id="multa-list" class="transaction-list">
             </ul>
@@ -32,8 +32,8 @@
     <script>
         const firestore = typeof db !== 'undefined' ? db : null;
         
-        // A funÃ§Ã£o formatarMoeda Ã© globalmente definida em js/script.js, mas re-declaramos a referÃªncia localmente para seguranÃ§a
-        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
+        // REMOVEMOS A DUPLA DECLARAÇÃO DE 'formatarMoeda' AQUI.
+        // Assumimos que 'formatarMoeda' está acessível globalmente via js/script.js
 
         function getUsuarioLogado() {
             const storedValue = localStorage.getItem('usuarioLogado');
@@ -55,13 +55,13 @@
             const listEl = document.getElementById('multa-list');
             
             listEl.innerHTML = '';
-            messageEl.textContent = 'Carregando histÃ³rico...';
+            messageEl.textContent = 'Carregando histórico...';
             messageEl.classList.remove('error-message');
             messageEl.classList.add('info-message');
             messageEl.style.display = 'block';
 
-            if (!userInfo || !firestore) {
-                messageEl.textContent = 'Erro de inicializaÃ§Ã£o. Tente recarregar a pÃ¡gina.';
+            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') {
+                messageEl.textContent = 'Erro de inicialização (funções). Tente recarregar a página.';
                 messageEl.classList.remove('info-message');
                 messageEl.classList.add('error-message');
                 return;
@@ -71,7 +71,7 @@
             document.getElementById('user-title').textContent = nomeUsuario;
 
             try {
-                // Busca multas onde o campo 'usuario' Ã© igual ao nome do usuÃ¡rio logado
+                // Busca multas onde o campo 'usuario' é igual ao nome do usuário logado
                 const multasRef = firestore.collection('multas');
                 const snapshot = await multasRef.where('usuario', '==', nomeUsuario).orderBy('dataCriacao', 'desc').get();
                 
@@ -94,7 +94,7 @@
                     listItem.classList.add('transaction-item', 'negative');
                     listItem.innerHTML = `
                         <div class="transaction-details">
-                            <span class="transaction-description">Motivo: ${multa.motivo || 'Multa PadrÃ£o'}</span>
+                            <span class="transaction-description">Motivo: ${multa.motivo || 'Multa Padrão'}</span>
                             <span class="transaction-date">
                                 Data: ${dataFormatada} | Hora: ${horaFormatada}
                             </span>
@@ -106,7 +106,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar multas:", error);
-                messageEl.textContent = 'Erro ao buscar o histÃ³rico de multas. Verifique o console.';
+                messageEl.textContent = 'Erro ao buscar o histórico de multas. Verifique o console.';
                 messageEl.classList.remove('info-message');
                 messageEl.classList.add('error-message');
                 messageEl.style.display = 'block';
