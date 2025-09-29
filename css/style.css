@@ -258,7 +258,7 @@ input:focus, select:focus {
     margin-bottom: 5px;
 }
 
-/* NOVO: Destaque visual forte para o valor do saldo */
+/* Destaque visual forte para o valor do saldo */
 .balance-value {
     font-size: 2.5rem; 
     font-weight: 700;
@@ -391,6 +391,50 @@ input:focus, select:focus {
     margin: 10px 0;
 }
 
+/* ========================================================== */
+/* ESTILOS ESPECÍFICOS PARA MINHA CARTEIRA (carteira.html) */
+/* ========================================================== */
+
+/* Estilo para títulos dentro de cards */
+.card-title {
+    font-size: 1.2rem; 
+    margin-bottom: 15px;
+}
+
+/* Estilo para o botão "Voltar" */
+.wallet-back-button {
+    margin-bottom: 20px;
+}
+
+/* Estilo para o título de "Últimas Transações" */
+.transaction-history-title {
+    color: #444; 
+}
+
+/* Estilo para o subtítulo "Ganhos (Verde) e Multas (Vermelho)" */
+.transaction-history-subtitle {
+    font-size: 0.9em; 
+    color: #888;
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
+
+/* Estilo para o texto do valor do próximo pagamento */
+.next-payment-value-text {
+    font-size: 1.1rem; 
+    font-weight: bold;
+}
+
+/* Estilo para o texto da data do próximo pagamento */
+.next-payment-date-text {
+    font-weight: 500; 
+    font-size: 0.95rem;
+}
+
+/* Estilo para o botão "Pedir Emprestado" */
+.wallet-action-button {
+    margin-bottom: 10px;
+}
 
 /* ========================================================== */
 /* RESPONSIVIDADE GERAL */
