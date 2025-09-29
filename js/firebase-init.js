@@ -1,28 +1,25 @@
-﻿/**
- * Inicialização do Firebase e Firestore usando o SDK v8 (via CDN).
- * Garante que a instância 'db' e 'auth' estejam disponíveis globalmente.
+/**
+ * Inicializa��o do Firebase (usando o SDK v8 via CDN).
+ * Garante que as inst�ncias 'db' e 'auth' estejam dispon�veis globalmente.
  */
 
-// Credenciais do Firebase (Atualizadas com base no seu console)
+// 1. Suas credenciais do Firebase (Use as credenciais reais do seu projeto)
 const firebaseConfig = {
-    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", 
-    authDomain: "familia-flores-2ed6a.firebaseapp.com",
-    projectId: "familia-flores-2ed6a",
-    storageBucket: "familia-flores-2ed6a.firebasestorage.app",
-    messagingSenderId: "102151517349",
-    appId: "1:102151517349:web:0fa6cfa865f9da338f494c",
-    measurementId: "G-8E95B0VFNR"
+    apiKey: "SUA_CHAVE_AQUI", // SUBSTITUIR
+    authDomain: "familia-flores-2e6da.firebaseapp.com",
+    projectId: "familia-flores-2e6da",
+    storageBucket: "familia-flores-2e6da.appspot.com",
+    messagingSenderId: "1021517349",
+    appId: "1:1021517349:web:0fa6cfa86de5f9da338f494c",
+    measurementId: "G-9E95B6VFN8",
 };
 
-// 1. Inicializa o Firebase (se ainda não tiver sido inicializado)
-if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+// 2. Inicializa o Firebase (Se ainda n�o foi inicializado)
+if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// 2. Cria a referência global para o Firestore (db)
-// Esta variável será usada em todo o seu código para acessar o banco de dados.
-const db = typeof firebase !== 'undefined' ? firebase.firestore() : null;
-
-// 3. Cria a referência global para o Auth (auth)
-// Esta variável é necessária para as funções de autenticação.
-const auth = typeof firebase !== 'undefined' ? firebase.auth() : null;
+// 3. Cria e disponibiliza as refer�ncias de servi�os globalmente
+// ESSES OBJETOS 'db' E 'auth' S�O O QUE FALTAVA
+const db = firebase.firestore();
+const auth = firebase.auth();
