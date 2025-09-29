@@ -7,33 +7,66 @@
     <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-</head>
+    <script src="js/script.js"></script> </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title-green">Minha Carteira</h1> 
-        <hr class="divider">
+        <h1 class="main-title">Minha Carteira</h1>
         
-        <div class="saldo-card">
-            <h2>Saldo Atual</h2>
-            <p id="saldo-valor" class="saldo-amount">R$ 0,00</p>
+        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
+            &#8592; Voltar para o Dashboard
+        </a>
+        <hr class="divider">
+
+        <div class="financial-summary-card">
+            <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Visão Geral Financeira</h2>
+            
+            <div class="saldo-destaque-container">
+                <p>Seu Saldo Atual</p>
+                <p id="saldo-valor" class="balance-value">R$ 0,00</p>
+            </div>
+
+            <hr class="divider-light">
+            
+            <div class="proximo-pagamento-info">
+                <p>Próximo Valor a Receber:</p>
+                <p style="font-size: 1.1rem; font-weight: bold;">
+                    Valor: <span id="next-payment-value" class="positive-text">R$ 0,00</span>
+                </p>
+                <p style="font-weight: 500; font-size: 0.95rem;">
+                    Data Prevista: <span id="next-payment-date">--/--/----</span>
+                </p>
+            </div>
         </div>
 
         <hr class="divider">
 
-        <h2 style="color: #444;">Histórico de Transações</h2>
+        <div class="dashboard-links-grid">
+            <a href="pedir-emprestado.html" class="btn-rounded btn-primary wide-button" style="margin-bottom: 10px;">
+                Pedir Emprestado
+            </a>
+            
+            <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
+            <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
+        </div>
+        
+        <hr class="divider">
+
+        <h2 style="color: #444;">Últimas Transações</h2>
         <p style="font-size: 0.9em; color: #888;">Ganhos (Verde) e Multas (Vermelho)</p>
         
         <div id="historico-lista" class="historico-lista">
             <p class="empty-message">Carregando histórico...</p>
         </div>
         
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao perfil</a>
     </div>
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+
+        // Garante que a função formatarMoeda seja a do script.js
+        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
 
         // Obtém o nome do usuário logado
         function getUsuarioLogado() {
@@ -43,41 +76,54 @@
                 return null;
             }
             try {
-                return JSON.parse(storedValue).nome;
+                return JSON.parse(storedValue); // Retorna o objeto completo
             } catch (e) {
                 window.location.href = 'login.html';
                 return null;
             }
         }
 
-        function formatBRL(value) {
-            return parseFloat(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
         async function loadCarteira() {
-            const userName = getUsuarioLogado();
-            if (!userName) return;
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !firestore) return;
 
+            const userName = userInfo.nome;
             const saldoEl = document.getElementById('saldo-valor');
             const historicoEl = document.getElementById('historico-lista');
             historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
 
+            // Simulação de Dados (Você precisa implementar a lógica real no Firebase)
+            // ------------------------------------------------------------------------
+            const valorProximo = 120.00;
+            const dataProximo = new Date();
+            dataProximo.setDate(dataProximo.getDate() + 7); // Daqui a 7 dias (Exemplo)
+
+            document.getElementById('next-payment-date').textContent = dataProximo.toLocaleDateString('pt-BR');
+            document.getElementById('next-payment-value').textContent = formatarMoeda(valorProximo);
+            // ------------------------------------------------------------------------
+
             try {
                 const userDoc = await firestore.collection('users').doc(userName).get();
                 if (!userDoc.exists) {
-                    saldoEl.textContent = formatBRL(0);
+                    saldoEl.textContent = formatarMoeda(0);
                     historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
                     return;
                 }
                 
                 const userData = userDoc.data();
                 const saldo = parseFloat(userData.saldo || 0);
-                // Exibe o saldo formatado
-                saldoEl.textContent = formatBRL(saldo); 
+                
+                // Exibe o saldo formatado e define a cor
+                saldoEl.textContent = formatarMoeda(saldo); 
+                saldoEl.classList.remove('positive-text', 'negative-text');
+                saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
-                // 1. Buscar Ganhos (Tarefas Concluídas)
-                const tarefasSnapshot = await firestore.collection('tarefasConcluidas')
-                    .where('atribuidaPara', '==', userName)
+                // Lógica de Histórico (Mantida e ajustada para usar formatarMoeda)
+                // ------------------------------------------------------------------
+                // 1. Buscar Ganhos (Tarefas Concluídas) - Mantenha sua lógica de busca ou ajuste para a estrutura do Firestore
+                // NOTE: Sua lógica estava buscando em 'tarefasConcluidas' globalmente. Ajustando para buscar na subcoleção do usuário,
+                // que é o padrão que vínhamos utilizando, para consistência.
+                const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
                     .orderBy('dataConclusao', 'desc')
                     .get();
 
@@ -87,8 +133,7 @@
                 tarefasSnapshot.forEach(doc => {
                     const tarefa = doc.data();
                     const valor = parseFloat(tarefa.valor || 0);
-                    // Pega a data mais confiável (data de conclusão)
-                    const dataConclusao = tarefa.dataConclusao ? new Date(tarefa.dataConclusao) : new Date();
+                    const dataConclusao = tarefa.dataConclusao ? (tarefa.dataConclusao.toDate ? tarefa.dataConclusao.toDate() : new Date(tarefa.dataConclusao)) : new Date();
 
                     historico.push({
                         tipo: 'ganho',
@@ -99,6 +144,7 @@
                 });
 
                 // 2. Mapear Multas
+                // NOTE: A multas do seu código base é um array dentro do documento do usuário.
                 const multas = userData.multas || [];
                 multas.forEach(multa => {
                     const valor = parseFloat(multa.valor || 0);
@@ -107,7 +153,6 @@
                     historico.push({
                         tipo: 'multa',
                         descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
-                        // Armazena o valor como negativo para facilitar o cálculo do saldo, mas exibe o valor positivo
                         valor: -Math.abs(valor), 
                         data: data
                     });
@@ -124,14 +169,13 @@
 
                 let html = '<ul class="transaction-list">';
                 historico.forEach(item => {
-                    const valorAbsoluto = formatBRL(Math.abs(item.valor));
+                    const valorAbsoluto = formatarMoeda(Math.abs(item.valor));
                     const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                     const isPositive = item.tipo === 'ganho';
-                    const icon = isPositive ? '&#x2714;' : '&#x2716;'; // Checkmark / X
 
+                    // Usa as classes CSS 'positive' e 'negative' para estilo de card
                     html += `
-                        <li class="transaction-item ${isPositive ? 'ganho' : 'multa'}">
-                            <span class="transaction-icon">${icon}</span>
+                        <li class="transaction-item ${isPositive ? 'positive' : 'negative'}">
                             <div class="transaction-details">
                                 <span class="transaction-description">${item.descricao}</span>
                                 <span class="transaction-date">${dataFormatada}</span>
@@ -142,6 +186,7 @@
                 });
                 html += '</ul>';
                 historicoEl.innerHTML = html;
+                // ------------------------------------------------------------------
 
             } catch (error) {
                 console.error("Erro ao carregar carteira:", error);

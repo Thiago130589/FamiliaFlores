@@ -66,6 +66,13 @@ body {
     margin: 20px 0;
 }
 
+.divider-light {
+    width: 100%;
+    border: none;
+    border-top: 1px solid #f0f0f0; /* Divisor mais claro para dentro de cards */
+    margin: 10px 0;
+}
+
 /* ========================================================== */
 /* ESTILOS DE FORMULÁRIO E INPUTS */
 /* ========================================================== */
@@ -185,8 +192,8 @@ input:focus, select:focus {
 }
 
 .dashboard-links-grid a {
-    flex-basis: auto; /* Deixa o botão se ajustar ao conteúdo */
-    max-width: 180px;
+    flex-basis: auto; 
+    max-width: 250px; 
     padding: 10px 15px;
     font-size: 0.95rem;
 }
@@ -194,7 +201,6 @@ input:focus, select:focus {
 /* Layout de Links da Área do Administrador */
 .admin-links-grid-full {
     display: grid;
-    /* Faz os botões ficarem em colunas responsivas (mínimo 200px de largura por coluna) */
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
     margin-top: 20px;
@@ -205,9 +211,54 @@ input:focus, select:focus {
     padding: 15px 20px;
 }
 
+/* ========================================================== */
+/* ESTILOS DE CARTEIRA E RESUMO FINANCEIRO */
+/* ========================================================== */
+.financial-summary-card {
+    background-color: #f7f9fa; /* Fundo leve para o card */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.saldo-destaque-container {
+    padding: 15px 0;
+}
+
+.saldo-destaque-container p:first-child {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+/* NOVO: Destaque visual forte para o valor do saldo */
+.balance-value {
+    font-size: 2.5rem; 
+    font-weight: 700;
+    display: block;
+    line-height: 1.2;
+    transition: color 0.3s;
+}
+
+.proximo-pagamento-info {
+    padding-top: 10px;
+    text-align: center;
+    /* Destaque para o card de recebimento */
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    background-color: #e8f5e9; /* Fundo levemente verde */
+}
+.proximo-pagamento-info p {
+    margin: 5px 0;
+    color: #333;
+}
+
 
 /* ========================================================== */
-/* ESTILOS DE LISTAS E HISTÓRICO (MULTAS/PAGAMENTOS/USUÁRIOS) */
+/* ESTILOS DE LISTAS E HISTÓRICO */
 /* ========================================================== */
 .historico-lista {
     width: 100%;
@@ -225,22 +276,17 @@ input:focus, select:focus {
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    margin-bottom: 10px; /* Espaçamento entre os cards */
+    margin-bottom: 10px; 
     
-    /* ESTILO DE CARD ARREDONDADO E SOMBRA */
     border-radius: 8px; 
     border: 1px solid #eee;
     background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra suave */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
     transition: box-shadow 0.3s;
 }
 
 .transaction-item:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.transaction-item:last-child {
-    border-bottom: none;
 }
 
 .transaction-details {
@@ -268,32 +314,29 @@ input:focus, select:focus {
     text-align: right;
 }
 
-/* Cores específicas de Transação/Item */
-
+/* Cores de Texto */
 .positive-text {
-    color: #4CAF50; /* Verde */
+    color: #4CAF50 !important; /* Verde - Saldo Positivo/Crédito */
     font-weight: bold;
 }
 .negative-text {
-    color: #f44336; /* Vermelho */
+    color: #f44336 !important; /* Vermelho - Saldo Negativo/Débito */
+    font-weight: bold;
 }
 
-/* Aplicando a cor de sucesso (verde) na borda do item de tarefa (crédito) */
+/* Destaque Lateral da Lista */
 .transaction-item.positive {
     border-left: 5px solid #4CAF50; 
 }
 .transaction-item.positive .transaction-amount {
-    color: #4CAF50; /* Verde - Crédito/Pagamento */
+    color: #4CAF50; 
 }
-
-/* Aplicando a cor de erro (vermelho) na borda do item de multa (débito) */
 .transaction-item.negative {
     border-left: 5px solid #d32f2f; 
 }
 .transaction-item.negative .transaction-amount {
-    color: #d32f2f; /* Vermelho - Débito/Multa */
+    color: #d32f2f; 
 }
-
 
 .empty-message {
     color: #888;
@@ -301,65 +344,26 @@ input:focus, select:focus {
     padding: 20px;
 }
 
-/* ========================================================== */
-/* ESTILO PARA CARDS DE TAREFAS (Admin: Pagamentos Pendentes) */
-/* ========================================================== */
+/* Resumo Financeiro (Subtotal/Saldo Final - Para historico-pagamentos) */
+.summary-container {
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin-top: 15px;
+}
 
-/* Tarefas Pendentes de Pagamento (Admin) */
-.tarefa-card-pendente {
+.summary-container p {
+    margin: 8px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 1px solid #d32f2f; /* Borda na cor de erro */
-    border-radius: 8px;
-    background-color: #fce4ec; /* Fundo suavemente avermelhado/rosa (claro) */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-size: 1rem;
 }
 
-.tarefa-card-pendente .btn-pagar-tarefa {
-    background-color: #4CAF50; /* Verde */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    min-width: 120px;
-    margin-left: 20px;
-    border-radius: 25px;
-}
-
-/* Tarefas Concluídas e Pagas */
-.tarefa-card-concluida {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 1px solid #4CAF50; /* Borda verde */
-    border-radius: 8px;
-    background-color: #e8f5e9; /* Fundo suavemente verde (claro) */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.tarefa-card-concluida-info {
-    flex-grow: 1;
-}
-
-.tarefa-nome {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #1976d2;
-    margin-bottom: 3px;
-    display: block;
-}
-
-.tarefa-info {
-    font-size: 0.9rem;
-    color: #666;
-    display: block;
+.summary-container hr {
+    border-top: 1px dashed #ccc;
+    margin: 10px 0;
 }
 
 
@@ -385,21 +389,24 @@ input:focus, select:focus {
         padding: 10px 20px;
         font-size: 0.9rem;
     }
+    
+    .balance-value {
+        font-size: 2rem; /* Reduz o tamanho do saldo em telas pequenas */
+    }
 
-    /* Ajuste para tarefas pendentes */
-    .tarefa-card-pendente, .tarefa-card-concluida {
+    /* Ajuste para grids de links em telas pequenas */
+    .dashboard-links-grid {
         flex-direction: column;
-        align-items: flex-start;
-        padding: 12px;
+        align-items: center;
     }
-    .tarefa-card-pendente div, .tarefa-card-concluida div {
-        margin-bottom: 10px;
-    }
-    .tarefa-card-pendente .btn-pagar-tarefa {
+    .dashboard-links-grid a {
         width: 100%;
-        margin-left: 0;
+        max-width: 90%;
     }
-
+    .admin-links-grid-full {
+        grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
+    }
+    
     /* Ajuste para listas de histórico */
     .transaction-item {
         flex-wrap: wrap;
@@ -413,42 +420,4 @@ input:focus, select:focus {
         width: 30%;
         text-align: right;
     }
-    
-    /* Ajuste para grids de links em telas pequenas */
-    .dashboard-links-grid {
-        flex-direction: column;
-        align-items: center;
-    }
-    .dashboard-links-grid a {
-        width: 100%;
-        max-width: 90%;
-    }
-    .admin-links-grid-full {
-        grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
-    }
-
-    
-}
-/* ... [Restante do CSS, que é o mesmo que você já tem] ... */
-
-/* Adicionado ao final do CSS para garantir um layout limpo para o resumo */
-.summary-container {
-    padding: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    margin-top: 15px;
-}
-
-.summary-container p {
-    margin: 8px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1rem;
-}
-
-.summary-container hr {
-    border-top: 1px dashed #ccc;
-    margin: 10px 0;
 }
