@@ -1,123 +1,116 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    
-    <link rel="stylesheet" href="css/style.css"> 
-    
+    <link rel="stylesheet" href="css/style.css">
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
 </head>
 <body>
-    <div class="center-box" id="login-container">
+    <div class="center-box small-box">
         <h1 class="main-title">Login</h1>
         
-        <div class="form-group">
-            <label for="username">Nome de UsuÃ¡rio</label>
-            <input type="text" id="username" placeholder="Seu nome (ex: Thiago)" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="password">Senha</label>
-            <input type="password" id="password" placeholder="Sua senha" required>
-        </div>
-        
-        <div id="auth-message" class="error-message" style="display: none; margin-top: 15px;"></div>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Nome de Usuário</label>
+                <input type="text" id="username" placeholder="Seu nome" required>
+            </div>
 
-        <button class="btn-rounded btn-primary wide-button" onclick="handleLogin()">Entrar</button>
-        
-        <p style="text-align: center; margin-top: 15px;">
-            NÃ£o tem uma conta? <a href="cadastrar-usuario.html" style="color: #1976d2; text-decoration: none;">Cadastre-se</a>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" placeholder="Sua senha" required>
+            </div>
+            
+            <p id="error-message" class="error-message" style="display: none; margin-top: 15px;">
+                Erro de conexão ou sistema. Tente novamente.
+            </p>
+
+            <button type="submit" class="btn-rounded btn-primary wide-button">Entrar</button>
+        </form>
+
+        <p style="text-align: center; margin-top: 20px;">
+            Não tem uma conta? <a href="cadastrar-usuario.html" class="link-cadastro">Cadastre-se</a>
         </p>
     </div>
 
     <script>
-    const firestore = typeof db !== 'undefined' ? db : null;
-
-    async function handleLogin() {
-        const nome = document.getElementById('username').value.trim();
-        const senha = document.getElementById('password').value.trim();
-        const messageEl = document.getElementById('auth-message');
+        const firestore = typeof db !== 'undefined' ? db : null;
+        const auth = typeof auth !== 'undefined' ? auth : null;
         
-        messageEl.style.display = 'block';
-        messageEl.classList.remove('error-message');
-        messageEl.classList.add('info-message');
-        messageEl.textContent = 'Verificando credenciais...';
+        const form = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('error-message');
 
-        if (!nome || !senha) {
-            messageEl.classList.remove('info-message');
-            messageEl.classList.add('error-message');
-            messageEl.textContent = 'Preencha o nome de usuÃ¡rio e a senha.';
-            return;
-        }
-
-        // NOVO DEBUG CRÃTICO: Se o Firebase nÃ£o carregou, ele avisa aqui.
-        if (!firestore) {
-            messageEl.classList.remove('info-message');
-            messageEl.classList.add('error-message');
-            messageEl.textContent = 'Erro de inicializaÃ§Ã£o do sistema (Firebase). Tente recarregar a pÃ¡gina.';
-            console.error("DEBUG: firestore estÃ¡ nulo. Verifique 'firebase-init.js' e a ordem dos scripts.");
-            return;
-        }
-
-        try {
-            // Busca os dados do usuÃ¡rio no Firestore (Document ID = nome)
-            const userDoc = await firestore.collection('users').doc(nome).get();
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMessage.style.display = 'none';
             
-            if (!userDoc.exists) {
-                messageEl.classList.remove('info-message');
-                messageEl.classList.add('error-message');
-                messageEl.textContent = 'UsuÃ¡rio nÃ£o encontrado.';
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                errorMessage.textContent = 'Preencha todos os campos.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            if (!firestore) {
+                // Se a inicialização falhou (Firebase não carregou), exibe erro.
+                errorMessage.textContent = 'Erro de inicialização. Verifique a configuração do Firebase.';
+                errorMessage.style.display = 'block';
                 return;
             }
 
-            const userData = userDoc.data();
-            
-            // VERIFICAÃ‡ÃƒO MANUAL DA SENHA
-            if (userData.password !== senha) { 
-                messageEl.classList.remove('info-message');
-                messageEl.classList.add('error-message');
-                messageEl.textContent = 'Senha incorreta.';
-                return;
-            }
+            try {
+                // 1. Tenta buscar o documento do usuário pelo nome (Firestore)
+                const userDocRef = firestore.collection('users').doc(username);
+                const userDoc = await userDocRef.get();
 
-            // SUCESSO: SALVA O PERFIL COMPLETO (COM isAdmin) NO LOCAL STORAGE
-            const userProfile = {
-                nome: nome,
-                isAdmin: userData.isAdmin === true, 
-            };
+                if (!userDoc.exists) {
+                    errorMessage.textContent = 'Usuário não encontrado.';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
 
-            localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));
-            
-            messageEl.classList.remove('error-message');
-            messageEl.classList.add('info-message');
-            messageEl.textContent = 'Login realizado com sucesso! Redirecionando...';
+                const userData = userDoc.data();
+                
+                // 2. Compara a senha (ASSUMIMOS QUE A SENHA NÃO ESTÁ CRIPTOGRAFADA)
+                if (userData.password !== password) {
+                    errorMessage.textContent = 'Senha incorreta.';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
 
-            setTimeout(() => {
+                // 3. Login bem-sucedido: Salva dados essenciais no localStorage
+                const userSession = {
+                    nome: userData.nome,
+                    isAdmin: userData.isAdmin === true,
+                    // Poderia incluir mais campos úteis aqui
+                };
+
+                localStorage.setItem('usuarioLogado', JSON.stringify(userSession));
+                
+                // Redireciona para o Dashboard
                 window.location.href = 'index.html';
-            }, 500);
 
-        } catch (error) {
-            // Este catch pega falhas na chamada ao Firestore
-            console.error("Erro na comunicaÃ§Ã£o com o Firestore:", error);
-            messageEl.classList.remove('info-message');
-            messageEl.classList.add('error-message');
-            messageEl.textContent = 'Erro de conexÃ£o ou sistema. Tente novamente.'; 
-        }
-    }
-    
-    document.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
-    });
+            } catch (error) {
+                // 4. Trata erros de conexão ou outros erros do Firebase
+                console.error("Erro durante o login:", error);
+                errorMessage.textContent = 'Erro de conexão ou sistema. Verifique suas regras de segurança no Firebase.';
+                errorMessage.style.display = 'block';
+            }
+        });
 
+        // Verifica se o usuário já está logado ao carregar a página
+        if (localStorage.getItem('usuarioLogado')) {
+            window.location.href = 'index.html'; // Redireciona se já houver sessão
+        }
     </script>
 </body>
 </html>
