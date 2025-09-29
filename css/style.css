@@ -2,7 +2,7 @@
 /* ESTILOS GERAIS E DE ESTRUTURA */
 /* ========================================================== */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: #f4f7f6;
     margin: 0;
     padding: 0;
@@ -19,12 +19,12 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 500px;
+    max-width: 500px; /* Padrão para Login/Cadastro */
     box-sizing: border-box;
 }
 
 .large-box {
-    max-width: 750px; /* Para as páginas de admin e histórico */
+    max-width: 750px; /* Para Dashboard, Admin e Histórico */
 }
 
 .main-title {
@@ -44,6 +44,7 @@ body {
     padding: 8px;
     border-radius: 4px;
     text-align: center;
+    display: none; /* Inicia oculto, será exibido via JS */
 }
 
 .info-message {
@@ -246,51 +247,10 @@ input:focus, select:focus {
 }
 
 /* ========================================================== */
-/* ESTILOS DE POPUP (MODAL) */
+/* ESTILO PARA CARDS DE TAREFAS */
 /* ========================================================== */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
 
-.modal-content {
-    background: white;
-    padding: 30px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.modal-title {
-    margin-top: 0;
-    font-size: 1.5rem;
-}
-
-.modal-message {
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-}
-
-.modal-actions {
-    margin-top: 25px;
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
-/* ========================================================== */
-/* ESTILO PARA TAREFAS PENDENTES DE PAGAMENTO */
-/* ========================================================== */
+/* Tarefas Pendentes de Pagamento (Admin) */
 .tarefa-card-pendente {
     display: flex;
     justify-content: space-between;
@@ -316,13 +276,7 @@ input:focus, select:focus {
     border-radius: 25px;
 }
 
-.tarefa-card-pendente .btn-pagar-tarefa:hover {
-    background-color: #43a047;
-}
-
-/* ========================================================== */
-/* ESTILO PARA TAREFAS CONCLUÍDAS E PAGAS */
-/* ========================================================== */
+/* Tarefas Concluídas e Pagas */
 .tarefa-card-concluida {
     display: flex;
     justify-content: space-between;
@@ -375,15 +329,6 @@ input:focus, select:focus {
     .btn-rounded {
         padding: 10px 20px;
         font-size: 0.9rem;
-    }
-
-    .modal-content {
-        padding: 20px;
-    }
-
-    .modal-actions {
-        flex-direction: column;
-        gap: 10px;
     }
 
     /* Ajuste para tarefas pendentes */

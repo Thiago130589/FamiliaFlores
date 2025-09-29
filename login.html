@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -37,14 +38,16 @@
     </div>
 
     <script>
-    // As variáveis globais 'db' e 'auth' devem ser definidas em firebase-init.js
+    // Usa a variável global 'db' definida em firebase-init.js
     const firestore = typeof db !== 'undefined' ? db : null;
 
     async function handleLogin() {
+        // Verifica a inicialização do Firebase para evitar o erro de conexão
         if (!firestore) {
-            document.getElementById('auth-message').textContent = 'Erro de inicialização do Firebase. Verifique o console.';
+            const msg = 'Erro fatal: Firebase não inicializado. Verifique a ordem dos scripts no console.';
+            document.getElementById('auth-message').textContent = msg;
             document.getElementById('auth-message').style.display = 'block';
-            console.error("Firebase Firestore não inicializado.");
+            console.error(msg);
             return;
         }
 
@@ -65,7 +68,7 @@
         }
 
         try {
-            // 1. Busca os dados do usuário no Firestore (Assumindo que o nome é o Document ID)
+            // 1. Busca os dados do usuário no Firestore (Document ID = nome)
             const userDoc = await firestore.collection('users').doc(nome).get();
             
             if (!userDoc.exists) {
@@ -85,12 +88,11 @@
                 return;
             }
 
-            // 3. SUCESSO: SALVA O PERFIL COMPLETO NO LOCAL STORAGE
+            // 3. SUCESSO: SALVA O PERFIL COMPLETO (COM isAdmin) NO LOCAL STORAGE
             const userProfile = {
                 nome: nome,
-                // O campo crucial para o Dashboard!
-                isAdmin: userData.isAdmin || false, 
-                // Você pode adicionar mais dados aqui, se necessário.
+                // O campo crucial para exibir os links de administrador no Dashboard
+                isAdmin: userData.isAdmin === true, 
             };
 
             localStorage.setItem('usuarioLogado', JSON.stringify(userProfile));
@@ -108,12 +110,11 @@
             console.error("Erro no processo de login:", error);
             messageEl.classList.remove('info-message');
             messageEl.classList.add('error-message');
-            // A mensagem original da sua imagem era "Erro de conexão ou sistema. Tente novamente."
             messageEl.textContent = 'Erro de conexão ou sistema. Tente novamente.'; 
         }
     }
     
-    // Opcional: Adicionar evento de Enter para o formulário
+    // Adicionar evento de Enter para o formulário
     document.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             handleLogin();
