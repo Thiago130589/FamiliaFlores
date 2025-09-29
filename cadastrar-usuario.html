@@ -3,80 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro | Família Flores</title>
+    <title>Cadastro de Usuário</title>
     <link rel="stylesheet" href="css/style.css"> 
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box small-box">
-        <h1 class="main-title-primary">Novo Cadastro</h1>
+    <div class="center-box">
+        <h1 class="main-title">Cadastro de Usuário</h1>
+        <p style="text-align: center; margin-bottom: 20px;">Crie sua conta para começar.</p>
         <hr class="divider">
-        
-        <div class="input-group-vertical">
-            <label class="input-label" for="new-username">Nome de Usuário (ID):</label>
-            <input type="text" id="new-username" class="input-rounded" placeholder="Escolha seu nome (ID)" required>
+
+        <div class="form-group">
+            <label for="reg-username">Nome de Usuário (Apelido)</label>
+            <input type="text" id="reg-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
         </div>
 
-        <div class="input-group-vertical">
-            <label class="input-label" for="new-password">Senha:</label>
-            <input type="password" id="new-password" class="input-rounded" placeholder="Escolha sua senha" required>
+        <div class="form-group">
+            <label for="reg-password">Senha</label>
+            <input type="password" id="reg-password" class="input-rounded" placeholder="Mínimo 6 caracteres" required>
         </div>
-        
-        <button id="register-submit-button" class="btn-rounded btn-success wide-button" style="margin-top: 20px;">Finalizar Cadastro</button>
-        <a href="login.html" class="link-text" style="display: block; margin-top: 10px;">Voltar para o Login</a>
 
-        <p id="register-message" class="error-message" style="margin-top: 10px; display: none;">Mensagem de Status</p>
+        <div class="form-group">
+            <label for="reg-confirm-password">Confirmar Senha</label>
+            <input type="password" id="reg-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
+        </div>
+
+        <button onclick="registerUser()" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
+            Cadastrar
+        </button>
+
+        <a href="login.html" class="btn-secondary-text wide-button" style="text-align: center; display: block; margin-top: 15px;">Já tem conta? Faça login.</a>
+
+        <p id="register-message" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
     </div>
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        document.getElementById('register-submit-button').addEventListener('click', registerUser);
-
         async function registerUser() {
-            const username = document.getElementById('new-username').value.trim();
-            const password = document.getElementById('new-password').value.trim();
-            const registerMessageEl = document.getElementById('register-message');
-            
-            registerMessageEl.style.display = 'none';
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+            const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
+            const messageEl = document.getElementById('register-message');
 
-            if (username.length < 3 || password.length < 3) {
-                registerMessageEl.textContent = 'Nome de usuário e senha devem ter no mínimo 3 caracteres.';
-                registerMessageEl.style.color = 'red';
-                registerMessageEl.style.display = 'block';
+            messageEl.classList.add('hidden-start');
+            messageEl.textContent = '';
+            messageEl.classList.remove('error-message', 'positive-text');
+
+            if (!username || !password || !confirmPassword) {
+                messageEl.textContent = 'Por favor, preencha todos os campos.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
                 return;
             }
+
+            if (password !== confirmPassword) {
+                messageEl.textContent = 'As senhas não coincidem.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
+
+            if (password.length < 6) {
+                messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
+            
+            // Não permite espaços no nome de usuário
+            if (username.includes(' ')) {
+                messageEl.textContent = 'O nome de usuário não pode conter espaços.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
+
 
             try {
                 // 1. Verifica se o usuário já existe
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (userDoc.exists) {
-                    registerMessageEl.textContent = 'Nome de Usuário já está em uso. Escolha outro.';
-                    registerMessageEl.style.color = 'red';
-                    registerMessageEl.style.display = 'block';
+                    messageEl.textContent = 'Nome de usuário já está em uso.';
+                    messageEl.classList.add('error-message');
+                    messageEl.classList.remove('hidden-start');
                     return;
                 }
-                
-                // 2. Cria o novo usuário com campos essenciais
+
+                // 2. Cria o novo usuário
+                // ATENÇÃO: A senha está sendo salva em texto puro. Em um ambiente de produção, use hashing (ex: Firebase Authentication)
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
-                    nome: username, // ID (Chave)
-                    displayName: username, // Nome de exibição inicial
-                    senha: password, 
-                    role: 'Membro', // Novo campo, crucial para o menu!
+                    nome: username,
+                    senha: password, // Senha não segura!
+                    saldo: 0, 
                     isAdmin: false, 
-                    saldo: 0.00,
-                    dataRegistro: new Date().toISOString()
+                    dataCadastro: new Date().toISOString()
                 });
-                
-                // 3. Sucesso: Redireciona para o Login
-                registerMessageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
-                registerMessageEl.style.color = 'green';
-                registerMessageEl.style.display = 'block';
+
+                // 3. Sucesso e redirecionamento
+                messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
+                messageEl.classList.add('positive-text'); // Usa a classe positiva para sucesso
+                messageEl.classList.remove('hidden-start');
                 
                 setTimeout(() => {
                     window.location.href = 'login.html';
@@ -84,9 +116,9 @@
 
             } catch (error) {
                 console.error("Erro no cadastro:", error);
-                registerMessageEl.textContent = 'Ocorreu um erro: ' + error.message;
-                registerMessageEl.style.color = 'red';
-                registerMessageEl.style.display = 'block';
+                messageEl.textContent = 'Erro ao tentar cadastrar. Tente novamente.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
             }
         }
     </script>

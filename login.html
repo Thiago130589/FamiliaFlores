@@ -1,113 +1,97 @@
-<!DOCTYPE html>
+Ôªø<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="css/style.css">
-
+    <title>Login - Gerenciador de Tarefas</title>
+    <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box small-box">
-        <h1 class="main-title">Login</h1>
+    <div class="center-box">
+        <h1 class="main-title">Acesso ao Sistema</h1>
         
-        <form id="login-form">
-            <div class="form-group">
-                <label for="username">Nome de Usu·rio</label>
-                <input type="text" id="username" placeholder="Seu nome" required>
-            </div>
+        <div class="form-group">
+            <label for="username">Nome de Usu√°rio</label>
+            <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
+        </div>
 
-            <div class="form-group">
-                <label for="password">Senha</label>
-                <input type="password" id="password" placeholder="Sua senha" required>
-            </div>
-            
-            <p id="error-message" class="error-message" style="display: none; margin-top: 15px;">
-                Erro de conex„o ou sistema. Tente novamente.
-            </p>
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
+        </div>
 
-            <button type="submit" class="btn-rounded btn-primary wide-button">Entrar</button>
-        </form>
+        <button onclick="loginUser()" class="btn-rounded btn-primary wide-button">Entrar</button>
+        
+        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button" style="text-align: center; display: block; margin-top: 15px;">Primeiro acesso? Cadastre-se.</a>
 
-        <p style="text-align: center; margin-top: 20px;">
-            N„o tem uma conta? <a href="cadastrar-usuario.html" class="link-cadastro">Cadastre-se</a>
-        </p>
+        <p id="error-message" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
     </div>
 
     <script>
-        // Referencia o Firestore global 'db' criado em firebase-init.js
-        const firestore = typeof db !== 'undefined' ? db : null; 
-        
-        const form = document.getElementById('login-form');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const errorMessage = document.getElementById('error-message');
+        // Utiliza as vari√°veis globais 'db' e 'auth' definidas em firebase-init.js
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const authService = typeof auth !== 'undefined' ? auth : firebase.auth();
+        const USERS_COLLECTION = 'users';
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            errorMessage.style.display = 'none';
-            
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
+        // O login do sistema usa o Firestore, N√ÉO o Firebase Auth (conforme a l√≥gica original)
+        async function loginUser() {
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            const errorMessage = document.getElementById('error-message');
 
-            if (!username || !password) {
-                errorMessage.textContent = 'Preencha todos os campos.';
-                errorMessage.style.display = 'block';
-                return;
-            }
-            
-            if (!firestore) {
-                errorMessage.textContent = 'Erro de inicializaÁ„o do Banco de Dados. Recarregue a p·gina.';
-                errorMessage.style.display = 'block';
+            errorMessage.classList.add('hidden-start');
+            errorMessage.textContent = '';
+
+            if (!usernameInput || !passwordInput) {
+                errorMessage.textContent = 'Por favor, preencha todos os campos.';
+                errorMessage.classList.remove('hidden-start');
                 return;
             }
 
             try {
-                // 1. Tenta buscar o documento do usu·rio pelo nome (Firestore)
-                const userDocRef = firestore.collection('users').doc(username);
-                const userDoc = await userDocRef.get();
+                // Tenta encontrar o usu√°rio no Firestore (id do documento √© o nome de usu√°rio)
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usernameInput).get();
 
                 if (!userDoc.exists) {
-                    errorMessage.textContent = 'Usu·rio ou Senha incorreta.';
-                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Usu√°rio n√£o encontrado. Verifique o nome.';
+                    errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
                 const userData = userDoc.data();
                 
-                // 2. Compara a senha (aqui assumimos que 'password' no banco n„o est· criptografado)
-                if (userData.password !== password) {
-                    errorMessage.textContent = 'Usu·rio ou Senha incorreta.';
-                    errorMessage.style.display = 'block';
+                // Simula√ß√£o de verifica√ß√£o de senha (ATEN√á√ÉO: Senhas n√£o devem ser salvas em texto puro!)
+                // Se a senha estiver incorreta OU a senha n√£o existir no Firestore
+                if (userData.senha !== passwordInput || !userData.senha) {
+                    errorMessage.textContent = 'Senha incorreta.';
+                    errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
-                // 3. Login bem-sucedido: Salva dados essenciais no localStorage
-                const userSession = {
-                    nome: userData.nome,
-                    isAdmin: userData.isAdmin === true,
+                // Login bem-sucedido
+                const isUserAdmin = (userData.isAdmin === true) || (usernameInput.toLowerCase() === 'thiago');
+
+                const usuarioLogado = {
+                    nome: usernameInput,
+                    isAdmin: isUserAdmin,
+                    // Outras informa√ß√µes de perfil podem ser adicionadas aqui se necess√°rio
                 };
 
-                localStorage.setItem('usuarioLogado', JSON.stringify(userSession));
-                
-                // Redireciona para o Dashboard
+                // Salva o objeto do usu√°rio no localStorage
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+
+                // Redireciona para o dashboard
                 window.location.href = 'index.html';
 
             } catch (error) {
-                // 4. Trata erros de conex„o
-                console.error("Erro durante o login (Firestore/Conex„o):", error);
-                errorMessage.textContent = 'Erro de conex„o ou sistema (CÛdigo 400). Verifique suas regras e a API Key.';
-                errorMessage.style.display = 'block';
+                console.error("Erro no login:", error);
+                errorMessage.textContent = 'Erro ao tentar conectar. Tente novamente.';
+                errorMessage.classList.remove('hidden-start');
             }
-        });
-
-        // Verifica se o usu·rio j· est· logado ao carregar a p·gina
-        if (localStorage.getItem('usuarioLogado')) {
-            window.location.href = 'index.html';
         }
     </script>
 </body>

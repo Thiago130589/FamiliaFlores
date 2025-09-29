@@ -1,339 +1,120 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Gerenciar Perfis (Admin)</title>
-    <link rel="stylesheet" href="style.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Administradores</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title-green">Gerenciamento de Usuários</h1>
-        <hr class="divider">
-        
-        <p>Selecione um perfil para gerenciar e ver as opções:</p>
-        
-        <label class="input-label" for="select-usuario">Usuário Selecionado:</label>
-        <select id="select-usuario" class="input-rounded" style="width: 100%; margin-bottom: 20px;">
-             <option value="" disabled selected>Carregando usuários...</option>
-        </select>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--info-color);">Gerenciar Administradores</h1>
+        <p class="info-message" style="text-align: center;">Aqui você pode promover/rebaixar membros. Administradores têm acesso total ao sistema de gerenciamento.</p>
+        <hr class="divider">
+        
+        <div id="usuarios-lista" class="historico-lista">
+            <p class="empty-message">Carregando usuários...</p>
+        </div>
 
-        <button id="btn-gerenciar" class="btn-rounded btn-primary wide-button" style="margin-top: 10px;" disabled>Abrir Opções de Gerenciamento</button>
-        
-        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;"></div>
+        <a href="admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
+    </div>
 
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao Dashboard</a>
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
 
-        <div id="popup-acoes" class="modal-overlay" style="display:none;">
-            <div class="modal-content large-modal">
-                <h2 class="modal-title-green" id="acoes-titulo">Opções para [Usuário]</h2>
-                <hr class="divider">
-                
-                <h3 style="margin-top: 20px;">Ações de Perfil:</h3>
-                <div class="action-grid">
-                    <a href="editar-dados.html?user=" id="link-editar-dados" class="btn-rounded btn-tertiary">Editar Dados do Perfil</a>
-                    <a href="gerenciar-carteira.html?user=" id="link-gerenciar-carteira" class="btn-rounded btn-green">Gerenciar Carteira</a>
-                    <button class="btn-rounded btn-primary" id="btn-toggle-admin">Tornar/Remover Administrador</button>
-                    <button class="btn-rounded btn-danger" id="btn-excluir-perfil-modal">Excluir Perfil</button>
-                </div>
-                
-                <h3 style="margin-top: 30px;">Históricos:</h3>
-                <div class="action-grid">
-                    <a href="historico-multas.html?user=" id="link-historico-multas" class="btn-rounded btn-danger">Histórico de Multas</a>
-                    <a href="historico-tarefas.html?user=" id="link-historico-tarefas" class="btn-rounded btn-primary">Histórico de Tarefas</a>
-                    <a href="historico-pagamentos.html?user=" id="link-historico-pagamentos" class="btn-rounded btn-green">Histórico de Pagamentos</a>
-                </div>
+        // 1. Verifica se o usuário logado é Admin antes de carregar a página
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
 
-                <div class="modal-actions centered-actions" style="margin-top: 30px;">
-                    <button class="btn-rounded btn-secondary" id="btn-fechar-acoes">Fechar</button>
-                </div>
-            </div>
-        </div>
-        
-        <div id="popup-confirmacao" class="modal-overlay z-higher" style="display:none;">
-            <div class="modal-content">
-                <h2 class="modal-title" id="confirmacao-titulo"></h2>
-                <div id="confirmacao-msg" class="modal-message"></div>
-                <div class="modal-actions centered-actions">
-                    <button class="btn-rounded btn-primary" id="btn-confirmar-admin-excluir"></button>
-                    <button class="btn-rounded btn-secondary" id="btn-cancelar-admin-excluir">Cancelar</button>
-                </div>
-            </div>
-        </div>
+            if (!userInfo || !userInfo.isAdmin) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return userInfo.nome;
+        }
 
-        <div id="popup-senha" class="modal-overlay z-higher-2" style="display:none;">
-            <div class="modal-content">
-                <h2 class="modal-title error-color">Verificação de Administrador</h2>
-                <div id="senha-msg" class="modal-message"></div>
-                <label class="input-label" for="admin-senha">Digite sua Senha (Admin):</label>
-                <input id="admin-senha" class="input-rounded" type="password" placeholder="Senha de login do administrador">
-                <div id="senha-erro" class="error-message"></div>
-                <div class="modal-actions centered-actions">
-                    <button class="btn-rounded btn-danger" id="btn-verificar-senha">Confirmar</button>
-                    <button class="btn-rounded btn-secondary" id="btn-cancelar-senha">Cancelar</button>
-                </div>
-            </div>
-        </div>
+        // 2. Carregar e renderizar todos os usuários
+        async function renderUsuarios() {
+            const usuarioLogadoNome = checkAdminAccess();
+            if (!usuarioLogadoNome) return;
 
-    </div>
+            const listaEl = document.getElementById('usuarios-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
 
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
+            try {
+                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+                let html = '<ul class="transaction-list">';
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    const isUserAdmin = userData.isAdmin === true;
+                    
+                    // Não permite alterar o próprio status ou o status do usuário principal ('thiago')
+                    const canEdit = userName.toLowerCase() !== 'thiago' && userName !== usuarioLogadoNome;
 
-        let usuarioSelecionado = ''; 
-        let usuarioAdminInfo = null; // Informações do admin logado
-        let acaoEmExecucao = ''; // 'excluir' ou 'toggleAdmin'
+                    const statusText = isUserAdmin ? 'Administrador' : 'Membro Comum';
+                    const statusClass = isUserAdmin ? 'positive-text' : 'negative-text';
+                    const buttonText = isUserAdmin ? 'Rebaixar' : 'Promover';
+                    const buttonClass = isUserAdmin ? 'btn-danger' : 'btn-success';
 
-        // --- Funções de Utilitário ---
+                    html += 
+                        `<li class="transaction-item">
+                            <div class="transaction-details">
+                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-date ${statusClass}">${statusText}</span>
+                            </div>
+                            ${canEdit ? 
+                                `<button class="btn-rounded ${buttonClass}" 
+                                        onclick="toggleAdminStatus('${userName}', ${isUserAdmin})">
+                                    ${buttonText}
+                                </button>`
+                                : `<span class="btn-rounded btn-secondary" style="opacity: 0.8; cursor: default;">Status Fixo</span>`}
+                        </li>`;
+                });
+                
+                html += '</ul>';
+                listaEl.innerHTML = html;
 
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                const obj = JSON.parse(storedValue);
-                // Apenas Administradores podem acessar
-                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
-                    alert("Acesso negado. Apenas administradores podem gerenciar perfis.");
-                    window.location.href = 'index.html';
-                    return null;
-                }
-                return obj;
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de usuários.</p>';
+            }
+        }
 
-        // --- Lógica Principal: Carregamento e Gerenciamento ---
+        // 3. Função para Promover/Rebaixar
+        async function toggleAdminStatus(userName, isCurrentlyAdmin) {
+            const novoStatus = !isCurrentlyAdmin;
+            const acao = novoStatus ? 'Promover' : 'Rebaixar';
+            const novoStatusText = novoStatus ? 'Administrador' : 'Membro Comum';
 
-        async function loadUsers() {
-            usuarioAdminInfo = getUsuarioLogado();
-            if (!usuarioAdminInfo) return;
+            if (!confirm(`Tem certeza que deseja ${acao} o usuário ${userName} para ${novoStatusText}?`)) {
+                return;
+            }
 
-            const select = document.getElementById('select-usuario');
-            const statusEl = document.getElementById('status-message');
-            select.innerHTML = '<option value="" disabled selected>Carregando usuários...</option>';
-            statusEl.textContent = 'Carregando usuários...';
-            document.getElementById('btn-gerenciar').disabled = true;
+            try {
+                const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
+                
+                await userRef.update({
+                    isAdmin: novoStatus
+                });
 
-            try {
-                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
-                
-                // Limpa e Adiciona a opção padrão
-                select.innerHTML = '<option value="" disabled selected>Selecione um usuário...</option>'; 
+                alert(`Usuário ${userName} foi ${acao.toLowerCase()} para ${novoStatusText} com sucesso!`);
+                renderUsuarios(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error(`Erro ao ${acao.toLowerCase()} usuário:`, error);
+                alert(`Erro ao ${acao.toLowerCase()} usuário. Tente novamente.`);
+            }
+        }
 
-                usersSnapshot.forEach(doc => {
-                    // Evita que o admin logado tente gerenciar (e possivelmente se excluir)
-                    if (doc.id !== usuarioAdminInfo.nome) {
-                        const option = document.createElement('option');
-                        option.value = doc.id;
-                        const userData = doc.data();
-                        const label = (userData.isAdmin || doc.id.toLowerCase() === 'thiago') ? `${doc.id} (ADMIN)` : doc.id;
-                        option.textContent = label;
-                        select.appendChild(option);
-                    }
-                });
-                
-                // NÂO dispara a seleção inicial (para manter o "Selecione um usuário...")
-                // select.onchange(); 
-                statusEl.textContent = 'Usuários carregados.';
-
-            } catch (error) {
-                console.error("Erro ao carregar usuários:", error);
-                statusEl.textContent = 'Erro ao carregar a lista de usuários.';
-            }
-        }
-        
-        // --- Popups e Ações ---
-
-        // Ação 1: Abrir o popup principal de ações
-        document.getElementById('select-usuario').onchange = function() {
-            usuarioSelecionado = this.value;
-            const btn = document.getElementById('btn-gerenciar');
-            btn.disabled = !usuarioSelecionado;
-            if (usuarioSelecionado) {
-                document.getElementById('status-message').textContent = `Usuário '${usuarioSelecionado}' selecionado.`;
-            }
-        };
-
-        document.getElementById('btn-gerenciar').onclick = async () => {
-            if (!usuarioSelecionado) return;
-            
-            // 1. Atualiza os links (passando o nome do usuário como parâmetro)
-            document.getElementById('link-editar-dados').href = `editar-dados.html?user=${usuarioSelecionado}`;
-            document.getElementById('link-gerenciar-carteira').href = `gerenciar-carteira.html?user=${usuarioSelecionado}`; // CORREÇÃO/ADIÇÃO
-            document.getElementById('link-historico-multas').href = `historico-multas.html?user=${usuarioSelecionado}`;
-            document.getElementById('link-historico-tarefas').href = `historico-tarefas.html?user=${usuarioSelecionado}`;
-            document.getElementById('link-historico-pagamentos').href = `historico-pagamentos.html?user=${usuarioSelecionado}`;
-
-            // 2. Verifica o status Admin do usuário selecionado para configurar o botão
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSelecionado).get();
-            const isAdmin = userDoc.data()?.isAdmin || false;
-            
-            const btnToggleAdmin = document.getElementById('btn-toggle-admin');
-            btnToggleAdmin.textContent = isAdmin ? 'Remover Status Admin' : 'Tornar Administrador';
-            btnToggleAdmin.className = isAdmin ? 'btn-rounded btn-warning' : 'btn-rounded btn-primary';
-
-            // 3. Abre o modal
-            document.getElementById('acoes-titulo').textContent = `Opções para ${usuarioSelecionado}`;
-            document.getElementById('popup-acoes').style.display = 'flex';
-        };
-
-        // Ação 2: Fechar o popup principal de ações
-        document.getElementById('btn-fechar-acoes').onclick = () => {
-            document.getElementById('popup-acoes').style.display = 'none';
-        };
-
-        // Ação 3: Iniciar o fluxo de Exclusão
-        document.getElementById('btn-excluir-perfil-modal').onclick = () => {
-            document.getElementById('popup-acoes').style.display = 'none'; // Fecha o modal de ações
-            
-            acaoEmExecucao = 'excluir';
-            document.getElementById('confirmacao-titulo').textContent = 'Confirmar Exclusão';
-            document.getElementById('confirmacao-msg').innerHTML = `Esta ação é irreversível. Tem certeza que deseja excluir <b>${usuarioSelecionado}</b>?`;
-            document.getElementById('btn-confirmar-admin-excluir').textContent = 'Sim, Excluir Perfil';
-            document.getElementById('btn-confirmar-admin-excluir').className = 'btn-rounded btn-danger';
-            document.getElementById('popup-confirmacao').style.display = 'flex';
-        };
-
-        // Ação 4: Iniciar o fluxo de Tornar/Remover Admin
-        document.getElementById('btn-toggle-admin').onclick = async () => {
-            document.getElementById('popup-acoes').style.display = 'none'; // Fecha o modal de ações
-            
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSelecionado).get();
-            const isAdmin = userDoc.data()?.isAdmin || false;
-            
-            acaoEmExecucao = 'toggleAdmin';
-
-            const newStatus = !isAdmin;
-            const acao = newStatus ? 'Tornar' : 'Remover de';
-            const acaoClass = newStatus ? 'btn-primary' : 'btn-warning';
-
-            document.getElementById('confirmacao-titulo').textContent = `${acao} Administrador`;
-            document.getElementById('confirmacao-msg').innerHTML = `Tem certeza que deseja ${acao} <b>${usuarioSelecionado}</b> o status de Administrador?`;
-            document.getElementById('btn-confirmar-admin-excluir').textContent = `Confirmar ${acao}`;
-            document.getElementById('btn-confirmar-admin-excluir').className = 'btn-rounded ' + acaoClass;
-            document.getElementById('popup-confirmacao').style.display = 'flex';
-        };
-
-        // Ação 5: CONFIRMAR (Tanto Excluir quanto Mudar Admin) - Abre o modal de senha
-        document.getElementById('btn-confirmar-admin-excluir').onclick = () => {
-            document.getElementById('popup-confirmacao').style.display = 'none';
-            document.getElementById('senha-msg').innerHTML = `Digite sua senha para confirmar a ação de <b>${acaoEmExecucao === 'excluir' ? 'excluir' : 'mudar status admin'}</b> em ${usuarioSelecionado}.`;
-            document.getElementById('admin-senha').value = '';
-            document.getElementById('senha-erro').textContent = '';
-            document.getElementById('popup-senha').style.display = 'flex';
-        };
-
-        // Ação 6: Cancelar Confirmação (Volta para o modal de Ações)
-        document.getElementById('btn-cancelar-admin-excluir').onclick = () => {
-            document.getElementById('popup-confirmacao').style.display = 'none';
-            document.getElementById('popup-acoes').style.display = 'flex'; // Volta para o modal de ações
-        };
-
-        // Ação 7: Cancelar Senha (Volta para o modal de Confirmação)
-        document.getElementById('btn-cancelar-senha').onclick = () => {
-            document.getElementById('popup-senha').style.display = 'none';
-            document.getElementById('popup-confirmacao').style.display = 'flex'; // Volta para o modal de confirmação
-        };
-
-        // Ação 8: VERIFICAR SENHA e EXECUTAR AÇÃO FINAL
-        document.getElementById('btn-verificar-senha').onclick = async () => {
-            const senha = document.getElementById('admin-senha').value;
-            if (!senha) {
-                document.getElementById('senha-erro').textContent = 'A senha é obrigatória.';
-                return;
-            }
-            
-            document.getElementById('senha-erro').textContent = 'Verificando...';
-            
-            if (usuarioAdminInfo.senha !== senha) {
-                document.getElementById('senha-erro').textContent = 'Senha do administrador incorreta.';
-                return;
-            }
-
-            document.getElementById('popup-senha').style.display = 'none';
-            
-            let sucesso = false;
-            
-            if (acaoEmExecucao === 'excluir') {
-                sucesso = await deleteUser(usuarioSelecionado);
-            } else if (acaoEmExecucao === 'toggleAdmin') {
-                sucesso = await toggleAdminStatus(usuarioSelecionado);
-            }
-
-            if (sucesso) {
-                document.getElementById('status-message').className = 'success-message';
-                document.getElementById('status-message').textContent = acaoEmExecucao === 'excluir' 
-                    ? `Usuário '${usuarioSelecionado}' excluído com sucesso!` 
-                    : `Status Admin de '${usuarioSelecionado}' alterado com sucesso!`;
-                
-                // Limpa a seleção e recarrega a lista
-                document.getElementById('select-usuario').value = '';
-                document.getElementById('btn-gerenciar').disabled = true;
-                await loadUsers();
-            } else {
-                document.getElementById('status-message').className = 'error-message';
-                document.getElementById('status-message').textContent = `Falha na execução da ação de ${acaoEmExecucao}. Verifique o console.`;
-            }
-        };
-
-        // --- Funções de Execução Final ---
-
-        async function toggleAdminStatus(userName) {
-             const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
-             const userDoc = await userRef.get();
-             if (!userDoc.exists) return false;
-             
-             const currentStatus = userDoc.data().isAdmin || false;
-             
-             try {
-                await userRef.update({
-                     isAdmin: !currentStatus
-                });
-                return true;
-             } catch (error) {
-                console.error("Erro ao alternar status Admin:", error);
-                return false;
-             }
-        }
-
-        async function deleteUser(userName) {
-            try {
-                const batch = firestore.batch();
-                const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
-
-                batch.delete(userRef);
-
-                const tarefasPendentesQuery = await firestore.collection('tarefasPendentes')
-                    .where('atribuidaPara', '==', userName).get();
-                tarefasPendentesQuery.docs.forEach(doc => batch.delete(doc.ref));
-
-                const tarefasConcluidasQuery = await firestore.collection('tarefasConcluidas')
-                    .where('atribuidaPara', '==', userName).get();
-                tarefasConcluidasQuery.docs.forEach(doc => batch.delete(doc.ref));
-                
-                await batch.commit();
-                // Limpeza de localStorage para outros usuários não é necessária
-                // localStorage.removeItem('carteira_' + userName); 
-                return true;
-
-            } catch (error) {
-                console.error("Erro ao excluir usuário:", error);
-                return false;
-            }
-        }
-
-
-        // Inicia o carregamento dos usuários
-        window.addEventListener('DOMContentLoaded', loadUsers);
-    </script>
+        window.addEventListener('DOMContentLoaded', renderUsuarios);
+    </script>
 </body>
 </html>

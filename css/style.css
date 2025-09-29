@@ -1,328 +1,430 @@
 ﻿/*
  * style.css
- * Estilos gerais para o Gerenciador de Tarefas Domésticas
+ * Tema visual: Fundo Azul, Caixas Brancas Arredondadas (Tema Família)
  */
 
-/* -------------------------------------------------------- */
-/* 1. Reset Básico e Variáveis */
-/* -------------------------------------------------------- */
+/* =========================================================================
+ * 1. VARIÁVEIS DE COR E BÁSICO
+ * ========================================================================= */
 :root {
-    --primary-color: #1976d2; /* Azul principal */
-    --primary-dark: #1565c0;
-    --secondary-color: #f5f5f5; /* Cinza claro */
-    --success-color: #4caf50; /* Verde */
-    --danger-color: #f44336; /* Vermelho */
-    --warning-color: #ff9800; /* Laranja (uso para pendente/admin) */
-    --info-color: #2196f3; /* Azul Claro (uso para em andamento) */
+    /* Cores Principais */
+    --primary-color: #007bff; /* Azul vibrante para botões e foco */
+    --primary-light: #52a7ff;
+    --primary-dark: #0056b3;
+    
+    /* Fundo */
+    --background-color: #e3f2fd; /* Azul muito claro, suave */
+    
+    /* Cores de Feedback */
+    --success-color: #28a745; /* Verde para sucesso/ganhos */
+    --error-color: #dc3545; /* Vermelho para multas/erros */
+    --warning-color: #ffc107; /* Amarelo para pendente/atenção */
+    --info-color: #17a2b8; /* Ciano para informação/atribuição */
+
+    /* Neutros */
     --text-color: #333;
-    --border-radius: 8px;
-    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --box-bg-color: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    font-family: Arial, sans-serif;
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: var(--secondary-color);
+    background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
+    align-items: flex-start; /* Alinha o conteúdo ao topo, melhor para páginas longas */
     padding: 20px;
 }
 
-/* -------------------------------------------------------- */
-/* 2. Layout Principal e Títulos */
-/* -------------------------------------------------------- */
+/* =========================================================================
+ * 2. LAYOUTS E CAIXAS
+ * ========================================================================= */
+
 .center-box {
-    background-color: #fff;
+    background-color: var(--box-bg-color);
+    border-radius: 20px; /* Caixas Brancas Arredondadas */
     padding: 30px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    width: 100%;
-    max-width: 400px; /* Padrão para login/cadastro */
+    box-shadow: 0 4px 12px var(--shadow-color);
+    margin-top: 20px;
+    width: 95%; /* Responsivo no celular */
+    max-width: 450px;
 }
 
 .large-box {
-    max-width: 600px; /* Maior para dashboard e administração */
+    max-width: 800px;
+    width: 95%;
 }
 
+/* Para posicionar o botão de logout/configurações */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* =========================================================================
+ * 3. TIPOGRAFIA E ESTILOS GERAIS
+ * ========================================================================= */
+
 .main-title {
+    font-size: 2em;
+    font-weight: bold; /* Letras em Negrito */
     color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Títulos com cores específicas (usados no Admin) */
+.main-title-success { color: var(--success-color); }
+.main-title-danger { color: var(--error-color); }
+.main-title-error { color: var(--error-color); }
+
+.section-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.info-message {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+}
+
+.error-message {
+    color: var(--error-color);
+    font-weight: bold;
+    text-align: center;
+}
+
+.center-text { text-align: center; }
+
+/* =========================================================================
+ * 4. FOTOS DE PERFIL (AVATAR)
+ * ========================================================================= */
+
+.profile-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%; /* Arredondada */
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    margin-bottom: 15px;
+}
+
+/* Adaptação Responsiva para avatares menores em listas, etc. */
+.profile-pic-small {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+}
+
+/* =========================================================================
+ * 5. SALDO E PLACAR (INDEX.HTML)
+ * ========================================================================= */
+
+.placar-box {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
     text-align: center;
     margin-bottom: 20px;
 }
 
-.admin-clock {
-    text-align: center;
-    font-size: 0.9em;
+.placar-item {
+    padding: 10px;
+    border-radius: 10px;
+    flex: 1;
+    margin: 0 5px;
+}
+
+.placar-item h2 {
+    font-size: 1.1em;
     color: var(--text-color);
-    margin-bottom: 15px;
-}
-
-.divider {
-    border: none;
-    height: 1px;
-    background-color: #ddd;
-    margin: 20px 0;
-}
-
-/* -------------------------------------------------------- */
-/* 3. Formulários e Inputs */
-/* -------------------------------------------------------- */
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
     margin-bottom: 5px;
+}
+
+.placar-item p {
+    font-size: 1.6em;
     font-weight: bold;
 }
 
-.input-rounded {
-    width: 100%;
-    padding: 10px 15px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
+/* Cores de Saldo */
+.saldo-negativo { color: var(--error-color); }
+.saldo-positivo { color: var(--success-color); }
+
+.negative-text { color: var(--error-color); }
+.positive-text { color: var(--success-color); }
+.status-bold { font-weight: bold; }
+
+/* =========================================================================
+ * 6. RELÓGIO (DATA, HORA)
+ * ========================================================================= */
+
+.clock-container {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f7f7f7;
+    border: 1px solid #eee;
+}
+
+.clock-time {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: var(--error-color); /* Relógio Vermelho */
+    line-height: 1;
+}
+
+.clock-date {
     font-size: 1em;
-    outline: none;
-    transition: border-color 0.3s;
+    color: var(--error-color); /* Data Vermelha */
+    margin-top: 5px;
 }
 
-.input-rounded:focus {
-    border-color: var(--primary-color);
-}
+/* =========================================================================
+ * 7. BOTÕES E LINKS
+ * ========================================================================= */
 
-/* -------------------------------------------------------- */
-/* 4. Botões Padrão */
-/* -------------------------------------------------------- */
 .btn-rounded {
-    padding: 10px 25px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 20px;
+    border-radius: 25px; /* Botões Arredondados */
     cursor: pointer;
-    font-size: 1em;
     font-weight: bold;
     text-align: center;
-    transition: background-color 0.3s, opacity 0.3s;
     text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s;
+    font-size: 0.9em;
     display: inline-block;
 }
 
+/* Padrão: Botões Azuis */
 .btn-primary {
     background-color: var(--primary-color);
-    color: #fff;
+    color: white;
 }
-
 .btn-primary:hover {
     background-color: var(--primary-dark);
 }
 
 .btn-secondary {
-    background-color: #ccc;
-    color: var(--text-color);
+    background-color: #6c757d;
+    color: white;
+}
+.btn-secondary:hover {
+    background-color: #5a6268;
 }
 
-.btn-secondary:hover {
-    background-color: #bbb;
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: white;
+}
+.btn-danger:hover {
+    background-color: #bd2130;
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    color: white;
+}
+.btn-info:hover {
+    background-color: #117a8b;
 }
 
 .btn-secondary-text {
     background-color: transparent;
     color: var(--primary-color);
-    padding: 10px 0;
+    border: 2px solid var(--primary-color);
 }
-
 .btn-secondary-text:hover {
-    opacity: 0.8;
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: #fff;
-}
-
-.btn-success:hover {
-    background-color: #388e3c;
-}
-
-.btn-danger {
-    background-color: var(--danger-color);
-    color: #fff;
-}
-
-.btn-danger:hover {
-    background-color: #d32f2f;
-}
-
-.btn-warning {
-    background-color: var(--warning-color);
-    color: #fff;
-}
-
-.btn-warning:hover {
-    background-color: #f57c00;
+    background-color: var(--primary-color);
+    color: white;
 }
 
 .wide-button {
-    display: block;
     width: 100%;
-    margin-top: 15px;
-}
-
-/* -------------------------------------------------------- */
-/* 5. Estilos de Modal */
-/* -------------------------------------------------------- */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    /* Começa invisível, só mostra via JS (display: flex) */
-    display: none; 
-}
-
-.hidden-start {
-    /* Usado para garantir que o JS possa alternar facilmente */
-    display: none;
-}
-
-.modal-content {
-    background-color: #fff;
-    padding: 30px;
-    border-radius: var(--border-radius);
-    width: 90%;
-    max-width: 350px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    text-align: center;
-}
-
-.modal-title {
-    color: var(--primary-color);
-    margin-bottom: 20px;
-    font-size: 1.5em;
-}
-
-.modal-info-visible {
-    padding: 10px;
-    background-color: var(--secondary-color);
-    border-radius: 5px;
-    margin-bottom: 15px;
-    font-size: 0.9em;
-}
-
-.modal-button-margin {
     margin-top: 10px;
 }
 
-.modal-close-button {
-    margin-top: 20px;
+.button-spacing-top {
+    margin-top: 20px !important;
 }
 
-/* -------------------------------------------------------- */
-/* 6. Estilos de Dashboard e Cards de Tarefa */
-/* -------------------------------------------------------- */
-#dashboard-list {
-    margin-top: 20px;
+.button-spacing-bottom {
+    margin-bottom: 20px !important;
 }
 
-.dashboard-card {
-    background-color: #fff;
-    padding: 15px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 15px;
-    border-left: 5px solid var(--primary-color);
+.action-grid {
+    display: grid;
+    gap: 10px;
+    margin: 15px 0;
+}
+.action-grid-two-cols {
+    grid-template-columns: 1fr 1fr;
+}
+.action-grid-three-cols {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    font-size: 1.2em;
+    line-height: 1;
+    margin-left: 10px;
+}
+
+/* =========================================================================
+ * 8. FORMULÁRIOS
+ * ========================================================================= */
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+label {
+    font-weight: bold;
+    margin-top: 10px;
+    color: var(--text-color);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+textarea,
+select {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    width: 100%;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* =========================================================================
+ * 9. LISTAS E CARDS (TAREFAS/HISTÓRICO)
+ * ========================================================================= */
+
+.historico-lista {
+    margin-top: 15px;
+    max-height: 400px; /* Limita a altura para scroll */
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Estilo para lista de transações (usado em Saldo, Multas, Atribuição) */
+.transaction-list {
+    list-style: none;
+}
+
+.transaction-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.tarefa-card {
-    background-color: #fff;
     padding: 15px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 15px;
-    border-left: 5px solid var(--primary-color); /* Estilo padrão */
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    border-left: 5px solid #ccc;
+    transition: box-shadow 0.2s;
+}
+.transaction-item:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.tarefa-card-content {
+.transaction-details {
+    display: flex;
+    flex-direction: column;
     flex-grow: 1;
 }
 
-.tarefa-name {
+.transaction-description {
     font-weight: bold;
-    font-size: 1.1em;
-    color: var(--primary-dark);
+    color: var(--text-color);
 }
 
-.tarefa-info {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 5px;
+.transaction-date {
+    font-size: 0.85em;
+    color: #6c757d;
 }
 
-/* Botão de Ação (Dashboard) */
-.tarefa-action-button {
-    margin-left: 15px;
-    white-space: nowrap;
+.transaction-amount {
+    font-weight: bold;
+    margin-left: 10px;
 }
 
-/* -------------------------------------------------------- */
-/* 7. Estilos de Administração (Tarefas e Perfis) */
-/* -------------------------------------------------------- */
-.task-action-button {
-    margin-bottom: 5px;
-}
+/* Bordas coloridas para Transaction Item */
+.card-border-success { border-left-color: var(--success-color); }
+.card-border-warning { border-left-color: var(--warning-color); }
+.card-border-error { border-left-color: var(--error-color); }
+.card-border-info { border-left-color: var(--info-color); }
 
-.task-return-button {
-    margin-bottom: 0;
-}
 
-/* Estilo para os cards de Admin */
-.admin-card {
-    border-left-width: 8px; /* Borda mais grossa para destaque */
+/* Tarefa Card (mais complexo, usado no Admin/Minhas Tarefas) */
+.tarefa-card {
     padding: 15px;
+    margin-bottom: 15px;
+    background-color: var(--box-bg-color);
+    border-radius: 10px;
+    border-left: 6px solid var(--primary-color);
+    box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .tarefa-header-admin {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     margin-bottom: 10px;
 }
 
 .tarefa-nome-admin {
-    font-weight: bold;
     font-size: 1.2em;
-    color: var(--text-color);
-    word-break: break-word; /* Quebra texto longo */
-    max-width: calc(100% - 40px);
-}
-
-.tarefa-details-admin {
-    display: flex;
-    flex-direction: column;
-}
-
-.tarefa-info-admin {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 5px;
+    font-weight: bold;
+    color: var(--primary-dark);
 }
 
 .tarefa-status-line {
@@ -332,88 +434,122 @@ body {
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 0.9em;
-    margin-bottom: 5px;
-    font-weight: 500;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
 /* Cores de status */
-.tarefa-info-status-success {
-    border: 1px solid var(--success-color);
-    background-color: rgba(76, 175, 80, 0.1); /* Verde claro */
-    color: var(--success-color);
-}
+.tarefa-info-status-success { background-color: #d4edda; color: var(--success-color); }
+.tarefa-info-status-warning { background-color: #fff3cd; color: var(--warning-color); }
+.tarefa-info-status-danger { background-color: #f8d7da; color: var(--error-color); }
+.tarefa-info-status-info { background-color: #d1ecf1; color: var(--info-color); }
 
-.tarefa-info-status-warning {
-    border: 1px solid var(--warning-color);
-    background-color: rgba(255, 152, 0, 0.1); /* Laranja claro */
-    color: var(--warning-color);
-}
-
-.tarefa-info-status-info {
-    border: 1px solid var(--info-color);
-    background-color: rgba(33, 150, 243, 0.1); /* Azul claro */
-    color: var(--info-color);
-}
-
-.tarefa-info-status-default {
-    border: 1px solid #ccc;
-    background-color: var(--secondary-color);
-    color: var(--text-color);
-}
-
-/* Estilos de Status (dentro da linha) */
-.status-available { color: var(--success-color); font-weight: bold; }
-.status-in-progress { color: var(--info-color); font-weight: bold; }
-.status-pending { color: var(--warning-color); font-weight: bold; }
-
-/* Botão de ícone (três pontos) */
-.btn-icon {
-    width: 35px;
-    height: 35px;
-    padding: 0;
-    line-height: 35px; /* Centraliza o texto/ícone (se usar ícone) */
-    font-size: 1.2em;
-    flex-shrink: 0;
-}
-
-.btn-blue {
-    background-color: var(--primary-color);
-    color: #fff;
-}
-.btn-blue:hover {
-    background-color: var(--primary-dark);
-}
-
-/* Estilo para a grade de botões (Modais de Admin) */
-.admin-action-grid {
+.tarefa-details-admin {
     display: grid;
-    gap: 10px;
-    margin-top: 10px;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    font-size: 0.9em;
 }
 
-/* Media Query para telas menores */
-@media (max-width: 450px) {
+.tarefa-info-admin {
+    color: #6c757d;
+}
+
+/* Responsividade para detalhes do Admin */
+@media (min-width: 600px) {
+    .tarefa-details-admin {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* =========================================================================
+ * 10. MODAIS (POPUPS)
+ * ========================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.hidden-start {
+    display: none;
+}
+
+.modal-content {
+    background-color: var(--box-bg-color);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px var(--shadow-color);
+    max-width: 450px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal-message {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.centered-actions {
+    justify-content: center;
+}
+
+/* =========================================================================
+ * 11. RESPONSIVIDADE (MOBILE FIRST)
+ * ========================================================================= */
+
+/* Para telas maiores que 600px */
+@media (min-width: 600px) {
+    body {
+        align-items: center;
+    }
+
     .center-box {
-        padding: 20px;
+        padding: 40px;
     }
 
-    .tarefa-header-admin {
-        flex-direction: column;
-        align-items: stretch;
+    .main-title {
+        font-size: 2.5em;
     }
 
-    .tarefa-nome-admin {
-        margin-bottom: 5px;
-        max-width: 100%;
+    .placar-item p {
+        font-size: 2em;
     }
 
-    .btn-icon {
-        position: absolute;
-        top: 15px;
-        right: 15px;
+    .action-grid-three-cols {
+        grid-template-columns: 1fr 1fr 1fr;
     }
-    
-    .admin-card {
-        position: relative;
+}
+
+/* Para telas maiores que 800px */
+@media (min-width: 800px) {
+    .large-box {
+        margin-top: 50px;
     }
 }

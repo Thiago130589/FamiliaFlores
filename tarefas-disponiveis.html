@@ -8,149 +8,146 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title-blue">Tarefas Disponíveis</h1>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--success-color);">Tarefas Disponíveis</h1>
+        <p class="info-message" style="text-align: center;">Pegue uma tarefa para começar a ganhar pontos (e dinheiro!).</p>
         <hr class="divider">
-
-        <div id="tarefas-list" style="width: 100%;">
-            <p id="loading-message">Carregando tarefas...</p>
+        
+        <div id="tarefas-lista" class="historico-lista">
+            <p class="empty-message">Carregando tarefas...</p>
         </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao perfil</button>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            Voltar ao Dashboard
+        </a>
     </div>
 
     <script>
-        // Utiliza a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        function voltarAoPerfil() {
-            window.location.href = 'index.html';
-        }
-
-        // Função utilitária para obter o objeto completo do usuário
-        function getUsuarioObjeto() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
-        
-        // Função para carregar tarefas com status 'disponivel'
-        async function loadTarefasDisponiveis() {
-            const lista = document.getElementById('tarefas-list');
-            lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>';
+        // 1. Verifica Acesso
+        function checkAccess() {
+            const userInfo = getUsuarioLogado();
             
-            const user = getUsuarioObjeto();
-            if (!user || !user.nome) {
-                lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
-                return;
+            if (!userInfo || !userInfo.nome) {
+                window.location.href = 'login.html';
+                return false;
             }
+            return userInfo.nome;
+        }
 
+        // 2. Renderiza a lista de tarefas disponíveis
+        async function renderTarefasDisponiveis() {
+            const userName = checkAccess();
+            if (!userName) return;
+
+            const listaEl = document.getElementById('tarefas-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
+            
             try {
-                // Busca todas as tarefas da coleção 'tarefasDisponiveis'
-                const snapshot = await firestore.collection('tarefasDisponiveis')
-                    .orderBy('criadaEm', 'asc') // Ordenar do mais antigo para o mais novo
-                    .get();
+                // Filtra por tarefas com status 'Disponível'
+                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
+                    .where('status', '==', 'Disponível')
+                    .orderBy('valor', 'desc'); // Tarefas mais valiosas primeiro
 
-                // Limpa a lista antes de preencher
-                lista.innerHTML = ''; 
-
-                if (snapshot.empty) {
-                    lista.innerHTML = '<p class="empty-message">Não há tarefas disponíveis no momento.</p>';
-                    return;
-                }
+                const snapshot = await query.get();
+                let html = '';
+                let foundTasks = false;
 
                 snapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card';
-                    
-                    const dataFormatada = new Date(tarefa.data).toLocaleDateString('pt-BR');
+                    foundTasks = true;
+                    const taskId = doc.id;
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
 
-                    elemento.innerHTML = `
-                        <div class="tarefa-details">
-                            <span class="tarefa-nome">${tarefa.nome} (${dataFormatada})</span>
-                            <span class="tarefa-info">
-                                Valor: R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')} | ${tarefa.inicio} - ${tarefa.fim}
-                            </span>
-                        </div>
-                        <button onclick="pegarTarefa('${doc.id}')" class="btn-rounded btn-green">Pegar Tarefa</button>
+                    // Botão de ação principal
+                    const buttonHtml = `
+                        <button class="btn-rounded btn-primary wide-button" 
+                                onclick="pegarTarefa('${taskId}', '${t.nome}')">
+                            Pegar Tarefa
+                        </button>
                     `;
-                    lista.appendChild(elemento);
+                    
+                    // Estrutura do Card
+                    html += `
+                        <div class="tarefa-card admin-card" style="border-left-color: var(--success-color);">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
+                            </div>
+                            
+                            <div class="tarefa-status-line tarefa-info-status-success" style="margin-bottom: 10px;">
+                                <span>Status:</span>
+                                <span class="status-available">Disponível</span>
+                            </div>
+
+                            <div class="tarefa-details-admin">
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
+                                <div class="tarefa-info-admin">Descrição: ${t.descricao || 'N/A'}</div>
+                            </div>
+                            <div style="margin-top: 15px;">
+                                ${buttonHtml}
+                            </div>
+                        </div>
+                    `;
                 });
+
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa disponível no momento. Verifique mais tarde.</p>';
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                lista.innerHTML = `<p class="error-message">Erro ao carregar tarefas. Verifique o Console (F12).</p>`;
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas.</p>';
             }
         }
 
-        // Função para mover a tarefa para 'tarefasAtribuidas' (transação)
-        async function pegarTarefa(taskId) {
-            const user = getUsuarioObjeto();
-            if (!user || !user.nome) {
-                alert('Usuário não identificado. Faça login novamente.');
-                return;
-            }
+        // 3. Função para Pegar a Tarefa (Transação: move de Disponíveis para Atribuídas)
+        async function pegarTarefa(taskId, taskName) {
+            const userName = getUsuarioLogado().nome;
 
-            if (!confirm(`Tem certeza que deseja pegar a tarefa?`)) {
+            if (!confirm(`Tem certeza que deseja pegar a tarefa "${taskName}"? Ela passará para sua lista "Em Andamento".`)) {
                 return;
             }
 
             try {
-                const taskRef = firestore.collection('tarefasDisponiveis').doc(taskId);
-                const assignedRef = firestore.collection('tarefasAtribuidas').doc(); // Novo Doc ID
-                
-                const batch = firestore.batch();
+                const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
+                const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); // Novo ID
 
-                const taskDoc = await taskRef.get();
-                
-                if (!taskDoc.exists) {
-                    alert('A tarefa foi recentemente pega por outro membro.');
-                    loadTarefasDisponiveis(); 
-                    return;
-                }
+                await firestore.runTransaction(async (transaction) => {
+                    const taskDoc = await transaction.get(availableRef);
 
-                const tarefaData = taskDoc.data();
-                
-                // 1. Prepara a nova tarefa para a coleção 'tarefasAtribuidas'
-                const novaTarefaAtribuida = {
-                    ...tarefaData, // Copia todos os campos da tarefa disponível
-                    status: 'atribuida', // Novo status
-                    dataAtribuicao: new Date().toISOString(),
-                    atribuidaPara: user.nome // Apenas o nome do usuário
-                };
+                    if (!taskDoc.exists) {
+                        throw new Error("Tarefa não encontrada (pode ter sido pega por outro usuário).");
+                    }
+                    
+                    const taskData = taskDoc.data();
+                    
+                    // 1. Deleta da lista de tarefas disponíveis
+                    transaction.delete(availableRef);
+                    
+                    // 2. Registra na lista de tarefas atribuídas
+                    const assignedData = {
+                        ...taskData,
+                        status: 'EmAndamento',
+                        atribuidaPara: userName,
+                        dataAtribuicao: new Date().toISOString().split('T')[0] // Data de hoje
+                    };
+                    transaction.set(assignedRef, assignedData);
+                });
 
-                // Remove o campo 'status' antigo se ele existir na cópia (se houver)
-                delete novaTarefaAtribuida.status; 
+                alert(`Tarefa "${taskName}" foi atribuída a você! Acesse "Minhas Tarefas" para começar.`);
+                renderTarefasDisponiveis(); // Recarrega a lista
                 
-                // Adiciona a tarefa na coleção 'tarefasAtribuidas'
-                batch.set(assignedRef, novaTarefaAtribuida);
-
-                // 2. Deleta a tarefa da coleção 'tarefasDisponiveis'
-                batch.delete(taskRef);
-                
-                // 3. Executa o lote de operações
-                await batch.commit();
-                
-                alert(`Tarefa "${tarefaData.nome}" atribuída a você! Vá para "Minhas Tarefas" para ver.`);
-                loadTarefasDisponiveis(); // Recarrega a lista
-            } catch (e) {
-                console.error("Erro ao pegar a tarefa:", e);
-                alert('Erro ao atribuir a tarefa. Tente novamente.');
+            } catch (error) {
+                console.error("Erro na transação de pegar tarefa:", error);
+                alert(`Erro ao pegar a tarefa: ${error.message || 'Tente novamente.'}`);
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadTarefasDisponiveis);
+        window.addEventListener('DOMContentLoaded', renderTarefasDisponiveis);
     </script>
 </body>
 </html>

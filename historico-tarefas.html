@@ -3,190 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Histórico de Tarefas</title>
+    <title>Minhas Tarefas Concluídas</title>
     <link rel="stylesheet" href="css/style.css"> 
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title">Histórico de Tarefas</h1>
-        
-        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
-            &#8592; Voltar para o Dashboard
-        </a>
+        <h1 class="main-title" style="color: var(--primary-color);">Minhas Tarefas (Histórico)</h1>
+        <p class="info-message" id="page-subtitle" style="text-align: center;">Tarefas que você concluiu ou que estão em espera de pagamento.</p>
         <hr class="divider">
-
-        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">Histórico de: <span id="user-title">Meu Perfil</span></h2>
         
-        <div id="admin-options" style="display: none; margin-bottom: 20px;">
-            <div class="form-group">
-                <label for="user-select">Visualizar Histórico de:</label>
-                <select id="user-select" class="wide-button">
-                    </select>
-            </div>
-            
-            <button class="btn-rounded btn-danger wide-button" onclick="confirmDeleteHistory()" style="margin-top: 10px;">
-                Apagar Histórico de Tarefas (Admin)
-            </button>
-            <hr class="divider">
+        <div id="historico-lista" class="historico-lista">
+            <p class="empty-message">Carregando histórico...</p>
         </div>
 
-        <div id="status-message" class="info-message" style="display: block;">Carregando histórico...</div>
-        
-        <ul id="tarefa-list" class="transaction-list">
-            </ul>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            Voltar ao Dashboard
+        </a>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : null;
-        
-        // Garante que a função formatarMoeda esteja acessível
-        const formatarMoeda = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor || 0).toFixed(2).replace('.', ',')}`;
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
-
-        /**
-         * Carrega a lista de usuários do Firestore e preenche o select (apenas para Admin).
-         */
-        async function loadUserSelect(currentUser) {
-            const selectEl = document.getElementById('user-select');
-            selectEl.innerHTML = ''; // Limpa opções antigas
-
-            const allOption = document.createElement('option');
-            allOption.value = currentUser.nome;
-            allOption.textContent = `Meu Perfil (${currentUser.nome})`;
-            selectEl.appendChild(allOption);
-
-            try {
-                const usersSnapshot = await firestore.collection('users').get();
-                usersSnapshot.docs.forEach(doc => {
-                    const user = doc.data();
-                    if (user.nome !== currentUser.nome) {
-                        const option = document.createElement('option');
-                        option.value = user.nome;
-                        option.textContent = user.nome;
-                        selectEl.appendChild(option);
-                    }
-                });
-
-                // Adiciona o listener de mudança
-                selectEl.addEventListener('change', () => {
-                    const selectedUser = selectEl.value;
-                    fetchAndRenderTarefas(selectedUser);
-                });
-
-            } catch (error) {
-                console.error("Erro ao carregar lista de usuários:", error);
-            }
-        }
-
-
-        /**
-         * Busca as tarefas concluídas no Firestore e as exibe na lista.
-         */
-        async function fetchAndRenderTarefas(usuarioNome) {
-            const messageEl = document.getElementById('status-message');
-            const listEl = document.getElementById('tarefa-list');
-            
-            listEl.innerHTML = '';
-            messageEl.textContent = `Carregando histórico de tarefas para ${usuarioNome}...`;
-            messageEl.classList.remove('error-message');
-            messageEl.classList.add('info-message');
-            messageEl.style.display = 'block';
-
-            document.getElementById('user-title').textContent = usuarioNome;
-
-            try {
-                // Busca a subcoleção 'tarefasConcluidas' dentro do documento do usuário
-                const tarefasRef = firestore.collection('users').doc(usuarioNome).collection('tarefasConcluidas');
-                const snapshot = await tarefasRef.orderBy('dataConclusao', 'desc').get();
-                
-                if (snapshot.empty) {
-                    messageEl.textContent = `Nenhuma tarefa concluída encontrada para ${usuarioNome}.`;
-                    messageEl.style.display = 'block';
-                    return;
-                }
-
-                messageEl.style.display = 'none';
-
-                snapshot.docs.forEach(doc => {
-                    const tarefa = doc.data();
-                    const dataObj = tarefa.dataConclusao ? tarefa.dataConclusao.toDate() : new Date(); 
-                    
-                    const dataFormatada = dataObj.toLocaleDateString('pt-BR');
-                    const horaFormatada = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-                    const listItem = document.createElement('li');
-                    // Usamos a classe 'positive' para indicar que é um crédito (valor ganho)
-                    listItem.classList.add('transaction-item', 'positive'); 
-                    listItem.innerHTML = `
-                        <div class="transaction-details">
-                            <span class="transaction-description">Tarefa: ${tarefa.nome}</span>
-                            <span class="transaction-date">
-                                Concluído por: ${usuarioNome} em ${dataFormatada} às ${horaFormatada}
-                            </span>
-                        </div>
-                        <span class="transaction-amount">${formatarMoeda(tarefa.valor || 0)}</span>
-                    `;
-                    listEl.appendChild(listItem);
-                });
-
-            } catch (error) {
-                console.error("Erro ao carregar tarefas:", error);
-                messageEl.textContent = 'Erro ao buscar o histórico de tarefas. Verifique o console.';
-                messageEl.classList.remove('info-message');
-                messageEl.classList.add('error-message');
-                messageEl.style.display = 'block';
-            }
-        }
-        
-        /**
-         * Função placeholder para exclusão.
-         */
-        function confirmDeleteHistory() {
-            const selectedUser = document.getElementById('user-select').value;
-            if (confirm(`ATENÇÃO: Você realmente deseja APAGAR TODO o histórico de tarefas de ${selectedUser}? Esta ação é IRREVERSÍVEL!`)) {
-                alert(`Funcionalidade de exclusão em desenvolvimento para o usuário: ${selectedUser}.`);
-                // **TODO: Implementar a função real de exclusão aqui**
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
+        // 1. Verifica Acesso
+        function checkAccess() {
             const userInfo = getUsuarioLogado();
-
-            if (!userInfo) return; // Redirecionado no getUsuarioLogado()
-
-            const isAdmin = userInfo.isAdmin === true;
             
-            if (isAdmin) {
-                // Se for Admin, mostra as opções e carrega o select
-                document.getElementById('admin-options').style.display = 'block';
-                loadUserSelect(userInfo);
-                // Inicia visualizando o próprio histórico do admin
-                fetchAndRenderTarefas(userInfo.nome); 
-            } else {
-                // Se não for Admin, apenas carrega o próprio histórico
-                document.getElementById('user-title').textContent = userInfo.nome;
-                fetchAndRenderTarefas(userInfo.nome);
+            if (!userInfo || !userInfo.nome) {
+                window.location.href = 'login.html';
+                return false;
             }
-        });
+            return userInfo.nome;
+        }
+
+        // 2. Renderiza a lista de tarefas marcadas como concluídas pelo usuário
+        async function renderHistoricoTarefas() {
+            const userName = checkAccess();
+            if (!userName) return;
+
+            const listaEl = document.getElementById('historico-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
+            
+            try {
+                // Filtra por tarefas atribuídas a este usuário E que estão em status de conclusão/pagamento
+                const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    .where('atribuidaPara', '==', userName)
+                    .where('status', 'in', ['PendenteAprovacao', 'PendentePagamento'])
+                    .orderBy('dataConclusao', 'desc');
+
+                const snapshot = await query.get();
+                let html = '';
+                let foundTasks = false;
+
+                snapshot.forEach(doc => {
+                    foundTasks = true;
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
+
+                    let statusText, statusClass, buttonHtml = '';
+
+                    if (t.status === 'PendenteAprovacao') {
+                        statusText = 'Aguardando Aprovação Admin';
+                        statusClass = 'tarefa-info-status-warning';
+                    } else if (t.status === 'PendentePagamento') {
+                        statusText = 'Pronta para Pagamento Admin';
+                        statusClass = 'tarefa-info-status-info';
+                    }
+                    
+                    // Estrutura do Card
+                    html += `
+                        <div class="tarefa-card admin-card" style="border-left-color: ${t.status === 'PendenteAprovacao' ? 'var(--warning-color)' : 'var(--info-color)'};">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
+                            </div>
+                            
+                            <div class="tarefa-status-line ${statusClass}" style="margin-bottom: 10px;">
+                                <span>Status:</span>
+                                <span style="font-weight: bold;">${statusText}</span>
+                            </div>
+
+                            <div class="tarefa-details-admin">
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
+                                <div class="tarefa-info-admin">Marcada como Concluída em: ${t.dataConclusao || 'N/A'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você ainda não marcou tarefas como concluídas.</p>';
+
+            } catch (error) {
+                console.error("Erro ao carregar histórico de tarefas:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar o histórico.</p>';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', renderHistoricoTarefas);
     </script>
 </body>
 </html>

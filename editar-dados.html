@@ -3,160 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Dados do Perfil</title>
+    <title>Editar Perfil</title>
     <link rel="stylesheet" href="css/style.css"> 
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
-    <script src="js/script.js"></script> 
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title">Editar Dados Pessoais</h1>
-        <h2 id="user-title" class="main-title-green"></h2>
+    <div class="center-box">
+        <h1 class="main-title">Editar Perfil</h1>
+        <p style="text-align: center; margin-bottom: 20px;">Altere sua senha de acesso.</p>
         <hr class="divider">
         
-        <form id="edit-form">
-            <label class="input-label" for="new-nome">Nome de Usuário (ID):</label>
-            <input type="text" id="new-nome" class="input-rounded" disabled title="O nome de usuário primário não pode ser alterado.">
-            
-            <label class="input-label" for="new-displayname">Nome de Exibição Completo:</label>
-            <input type="text" id="new-displayname" class="input-rounded" placeholder="Ex: Maria Flores" required>
+        <div id="user-info-display" class="modal-info-visible" style="margin-bottom: 20px;">
+            Carregando usuário...
+        </div>
 
-            <label class="input-label" for="new-idade">Idade:</label>
-            <input type="number" id="new-idade" class="input-rounded" min="1" max="150" required>
+        <div class="form-group">
+            <label for="new-password">Nova Senha</label>
+            <input type="password" id="new-password" class="input-rounded" placeholder="Mínimo 6 caracteres" required>
+        </div>
 
-            <label class="input-label" for="new-senha">Nova Senha (Opcional):</label>
-            <input type="password" id="new-senha" class="input-rounded" placeholder="Deixe em branco para não alterar a senha">
-            
-            <label class="input-label" for="confirm-senha">Confirmar Nova Senha:</label>
-            <input type="password" id="confirm-senha" class="input-rounded">
-            
-            <div id="status-message" class="error-message" style="margin-top: 20px; min-height: 20px;"></div>
+        <div class="form-group">
+            <label for="confirm-password">Confirmar Nova Senha</label>
+            <input type="password" id="confirm-password" class="input-rounded" placeholder="Repita a nova senha" required>
+        </div>
 
-            <button type="submit" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Salvar Alterações</button>
-        </form>
+        <button onclick="updatePassword()" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
+            Salvar Nova Senha
+        </button>
 
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao Perfil</a>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">Voltar ao Dashboard</a>
+
+        <p id="message-area" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
     </div>
 
     <script>
-        // Agora, se o script.js for carregado, 'getUsuarioLogado' já deve estar global
-        // Se esta página for acessada via dashboard, usamos a lógica do usuário logado, não via URL.
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
-        
-        let usuarioSendoEditado = ''; // Será o ID do usuário logado
+        let usuarioNome = '';
 
-        async function loadUserData() {
-            // Usa o getUsuarioLogado() do script.js
-            const user = getUsuarioLogado(); 
-            if (!user) return; // Redirecionado para login
-
-            // O usuário a ser editado é o próprio usuário logado
-            usuarioSendoEditado = user.nome;
-
-            // Altera o link de volta se o usuário for um administrador gerenciando outro perfil (lógica avançada)
-            const adminData = getUsuarioLogado(); 
-            const isEditingSelf = (adminData.nome === usuarioSendoEditado);
-            if (!isEditingSelf && (adminData.role === 'Admin' || adminData.role === 'Administrador')) {
-                 document.querySelector('a.btn-rounded').href = 'gerenciar-perfis.html';
-                 document.getElementById('user-title').textContent = `Editando: ${usuarioSendoEditado}`;
-            } else {
-                 document.getElementById('user-title').textContent = 'Seus Dados';
-            }
-
-
-            try {
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoEditado).get();
-                if (!userDoc.exists) {
-                    document.getElementById('status-message').className = 'error-message';
-                    document.getElementById('status-message').textContent = 'Erro: Perfil não encontrado no banco de dados.';
-                    return;
-                }
-
-                const userData = userDoc.data();
-                
-                // Preenche os campos
-                document.getElementById('new-nome').value = usuarioSendoEditado;
-                document.getElementById('new-displayname').value = userData.displayName || '';
-                document.getElementById('new-idade').value = userData.idade || '';
-                
-                document.getElementById('status-message').textContent = 'Dados carregados. Edite e salve.';
-
-            } catch (error) {
-                console.error("Erro ao carregar dados do usuário:", error);
-                document.getElementById('status-message').className = 'error-message';
-                document.getElementById('status-message').textContent = 'Erro ao carregar dados. Verifique a conexão.';
-            }
-        }
-
-        async function saveChanges(event) {
-            event.preventDefault();
-            const statusEl = document.getElementById('status-message');
-            statusEl.className = 'info-message';
-            statusEl.textContent = 'Verificando e salvando...';
+        // Carrega as informações do usuário logado (apenas para exibição)
+        function loadProfile() {
+            const userInfo = getUsuarioLogado();
+            const infoDisplay = document.getElementById('user-info-display');
             
-            const user = getUsuarioLogado();
-            if (!user) return; 
+            if (!userInfo || !userInfo.nome) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            usuarioNome = userInfo.nome;
+            infoDisplay.textContent = `Usuário logado: ${usuarioNome}`;
+            
+            // Define o foco no primeiro campo de senha
+            document.getElementById('new-password').focus();
+        }
 
-            const newDisplayName = document.getElementById('new-displayname').value.trim();
-            const newIdade = parseInt(document.getElementById('new-idade').value);
-            const newSenha = document.getElementById('new-senha').value;
-            const confirmSenha = document.getElementById('confirm-senha').value;
+        // Função para atualizar a senha no Firestore
+        async function updatePassword() {
+            const newPassword = document.getElementById('new-password').value.trim();
+            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            const messageEl = document.getElementById('message-area');
 
-            // 1. Validação de Senha
-            if (newSenha && newSenha !== confirmSenha) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'As senhas não coincidem.';
+            messageEl.classList.add('hidden-start');
+            messageEl.textContent = '';
+            messageEl.classList.remove('error-message', 'positive-text');
+            
+            if (!usuarioNome) return;
+
+            if (!newPassword || !confirmPassword) {
+                messageEl.textContent = 'Preencha os dois campos de senha.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
                 return;
             }
 
-            // 2. Monta o objeto de atualização
-            const updates = {};
-            updates.displayName = newDisplayName;
-            updates.idade = newIdade;
-
-            if (newSenha) {
-                updates.senha = newSenha; 
+            if (newPassword !== confirmPassword) {
+                messageEl.textContent = 'As senhas não coincidem.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
             }
-
-            if (Object.keys(updates).length === 0) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Nenhuma alteração detectada.';
+            
+            if (newPassword.length < 6) {
+                messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
                 return;
             }
 
-            // 3. Salva no Firestore
+            // Confirmação antes de salvar no banco
+            if (!confirm("Tem certeza que deseja alterar sua senha?")) {
+                return;
+            }
+
             try {
-                const userRef = firestore.collection(USERS_COLLECTION).doc(user.nome);
-                await userRef.update(updates);
+                // Atualiza a senha no documento do Firestore
+                await firestore.collection('users').doc(usuarioNome).update({
+                    senha: newPassword // Senha não segura!
+                });
 
-                statusEl.className = 'success-message';
-                statusEl.textContent = 'Dados do perfil atualizados com sucesso!';
+                messageEl.textContent = 'Senha alterada com sucesso!';
+                messageEl.classList.add('positive-text');
+                messageEl.classList.remove('hidden-start');
                 
-                document.getElementById('new-senha').value = '';
-                document.getElementById('confirm-senha').value = '';
+                // Limpa os campos após o sucesso
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
 
-                // Atualiza o localStorage com os novos dados
-                const updatedData = { ...user, ...updates };
-                // Garante que a senha não vá para o localStorage
-                delete updatedData.senha; 
-                localStorage.setItem('usuarioLogado', JSON.stringify(updatedData));
-
+                // Redireciona após um pequeno atraso
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
 
             } catch (error) {
-                console.error("Erro ao salvar alterações:", error);
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Erro ao salvar alterações. Tente novamente.';
+                console.error("Erro ao atualizar a senha:", error);
+                messageEl.textContent = 'Erro ao salvar a nova senha. Tente novamente.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            loadUserData();
-            document.getElementById('edit-form').addEventListener('submit', saveChanges);
-        });
+        window.addEventListener('DOMContentLoaded', loadProfile);
     </script>
 </body>
 </html>

@@ -1,29 +1,30 @@
-﻿/**
- * Inicialização do Firebase (usando o SDK v8 via CDN).
- * Garante que as instâncias 'db' e 'auth' estejam disponíveis globalmente.
+﻿/*
+ * js/firebase-init.js
+ * Configuração e inicialização do Firebase (usando a sintaxe de Namespace Global da v8)
+ *
+ * NOTA: Este arquivo depende das SDKs do Firebase v8 (firebase-app.js, firebase-firestore.js, firebase-auth.js)
+ * serem carregadas *antes* no seu HTML.
  */
 
-// 1. Suas credenciais do Firebase (AGORA COM OS VALORES REAIS)
+// Se o objeto 'firebase' não estiver definido (o que deve ser feito pelas tags script no HTML),
+// este script pode falhar. Assumimos que as tags foram carregadas.
+
 const firebaseConfig = {
-    // API Key real obtida das configurações do projeto
-    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", 
-    
-    // Valores reais do seu projeto
+    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM",
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
     storageBucket: "familia-flores-2ed6a.firebasestorage.app",
     messagingSenderId: "102151517349",
-    // AppId real obtido das configurações do projeto
     appId: "1:102151517349:web:0fa6cfa865f9da338f494c",
-    // measurementId real obtido das configurações do projeto
-    measurementId: "G-8E95B0VFNR", 
+    measurementId: "G-8E95B0VFNR" // Removido pois 'analytics' não está sendo usado
 };
 
-// 2. Inicializa o Firebase (Se ainda não foi inicializado)
-if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
+// 1. Inicializa o Firebase App
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// 3. Cria e disponibiliza as referências de serviços globalmente
+// 2. Define as variáveis globais para acesso fácil
+// Acessaremos essas variáveis 'db' e 'auth' em todos os outros scripts (login.html, index.html, etc.)
 const db = firebase.firestore();
 const auth = firebase.auth();

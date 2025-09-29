@@ -4,149 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="css/style.css">
-    
+    <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box" id="dashboard-container">
-        <h1 class="main-title">Dashboard</h1>
+    <div class="center-box large-box">
+        <h1 class="main-title" id="welcome-message">Carregando...</h1>
+        <p style="text-align: center; margin-bottom: 20px;">Seu dashboard.</p>
         <hr class="divider">
-        
-        <div id="loading-message" style="text-align: center;">Carregando Perfil...</div>
 
-        <div id="main-content" style="display: none;">
-            
-            <div class="user-profile-header">
-                <div class="user-info-text">
-                    <h2 id="welcome-message" style="color: #333;"></h2>
-                    <p id="datetime-display" style="font-weight: bold; color: red;"></p>
-                </div>
-
-                <div>
-                    <img id="user-photo" src="img/default-avatar.png" alt="Foto do Usuário" 
-                         class="user-profile-photo">
-                </div>
+        <div id="saldo-card" class="dashboard-card" style="border-left-color: var(--success-color); margin-bottom: 25px;">
+            <div class="tarefa-card-content">
+                <span class="tarefa-name">Seu Saldo Atual:</span>
+                <span class="tarefa-info" id="current-saldo">R$ 0,00</span>
             </div>
-            
-            <div class="dashboard-links-grid">
-                <a href="carteira.html" class="btn-rounded btn-primary" style="font-weight: bold; max-width: 250px;">
-                    Minha Carteira
-                </a>
-                
-                <a href="minhas-tarefas.html" class="btn-secondary-text btn-rounded">Minhas Tarefas</a>
-                <a href="tarefas-disponiveis.html" class="btn-secondary-text btn-rounded">Tarefas Disponíveis</a>
-                <a href="historico-tarefas.html" class="btn-secondary-text btn-rounded">Histórico de Tarefas</a>
-                
-                <a href="historico-pagamentos.html" class="btn-secondary-text btn-rounded">Histórico Financeiro</a>
-                <a href="historico-multas.html" class="btn-secondary-text btn-rounded">Histórico de Multas</a>
             </div>
 
-            <hr class="divider">
-        </div>
-        
-        <div id="admin-button-container" style="display: none; text-align: center; margin-top: 30px;">
-            <a href="area-administrador.html" class="btn-rounded btn-primary" style="width: 300px;">
-                Área do Administrador
+        <div class="admin-action-grid">
+            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button task-action-button">
+                Minhas Tarefas (Em Andamento)
             </a>
-        </div>
 
-        <button class="btn-rounded btn-danger wide-button" style="margin-top: 20px;" onclick="logout()">Sair / Logout</button>
+            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button task-action-button">
+                Pegar Novas Tarefas
+            </a>
+            
+            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button task-action-button">
+                Histórico de Tarefas Pagas
+            </a>
+            
+            <a href="editar-perfil.html" class="btn-rounded btn-secondary-text wide-button task-action-button">
+                Configurações do Perfil
+            </a>
+            
+            <button onclick="logout()" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">
+                Sair
+            </button>
+        </div>
+        
+        <a id="admin-link" href="admin.html" class="btn-rounded btn-warning wide-button hidden-start" style="margin-top: 15px;">
+            Acessar Painel Admin
+        </a>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : null;
-        
-        // ----------------------------------------------------------------------
-        // FUNÇÃO DE UTILIDADE: Data e Hora
-        // ----------------------------------------------------------------------
-        function updateDateTime() {
-            const now = new Date();
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            
-            const dateStr = now.toLocaleDateString('pt-BR', dateOptions);
-            const timeStr = now.toLocaleTimeString('pt-BR', timeOptions);
-            
-            document.getElementById('datetime-display').textContent = `${dateStr} | ${timeStr}`;
-        }
-        
-        // ----------------------------------------------------------------------
-        // FUNÇÕES DE LOGIN/LOGOUT (Mantidas)
-        // ----------------------------------------------------------------------
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        function logout() {
-            if (typeof auth !== 'undefined' && typeof auth.signOut === 'function') {
-                auth.signOut();
-            }
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html';
-        }
-
-        // ----------------------------------------------------------------------
-        // FUNÇÃO PRINCIPAL DO DASHBOARD
-        // ----------------------------------------------------------------------
+        // 1. Carrega informações e checa o login
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
             
-            if (!userInfo || !firestore) {
-                document.getElementById('loading-message').textContent = 'Erro de carregamento (Firebase ou Usuário). Verifique o Console.';
+            if (!userInfo || !userInfo.nome) {
+                // Redireciona se não houver login
+                window.location.href = 'login.html';
                 return;
             }
 
-            // 1. Carregar informações do usuário e Foto
-            document.getElementById('welcome-message').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
-            
+            // Exibe o nome do usuário
+            document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
+
+            // Verifica e exibe o link do Admin
+            if (userInfo.isAdmin) {
+                document.getElementById('admin-link').classList.remove('hidden-start');
+            }
+
+            // 2. Carrega o Saldo (necessário buscar do Firestore, pois o localStorage pode estar desatualizado)
             try {
                 const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
-                const userData = userDoc.data();
                 
-                // 1.1. Lógica da Foto: AJUSTADA para usar o campo 'foto' (Base64)
-                const photoUrl = userData.foto; // <<< CORRIGIDO PARA USAR O CAMPO 'foto'
-                if (photoUrl) {
-                    document.getElementById('user-photo').src = photoUrl;
-                }
-                
-                // 2. Exibir o botão de Admin
-                const isAdmin = userInfo.isAdmin === true; 
-                if (isAdmin) {
-                    document.getElementById('admin-button-container').style.display = 'block'; 
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const saldo = userData.saldo || 0;
+                    
+                    // Usa a função formatarMoeda do script.js
+                    document.getElementById('current-saldo').textContent = formatarMoeda(saldo);
+                } else {
+                    document.getElementById('current-saldo').textContent = formatarMoeda(0);
                 }
 
             } catch (error) {
-                console.error("Erro ao carregar dados do Firebase:", error);
+                console.error("Erro ao carregar saldo:", error);
+                document.getElementById('current-saldo').textContent = 'Erro ao carregar saldo';
             }
-            
-            // 3. Finalizar carregamento
-            document.getElementById('loading-message').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
         }
-        
-        // ----------------------------------------------------------------------
-        // EXECUÇÃO
-        // ----------------------------------------------------------------------
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDashboard();
-            updateDateTime();
-            setInterval(updateDateTime, 1000); 
-        });
+
+        window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>

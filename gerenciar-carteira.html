@@ -1,162 +1,269 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Gerenciar Carteira</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    
-        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Carteira</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title-green">Gerenciar Carteira</h1>
-        <p id="user-info">Gerenciando a carteira de: <b>Carregando...</b></p>
-        <hr class="divider">
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--warning-color);">Gerenciar Carteira e Multas</h1>
+        <p class="info-message" style="text-align: center;">Ajuste o saldo dos usuÃ¡rios e gerencie multas.</p>
+        <hr class="divider">
 
-        <h2 style="margin-top: 30px;">Saldo Atual: <span id="saldo-atual" class="saldo-display">R$ 0.00</span></h2>
-        
-        <div style="margin-top: 40px;">
-            <label class="input-label" for="valor-carteira">Valor (R$):</label>
-            <input type="number" id="valor-carteira" class="input-rounded" step="0.01" min="0" placeholder="Ex: 10.50">
-        </div>
+        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais</h2>
+        <div id="usuarios-saldos-lista" class="historico-lista">
+            <p class="empty-message">Carregando usuÃ¡rios...</p>
+        </div>
 
-        <div class="action-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-            <button id="btn-adicionar" class="btn-rounded btn-primary" disabled>Adicionar Valor</button>
-            <button id="btn-retirar" class="btn-rounded btn-danger" disabled>Retirar Valor</button>
-        </div>
+        <a href="historico-multas.html" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">
+            Ver e Remover HistÃ³rico de Multas
+        </a>
+        
+        <a href="admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">
+            Voltar ao Dashboard
+        </a>
+    </div>
 
-        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;"></div>
+    <div id="modal-ajustar-saldo" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <h2 class="modal-title">Ajustar Saldo de <span id="modal-saldo-user-nome"></span></h2>
+            <div id="modal-saldo-info" class="modal-info-visible"></div>
 
-        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 30px;">Voltar ao Gerenciamento de Perfis</a>
-    </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="saldo-adjustment-value">Valor de Ajuste (Positivo ou Negativo)</label>
+                <input type="number" step="0.01" id="saldo-adjustment-value" class="input-rounded" placeholder="Ex: 5.00 (Adiciona) ou -2.50 (Retira)" required>
+            </div>
+            
+            <button onclick="confirmAdjustSaldo()" class="btn-rounded btn-primary wide-button modal-button-margin">
+                Confirmar Ajuste
+            </button>
+            <button onclick="closeModal('modal-ajustar-saldo')" class="btn-rounded btn-secondary-text wide-button modal-close-button">
+                Cancelar
+            </button>
+        </div>
+    </div>
+    
+    <div id="modal-aplicar-multa" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <h2 class="modal-title" style="color: var(--danger-color);">Aplicar Multa a <span id="modal-multa-user-nome"></span></h2>
 
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : null; 
-        let usuarioGerenciado = '';
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="multa-value">Valor da Multa</label>
+                <input type="number" step="0.01" id="multa-value" class="input-rounded" placeholder="Ex: 5.00" required>
+            </div>
 
-        // Usa a função de utilidade formatarMoeda do js/script.js
-        const formatarSaldo = typeof formatarMoeda === 'function' ? formatarMoeda : (valor) => `R$ ${parseFloat(valor).toFixed(2)}`;
+            <div class="form-group">
+                <label for="multa-reason">Motivo da Multa</label>
+                <input type="text" id="multa-reason" class="input-rounded" placeholder="Ex: Atraso na Tarefa" required>
+            </div>
 
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
+            <button onclick="confirmApplyMulta()" class="btn-rounded btn-danger wide-button modal-button-margin">
+                Aplicar Multa
+            </button>
+            <button onclick="closeModal('modal-aplicar-multa')" class="btn-rounded btn-secondary-text wide-button modal-close-button">
+                Cancelar
+            </button>
+        </div>
+    </div>
 
-        // Função para atualizar o Saldo na Tela
-        function atualizarSaldoDisplay(valor) {
-            const saldoEl = document.getElementById('saldo-atual');
-            saldoEl.textContent = formatarSaldo(valor);
-            saldoEl.classList.remove('positive-text', 'negative-text');
-            saldoEl.classList.add(valor >= 0 ? 'positive-text' : 'negative-text');
-        }
 
-        // Função principal para carregar o saldo e configurar a tela
-        async function carregarCarteira() {
-            usuarioGerenciado = getQueryParam('user');
-            const statusEl = document.getElementById('status-message');
-            const userInfoEl = document.getElementById('user-info');
-            const btnAdd = document.getElementById('btn-adicionar');
-            const btnRet = document.getElementById('btn-retirar');
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        let currentEditingUser = null; // Armazena o nome do usuÃ¡rio sendo editado
 
-            btnAdd.disabled = true;
-            btnRet.disabled = true;
+        // --- FunÃ§Ãµes de UtilitÃ¡rio ---
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !userInfo.isAdmin) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
 
-            if (!usuarioGerenciado || !firestore || typeof formatarMoeda !== 'function') {
-                userInfoEl.innerHTML = '<b>Erro: Inicialização falhou.</b>';
-                statusEl.textContent = 'Recarregue a página ou verifique a conexão do Firebase.';
-                return;
-            }
+        function openModal(modalId, userName, currentSaldo) {
+            currentEditingUser = userName;
+            document.getElementById(modalId).classList.remove('hidden-start');
+            
+            if (modalId === 'modal-ajustar-saldo') {
+                document.getElementById('modal-saldo-user-nome').textContent = userName;
+                document.getElementById('modal-saldo-info').textContent = `Saldo Atual: ${formatarMoeda(currentSaldo)}`;
+            } else if (modalId === 'modal-aplicar-multa') {
+                document.getElementById('modal-multa-user-nome').textContent = userName;
+                document.getElementById('multa-value').value = ''; 
+                document.getElementById('multa-reason').value = ''; 
+            }
+        }
 
-            userInfoEl.innerHTML = `Gerenciando a carteira de: <b>${usuarioGerenciado}</b>`;
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden-start');
+            currentEditingUser = null; 
+        }
 
-            try {
-                const userDoc = await firestore.collection('users').doc(usuarioGerenciado).get();
-                
-                if (!userDoc.exists) {
-                    throw new Error('Usuário não encontrado no Firestore.');
-                }
+        // --- FunÃ§Ãµes de RenderizaÃ§Ã£o ---
+        async function renderUsuariosSaldos() {
+            if (!checkAdminAccess()) return;
+            
+            const listaEl = document.getElementById('usuarios-saldos-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando usuÃ¡rios...</p>';
 
-                const saldo = parseFloat(userDoc.data().saldo || 0);
-                atualizarSaldoDisplay(saldo);
-                
-                statusEl.textContent = 'Pronto para alteração.';
-                btnAdd.disabled = false;
-                btnRet.disabled = false;
+            try {
+                const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
+                let html = '<ul class="transaction-list">';
+                let foundUsers = false;
 
-            } catch (error) {
-                console.error("Erro ao carregar saldo:", error);
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Erro ao carregar saldo do Firestore. Verifique o console.';
-            }
-        }
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    const saldo = userData.saldo || 0;
+                    
+                    foundUsers = true;
+                    
+                    const saldoClass = saldo >= 0 ? 'positive-text' : 'negative-text';
+                    const formattedSaldo = formatarMoeda(saldo);
 
-        // Função para processar a transação (Adicionar ou Retirar)
-        async function processarTransacao(tipo) {
-            const valorInput = document.getElementById('valor-carteira');
-            const valorStr = valorInput.value.replace(',', '.').trim();
-            const valor = parseFloat(valorStr);
-            const statusEl = document.getElementById('status-message');
-            
-            statusEl.className = 'info-message';
-            statusEl.textContent = 'Processando...';
-            
-            if (isNaN(valor) || valor <= 0) {
-                statusEl.className = 'error-message';
-                statusEl.textContent = 'Por favor, insira um valor positivo e válido.';
-                return;
-            }
+                    html += `
+                        <li class="transaction-item admin-card" style="border-left-color: ${saldo >= 0 ? 'var(--success-color)' : 'var(--danger-color)'};">
+                            <div class="transaction-details">
+                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-amount ${saldoClass}" style="font-weight: bold;">${formattedSaldo}</span>
+                            </div>
+                            <div class="admin-action-grid" style="grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0;">
+                                <button class="btn-rounded btn-warning task-action-button" onclick="openModal('modal-ajustar-saldo', '${userName}', ${saldo})">
+                                    Ajustar Saldo
+                                </button>
+                                <button class="btn-rounded btn-danger task-action-button" onclick="openModal('modal-aplicar-multa', '${userName}', 0)">
+                                    Aplicar Multa
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
 
-            try {
-                const userRef = firestore.collection('users').doc(usuarioGerenciado);
-                
-                // Use Transaction para garantir que a leitura e escrita do saldo sejam atômicas
-                const novoSaldo = await firestore.runTransaction(async (transaction) => {
-                    const userDoc = await transaction.get(userRef);
-                    if (!userDoc.exists) {
-                        throw new Error('Documento do usuário não encontrado.');
-                    }
+                if (foundUsers) {
+                    listaEl.innerHTML = html;
+                } else {
+                    listaEl.innerHTML = '<p class="empty-message">Nenhum usuÃ¡rio encontrado.</p>';
+                }
 
-                    const saldoAtual = parseFloat(userDoc.data().saldo || 0);
-                    let novoSaldoCalculado;
-                    
-                    if (tipo === 'adicionar') {
-                        novoSaldoCalculado = saldoAtual + valor;
-                    } else if (tipo === 'retirar') {
-                        novoSaldoCalculado = saldoAtual - valor;
-                    } else {
-                        return saldoAtual; 
-                    }
+            } catch (error) {
+                console.error("Erro ao carregar saldos:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos.</p>';
+            }
+        }
 
-                    // Atualiza o saldo no Firestore
-                    transaction.update(userRef, { saldo: novoSaldoCalculado });
-                    
-                    return novoSaldoCalculado; // Retorna o novo saldo
-                });
-                
-                // Se a transação for bem-sucedida
-                atualizarSaldoDisplay(novoSaldo); 
-                valorInput.value = ''; 
-                
-                const acao = tipo === 'adicionar' ? 'ADICIONADO(S)' : 'RETIRADO(S)';
-                statusEl.className = 'success-message';
-                statusEl.textContent = `R$ ${valor.toFixed(2)} ${acao} à carteira de ${usuarioGerenciado}. Novo saldo: ${formatarSaldo(novoSaldo)}`;
+        // --- FunÃ§Ãµes de AÃ§Ã£o (Ajuste e Multa) ---
 
-            } catch (error) {
-                console.error("Erro ao processar transação:", error);
-                statusEl.className = 'error-message';
-                statusEl.textContent = `Falha na transação. Verifique o console. (${error.message})`;
-            }
-        }
+        /**
+         * Ajusta o saldo diretamente (transaÃ§Ã£o).
+         */
+        async function confirmAdjustSaldo() {
+            const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
+            const valorAjuste = parseFloat(valorAjusteStr);
+            
+            if (isNaN(valorAjuste) || valorAjuste === 0 || !currentEditingUser) {
+                alert("Valor invÃ¡lido ou usuÃ¡rio nÃ£o selecionado.");
+                return;
+            }
 
-        // Listeners
-        document.getElementById('btn-adicionar').addEventListener('click', () => processarTransacao('adicionar'));
-        document.getElementById('btn-retirar').addEventListener('click', () => processarTransacao('retirar'));
+            if (!confirm(`Confirmar ajuste de ${formatarMoeda(valorAjuste)} para o saldo de ${currentEditingUser}?`)) {
+                return;
+            }
 
-        // Inicialização
-        window.addEventListener('DOMContentLoaded', carregarCarteira);
-    </script>
+            closeModal('modal-ajustar-saldo'); 
+
+            try {
+                const userRef = firestore.collection('users').doc(currentEditingUser);
+
+                await firestore.runTransaction(async (transaction) => {
+                    const docUser = await transaction.get(userRef);
+
+                    if (!docUser.exists) {
+                        throw new Error(`UsuÃ¡rio ${currentEditingUser} nÃ£o encontrado.`);
+                    }
+                    
+                    const userData = docUser.data();
+                    const novoSaldo = (userData.saldo || 0) + valorAjuste;
+                    
+                    transaction.update(userRef, { saldo: novoSaldo });
+                });
+
+                alert(`Saldo de ${currentEditingUser} ajustado em ${formatarMoeda(valorAjuste)} com sucesso!`);
+                renderUsuariosSaldos(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro na transaÃ§Ã£o de ajuste de saldo:", error);
+                alert(`Erro ao ajustar o saldo: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+        /**
+         * Aplica uma multa (diminui o saldo e registra na coleÃ§Ã£o 'multas').
+         */
+        async function confirmApplyMulta() {
+            const valorMultaStr = document.getElementById('multa-value').value;
+            const motivoMulta = document.getElementById('multa-reason').value.trim();
+            const valorMulta = parseFloat(valorMultaStr);
+            
+            if (isNaN(valorMulta) || valorMulta <= 0 || !currentEditingUser || !motivoMulta) {
+                alert("Verifique o valor da multa e o motivo.");
+                return;
+            }
+
+            if (!confirm(`Confirmar multa de ${formatarMoeda(valorMulta)} para ${currentEditingUser} pelo motivo: "${motivoMulta}"?`)) {
+                return;
+            }
+            
+            closeModal('modal-aplicar-multa'); 
+
+            try {
+                const userRef = firestore.collection('users').doc(currentEditingUser);
+                const multaRef = firestore.collection('multas').doc(); // Cria novo ID
+
+                await firestore.runTransaction(async (transaction) => {
+                    const docUser = await transaction.get(userRef);
+
+                    if (!docUser.exists) {
+                        throw new Error(`UsuÃ¡rio ${currentEditingUser} nÃ£o encontrado.`);
+                    }
+                    
+                    const userData = docUser.data();
+                    // O valor Ã© subtraÃ­do
+                    const novoSaldo = (userData.saldo || 0) - valorMulta; 
+                    
+                    // 1. Atualiza o saldo (subtrai)
+                    transaction.update(userRef, { saldo: novoSaldo });
+                    
+                    // 2. Registra a multa na coleÃ§Ã£o 'multas'
+                    transaction.set(multaRef, {
+                        usuario: currentEditingUser,
+                        valor: valorMulta,
+                        motivo: motivoMulta,
+                        dataMulta: new Date().toISOString().split('T')[0], // Data de hoje
+                        aplicadaPor: getUsuarioLogado().nome || 'Admin'
+                    });
+                });
+
+                alert(`Multa de ${formatarMoeda(valorMulta)} aplicada a ${currentEditingUser} com sucesso!`);
+                renderUsuariosSaldos(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro na transaÃ§Ã£o de multa:", error);
+                alert(`Erro ao aplicar a multa: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+
+        window.addEventListener('DOMContentLoaded', renderUsuariosSaldos);
+    </script>
 </body>
 </html>

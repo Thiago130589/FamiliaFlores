@@ -5,188 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minha Carteira</title>
     <link rel="stylesheet" href="css/style.css"> 
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title">Minha Carteira</h1>
-        
-        <a href="index.html" class="btn-secondary-text btn-rounded wallet-back-button">
-            &#8592; Voltar para o Dashboard
-        </a>
+        <h1 class="main-title" style="color: var(--success-color);">Minha Carteira</h1>
         <hr class="divider">
-
-        <div class="financial-summary-card">
-            <h2 class="card-title">Visão Geral Financeira</h2>
-            
-            <div class="saldo-destaque-container">
-                <p>Seu Saldo Atual</p>
-                <p id="saldo-valor" class="balance-value">R$ 0,00</p>
+        
+        <div class="dashboard-card" id="saldo-card" style="border-left-color: var(--success-color); margin-bottom: 25px;">
+            <div class="tarefa-card-content">
+                <span class="tarefa-name">Saldo Disponível:</span>
+                <span class="tarefa-info" id="current-saldo">R$ 0,00</span>
+            </div>
             </div>
 
-            <hr class="divider-light">
-            
-            <div class="proximo-pagamento-info">
-                <p>Próximo Valor a Receber:</p>
-                <p class="next-payment-value-text">
-                    Valor: <span id="next-payment-value" class="positive-text">R$ 0,00</span>
-                </p>
-                <p class="next-payment-date-text">
-                    Data Prevista: <span id="next-payment-date">--/--/----</span>
-                </p>
-            </div>
-        </div>
-
-        <hr class="divider">
-
-        <div class="dashboard-links-grid">
-            <a href="pedir-emprestado.html" class="btn-rounded btn-primary wide-button wallet-action-button">
-                Pedir Emprestado
-            </a>
-        </div>
-        
-        <hr class="divider">
-
-        <h2 class="transaction-history-title">Últimas Transações</h2>
-        <p class="transaction-history-subtitle">Ganhos (Verde) e Multas (Vermelho)</p>
+        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Histórico de Transações</h2>
         
         <div id="historico-lista" class="historico-lista">
             <p class="empty-message">Carregando histórico...</p>
         </div>
+
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : null;
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        let usuarioAtual = null;
 
-        // Obtém o nome do usuário logado
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue); // Retorna o objeto completo
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
-
+        // Função para carregar Saldo e Histórico
         async function loadCarteira() {
-            // formatarMoeda é necessário aqui, mas assumimos que está em script.js
             const userInfo = getUsuarioLogado();
-            if (!userInfo || !firestore || typeof formatarMoeda !== 'function') return;
-
-            const userName = userInfo.nome;
-            const saldoEl = document.getElementById('saldo-valor');
-            const historicoEl = document.getElementById('historico-lista');
-            historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
-
-            // Simulação de Dados para Próximo Pagamento (Pode ser substituída pela busca no Firebase)
-            const valorProximo = 120.00;
-            const dataProximo = new Date();
-            dataProximo.setDate(dataProximo.getDate() + 7); 
-
-            document.getElementById('next-payment-date').textContent = dataProximo.toLocaleDateString('pt-BR');
-            document.getElementById('next-payment-value').textContent = formatarMoeda(valorProximo);
+            const listaEl = document.getElementById('historico-lista');
+            const saldoEl = document.getElementById('current-saldo');
             
+            if (!userInfo || !userInfo.nome) {
+                window.location.href = 'login.html';
+                return;
+            }
+            usuarioAtual = userInfo.nome;
+            saldoEl.textContent = 'Carregando...';
+            listaEl.innerHTML = '<p class="empty-message">Buscando histórico...</p>';
 
             try {
-                const userDoc = await firestore.collection('users').doc(userName).get();
-                if (!userDoc.exists) {
+                // 1. Carregar Saldo
+                const userDoc = await firestore.collection('users').doc(usuarioAtual).get();
+                if (userDoc.exists) {
+                    const saldo = userDoc.data().saldo || 0;
+                    saldoEl.textContent = formatarMoeda(saldo);
+                } else {
                     saldoEl.textContent = formatarMoeda(0);
-                    historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
-                    return;
                 }
-                
-                const userData = userDoc.data();
-                const saldo = parseFloat(userData.saldo || 0);
-                
-                // Exibe o saldo formatado e define a cor
-                saldoEl.textContent = formatarMoeda(saldo); 
-                saldoEl.classList.remove('positive-text', 'negative-text');
-                saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
 
-                // Lógica de Histórico 
-                const tarefasSnapshot = await firestore.collection('users').doc(userName).collection('tarefasConcluidas')
-                    .orderBy('dataConclusao', 'desc')
-                    .limit(10)
+                // 2. Carregar Histórico de Pagamentos (tarefas concluídas)
+                const tarefasSnapshot = await firestore.collection('tarefasConcluidas')
+                    .where('atribuidaPara', '==', usuarioAtual)
+                    .orderBy('dataPagamento', 'desc')
                     .get();
 
-                const multasSnapshot = await firestore.collection('multas')
-                    .where('usuario', '==', userName)
-                    .orderBy('dataCriacao', 'desc')
-                    .limit(10)
-                    .get();
+                let htmlContent = '<ul class="transaction-list">';
+                let temRegistros = false;
 
-                let historico = [];
-
-                // Mapear Ganhos
                 tarefasSnapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    const valor = parseFloat(tarefa.valor || 0);
-                    const dataConclusao = tarefa.dataConclusao && tarefa.dataConclusao.toDate ? tarefa.dataConclusao.toDate() : new Date();
-
-                    historico.push({
-                        tipo: 'ganho',
-                        descricao: tarefa.nome || 'Tarefa Concluída',
-                        valor: valor,
-                        data: dataConclusao
-                    });
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
+                    const data = t.dataPagamento || 'N/A';
+                    
+                    if (valor > 0) {
+                        temRegistros = true;
+                        
+                        htmlContent += `
+                            <li class="transaction-item">
+                                <div class="transaction-details">
+                                    <span class="transaction-description">${t.nome} (Pagamento)</span>
+                                    <span class="transaction-date">${data}</span>
+                                </div>
+                                <span class="transaction-amount positive-text">${formatarMoeda(valor)}</span>
+                            </li>
+                        `;
+                    }
                 });
-
-                // Mapear Multas
+                
+                // 3. Adicionar Multas ao Histórico
+                const multasSnapshot = await firestore.collection('multas')
+                    .where('usuario', '==', usuarioAtual)
+                    .orderBy('dataMulta', 'desc')
+                    .get();
+                
                 multasSnapshot.forEach(doc => {
                     const multa = doc.data();
                     const valor = parseFloat(multa.valor || 0);
-                    const data = multa.dataCriacao && multa.dataCriacao.toDate ? multa.dataCriacao.toDate() : new Date();
+                    const data = multa.dataMulta || 'N/A';
                     
-                    historico.push({
-                        tipo: 'multa',
-                        descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
-                        valor: -Math.abs(valor), 
-                        data: data
-                    });
-                });
-
-                // Ordenar Histórico
-                historico.sort((a, b) => b.data.getTime() - a.data.getTime());
-
-                // Renderizar
-                if (historico.length === 0) {
-                    historicoEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada.</p>';
-                    return;
-                }
-
-                let html = '<ul class="transaction-list">';
-                historico.forEach(item => {
-                    const valorAbsoluto = formatarMoeda(Math.abs(item.valor));
-                    const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                    const isPositive = item.tipo === 'ganho';
-
-                    html += `
-                        <li class="transaction-item ${isPositive ? 'positive' : 'negative'}">
+                    temRegistros = true;
+                    
+                    htmlContent += `
+                        <li class="transaction-item">
                             <div class="transaction-details">
-                                <span class="transaction-description">${item.descricao}</span>
-                                <span class="transaction-date">${dataFormatada}</span>
+                                <span class="transaction-description">${multa.motivo} (Multa)</span>
+                                <span class="transaction-date">${data}</span>
                             </div>
-                            <span class="transaction-amount">${isPositive ? '+' : '-'} ${valorAbsoluto}</span>
+                            <span class="transaction-amount negative-text">-${formatarMoeda(valor)}</span>
                         </li>
                     `;
                 });
-                html += '</ul>';
-                historicoEl.innerHTML = html;
-                
+
+
+                htmlContent += '</ul>';
+
+                if (temRegistros) {
+                    listaEl.innerHTML = htmlContent;
+                } else {
+                    listaEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada ainda.</p>';
+                }
 
             } catch (error) {
-                console.error("Erro ao carregar carteira:", error);
-                historicoEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira. Verifique o Console (F12).</p>';
+                console.error("Erro ao carregar a carteira:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira.</p>';
+                saldoEl.textContent = 'Erro';
             }
         }
 
