@@ -1,67 +1,67 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Meu Perfil</title>
-    <link rel="stylesheet" href="css/style.css"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Meu Perfil</title>
+    <link rel="stylesheet" href="css/style.css"> 
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    
-    <div class="center-box">
+    
+    <div class="center-box">
 
-        <h1 class="main-title">Dashboard</h1>
-        <hr class="divider">
+        <h1 class="main-title">Dashboard</h1>
+        <hr class="divider">
 
-        <div id="profileCard" class="profile-card">
-            
-            <span id="usernameOverlay" class="time-text"></span> 
+        <div id="profileCard" class="profile-card">
+            
+            <span id="usernameOverlay" class="time-text"></span> 
 
-            <img id="profileImage" src="assets/default-profile.png" alt="" class="profile-img"> 
-            
-            <span id="brasiliaClock" class="brasilia-clock"></span>
-            
-            <hr class="dashed-divider" style="margin-top: 5px;">
+            <img id="profileImage" src="assets/default-profile.png" alt="" class="profile-img"> 
+            
+            <span id="brasiliaClock" class="brasilia-clock"></span>
+            
+            <hr class="dashed-divider" style="margin-top: 5px;">
 
-            <h2 id="userName" class="user-name-text">Carregando...</h2>
-            
-            <span id="userRole" class="user-role-text">Carregando Perfil...</span>
-            
-            <hr class="divider"> 
+            <h2 id="userName" class="user-name-text">Carregando...</h2>
+            
+            <span id="userRole" class="user-role-text">Carregando Perfil...</span>
+            
+            <hr class="divider"> 
 
-            <nav id="navMenu" class="nav-menu">
-                <p id="loadingLinks">Carregando links...</p>
-            </nav>
+            <nav id="navMenu" class="nav-menu">
+                <p id="loadingLinks">Carregando links...</p>
+            </nav>
 
-            <button id="logoutButton" class="btn-rounded btn-danger wide-button">
-                Sair / Logout
-            </button>
-        </div>
-        
-    </div>
+            <button id="logoutButton" class="btn-rounded btn-danger wide-button">
+                Sair / Logout
+            </button>
+        </div>
+        
+    </div>
 
-    <script>
-        // Lógica de Logout no final do corpo
-        document.getElementById('logoutButton').onclick = function() {
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html';
-        };
+    <script>
+        // Lógica de Logout no final do corpo
+        document.getElementById('logoutButton').onclick = function() {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        };
 
-        // Inicia o processo de carregamento quando a página terminar de carregar
-        window.addEventListener('DOMContentLoaded', () => {
-            // Supondo que essas funções estão definidas no seu arquivo script.js
-            if (typeof loadProfileAndMenu === 'function') {
-                loadProfileAndMenu();
-            }
-            if (typeof startBrasiliaClock === 'function') {
-                startBrasiliaClock();
-            }
-        });
-    </script>
+        // Inicia o processo de carregamento quando a página terminar de carregar
+        window.addEventListener('DOMContentLoaded', () => {
+            // Supondo que essas funções estão definidas no seu arquivo script.js
+            if (typeof loadProfileAndMenu === 'function') {
+                loadProfileAndMenu();
+            }
+            if (typeof startBrasiliaClock === 'function') {
+                startBrasiliaClock();
+            }
+        });
+    </script>
 </body>
 </html>
