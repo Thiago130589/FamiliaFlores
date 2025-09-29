@@ -34,13 +34,12 @@
     <script src="js/script.js"></script>
 
     <script>
+        // Tenta usar a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        // Variável global para armazenar os dados do usuário logado
         let usuarioLogadoData = null; 
 
-        // 1. Função de Utilitário para formatar a hora
         function startBrasilClock(displayElementId) {
             const timeDisplay = document.getElementById(displayElementId);
             if (!timeDisplay) return;
@@ -63,7 +62,6 @@
             setInterval(updateTime, 1000);
         }
 
-        // 2. Função principal para carregar o perfil e o menu
         async function loadProfileAndMenu() {
             const pageTitle = document.getElementById('page-title');
             const profileContainer = document.getElementById('profile-container');
@@ -73,7 +71,6 @@
             const userRoleEl = document.getElementById('user-role');
             const logoutButton = document.getElementById('logout-button');
             
-            // Tenta obter o usuário do localStorage
             const storedValue = localStorage.getItem('usuarioLogado');
 
             if (!storedValue) {
@@ -94,17 +91,14 @@
                 loadingContainer.style.display = 'none';
                 navMenu.style.display = 'block';
 
-                // Inicia o relógio
                 startBrasilClock('time-display');
 
-                // 3. Monta os Links do Menu
                 const links = [
                     { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis' },
                     { href: 'minhas-tarefas.html', text: 'Minhas Tarefas' },
                     { href: 'tarefas-pendentes.html', text: 'Tarefas Pendentes' },
                     { href: 'tarefas-concluidas.html', text: 'Tarefas Concluídas' },
                     { href: 'carteira.html', text: 'Carteira' },
-                    // Links de Admin/Gerenciamento (APENAS se for Admin)
                     ...(isAdmin ? [
                         { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
                         { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, 
@@ -113,13 +107,12 @@
                     ] : [])
                 ];
 
-                // CORREÇÃO: Usando a crase () para criar o HTML corretamente.
+                // CORREÇÃO ESSENCIAL: Uso correto da String Template (crase) para o HTML
                 navMenu.innerHTML = links.map(link => 
                     <a href="" class="menu-link"></a> 
                 ).join('');
 
 
-                // 4. Configura o botão de Logout
                 logoutButton.onclick = function() {
                     localStorage.removeItem('usuarioLogado');
                     window.location.href = 'login.html';
@@ -127,15 +120,13 @@
                 
             } catch (e) {
                 console.error("Erro ao carregar dados do localStorage:", e);
-                // Em caso de erro, força o logout
+                // Força o logout
                 localStorage.removeItem('usuarioLogado');
                 window.location.href = 'login.html';
             }
         }
 
-        // Inicia o processo de carregamento quando a página terminar de carregar
         window.addEventListener('DOMContentLoaded', loadProfileAndMenu);
-        
     </script>
 </body>
 </html>
