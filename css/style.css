@@ -509,3 +509,29 @@ input:focus, select:focus {
         text-align: right;
     }
 }
+/* ========================================================== */
+/* ESTILOS ESPECÍFICOS PARA HISTÓRICO DE PAGAMENTOS */
+/* ========================================================== */
+
+/* Título com o nome do usuário/perfil */
+.history-user-title {
+    font-size: 1.2rem; 
+    margin-bottom: 15px;
+}
+
+/* Container de opções de Admin (Visualizar Histórico) */
+.admin-history-options {
+    display: none; /* Inicialmente oculto, revelado por JS se for Admin */
+    margin-bottom: 20px;
+}
+
+/* Botão de Apagar Histórico */
+.admin-delete-button {
+    margin-top: 10px;
+}
+
+/* Texto de Saldo Final no Resumo */
+.final-balance-text {
+    font-weight: bold; 
+    font-size: 1.2rem;
+}
