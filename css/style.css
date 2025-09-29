@@ -1,421 +1,317 @@
-﻿/* ========================================================== */
-/* ESTILOS GERAIS E DE ESTRUTURA */
-/* ========================================================== */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    /* Fundo Azul Claro, padronizado para todo o site */
-    background-color: #e3f2fd; 
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Alinha no topo */
-    min-height: 100vh;
-    padding-top: 50px; /* Espaço para o topo */
+﻿/*
+ * style.css
+ * Estilos gerais para o Gerenciador de Tarefas Domésticas
+ */
+
+/* -------------------------------------------------------- */
+/* 1. Reset Básico e Variáveis */
+/* -------------------------------------------------------- */
+:root {
+    --primary-color: #1976d2; /* Azul principal */
+    --primary-dark: #1565c0;
+    --secondary-color: #f5f5f5; /* Cinza claro */
+    --success-color: #4caf50; /* Verde */
+    --danger-color: #f44336; /* Vermelho */
+    --warning-color: #ff9800; /* Laranja (uso para pendente/admin) */
+    --info-color: #2196f3; /* Azul Claro (uso para em andamento) */
+    --text-color: #333;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.center-box {
-    background-color: #ffffff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 500px; /* Padrão para Login/Cadastro/Carteira */
+* {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* -------------------------------------------------------- */
+/* 2. Layout Principal e Títulos */
+/* -------------------------------------------------------- */
+.center-box {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    width: 100%;
+    max-width: 400px; /* Padrão para login/cadastro */
 }
 
 .large-box {
-    max-width: 750px; /* Para Dashboard, Admin e Histórico */
+    max-width: 600px; /* Maior para dashboard e administração */
 }
 
 .main-title {
-    color: #1976d2; /* Azul principal */
-    font-size: 1.8rem;
-    margin-bottom: 5px;
-    text-align: center;
-}
-
-.error-color {
-    color: #d32f2f !important; /* Vermelho para multas e erros */
-}
-
-/* Mensagens de Status (usadas no login, admin e gerenciar tarefas) */
-.info-message, .error-message, .success-message {
-    font-size: 0.95rem;
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 4px;
-    text-align: center;
-    display: none; /* Inicia oculto, deve ser exibido via JS */
-}
-
-/* NOVA CLASSE: Para esconder algo por padrão no HTML e mostrar via JS */
-.hidden-start {
-    display: none !important;
-}
-
-/* NOVA CLASSE: Para mensagens que devem ser visíveis (como a de loading) */
-.modal-info-visible {
-    display: block !important; 
+    color: var(--primary-color);
     text-align: center;
     margin-bottom: 20px;
 }
 
-
-.info-message {
-    color: #0d47a1;
-    background-color: #e3f2fd;
-    border: 1px solid #bbdefb;
+.admin-clock {
+    text-align: center;
+    font-size: 0.9em;
+    color: var(--text-color);
+    margin-bottom: 15px;
 }
-
-.error-message {
-    color: #c62828;
-    background-color: #ffebee;
-    border: 1px solid #ef9a9a;
-}
-
-.success-message {
-    color: #2e7d32;
-    background-color: #e8f5e9;
-    border: 1px solid #c8e6c9;
-}
-
 
 .divider {
-    width: 100%;
     border: none;
-    border-top: 1px solid #e0e0e0;
+    height: 1px;
+    background-color: #ddd;
     margin: 20px 0;
 }
 
-.divider-light {
-    width: 100%;
-    border: none;
-    border-top: 1px solid #f0f0f0; /* Divisor mais claro para dentro de cards */
-    margin: 10px 0;
-}
-
-/* ========================================================== */
-/* ESTILOS DE FORMULÁRIO E INPUTS */
-/* ========================================================== */
+/* -------------------------------------------------------- */
+/* 3. Formulários e Inputs */
+/* -------------------------------------------------------- */
 .form-group {
     margin-bottom: 15px;
 }
 
-/* Usamos a classe input-rounded para maior compatibilidade */
-input[type="text"],
-input[type="number"],
-input[type="password"],
-input[type="email"],
-input[type="date"],
-input[type="time"],
-select,
-.input-rounded { 
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.input-rounded {
     width: 100%;
-    padding: 12px;
-    margin: 5px 0;
-    display: inline-block;
+    padding: 10px 15px;
     border: 1px solid #ccc;
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 1rem;
+    border-radius: 20px;
+    font-size: 1em;
+    outline: none;
     transition: border-color 0.3s;
 }
 
-input:focus, select:focus, .input-rounded:focus {
-    border-color: #1976d2;
-    outline: none;
+.input-rounded:focus {
+    border-color: var(--primary-color);
 }
 
-.input-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #555;
-}
-
-/* ========================================================== */
-/* ESTILOS DE BOTÕES (Gerais) */
-/* ========================================================== */
+/* -------------------------------------------------------- */
+/* 4. Botões Padrão */
+/* -------------------------------------------------------- */
 .btn-rounded {
-    padding: 12px 25px;
+    padding: 10px 25px;
     border: none;
-    border-radius: 25px;
+    border-radius: 20px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1em;
+    font-weight: bold;
+    text-align: center;
     transition: background-color 0.3s, opacity 0.3s;
     text-decoration: none;
     display: inline-block;
-    text-align: center;
 }
-
-.wide-button {
-    width: 100%;
-    display: block;
-    box-sizing: border-box;
-}
-
-/* NOVO: Espaçamento para botões de ação na tela principal de tarefas */
-.task-action-button {
-    margin-top: 20px;
-}
-.task-return-button {
-    margin-top: 10px;
-}
-
-/* NOVO: Espaçamento para botões secundários nos modais */
-.modal-button-margin {
-    margin-top: 10px;
-}
-
-/* NOVO: Espaçamento para o botão de fechar modal */
-.modal-close-button {
-    margin-top: 15px;
-}
-
 
 .btn-primary {
-    background-color: #1976d2; /* Azul principal */
-    color: white;
+    background-color: var(--primary-color);
+    color: #fff;
 }
 
 .btn-primary:hover {
-    background-color: #1565c0;
+    background-color: var(--primary-dark);
 }
 
 .btn-secondary {
-    background-color: #e0e0e0; /* Cinza claro */
-    color: #333;
+    background-color: #ccc;
+    color: var(--text-color);
 }
 
 .btn-secondary:hover {
-    background-color: #bdbdbd;
+    background-color: #bbb;
 }
 
-.btn-danger {
-    background-color: #d32f2f; /* Vermelho */
-    color: white;
-}
-
-.btn-danger:hover {
-    background-color: #c62828;
-}
-
-.btn-success {
-    background-color: #4CAF50; /* Verde */
-    color: white;
-}
-
-.btn-success:hover {
-    background-color: #43a047;
-}
-
-.btn-warning {
-    background-color: #ff9800; /* Laranja/Amarelo */
-    color: white;
-}
-
-.btn-warning:hover {
-    background-color: #fb8c00;
-}
-
-/* Usado para links de navegação no Dashboard (index.html) */
 .btn-secondary-text {
     background-color: transparent;
-    color: #1976d2;
-    border: 1px solid #1976d2;
+    color: var(--primary-color);
+    padding: 10px 0;
 }
 
 .btn-secondary-text:hover {
-    background-color: #e3f2fd;
+    opacity: 0.8;
 }
 
-.btn-icon {
-    padding: 8px 12px;
-    border-radius: 50%;
-    margin-left: 10px;
-    font-size: 1rem;
-    line-height: 1;
+.btn-success {
+    background-color: var(--success-color);
+    color: #fff;
 }
 
-.btn-blue {
-    background-color: #2196f3;
-    color: white;
-}
-.btn-blue:hover {
-    background-color: #1e88e5;
+.btn-success:hover {
+    background-color: #388e3c;
 }
 
+.btn-danger {
+    background-color: var(--danger-color);
+    color: #fff;
+}
 
-/* ========================================================== */
-/* ESTILOS DE MODAIS (Popups) - NOVAS CLASSES */
-/* ========================================================== */
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: #fff;
+}
+
+.btn-warning:hover {
+    background-color: #f57c00;
+}
+
+.wide-button {
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+}
+
+/* -------------------------------------------------------- */
+/* 5. Estilos de Modal */
+/* -------------------------------------------------------- */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Garante que o modal fique por cima de tudo */
+    z-index: 1000;
+    /* Começa invisível, só mostra via JS (display: flex) */
+    display: none; 
+}
+
+.hidden-start {
+    /* Usado para garantir que o JS possa alternar facilmente */
+    display: none;
 }
 
 .modal-content {
-    background-color: #ffffff;
+    background-color: #fff;
     padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    border-radius: var(--border-radius);
     width: 90%;
-    max-width: 450px;
-    box-sizing: border-box;
-}
-
-.large-modal {
-    max-width: 600px;
+    max-width: 350px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    text-align: center;
 }
 
 .modal-title {
-    color: #1976d2;
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.modal-section-title {
-    font-size: 1.1rem;
-    color: #333;
-    margin-bottom: 10px;
-    font-weight: 600;
-}
-
-.modal-message {
-    font-size: 1rem;
+    color: var(--primary-color);
     margin-bottom: 20px;
-    color: #555;
-    text-align: center;
+    font-size: 1.5em;
 }
 
-.modal-actions {
+.modal-info-visible {
+    padding: 10px;
+    background-color: var(--secondary-color);
+    border-radius: 5px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+.modal-button-margin {
+    margin-top: 10px;
+}
+
+.modal-close-button {
     margin-top: 20px;
+}
+
+/* -------------------------------------------------------- */
+/* 6. Estilos de Dashboard e Cards de Tarefa */
+/* -------------------------------------------------------- */
+#dashboard-list {
+    margin-top: 20px;
+}
+
+.dashboard-card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    border-left: 5px solid var(--primary-color);
     display: flex;
     justify-content: space-between;
-    gap: 10px;
-}
-
-.centered-actions {
-    justify-content: center;
-}
-
-/* Z-index para empilhamento de modais (Admin) */
-.z-higher { z-index: 1001; }
-.z-higher-2 { z-index: 1002; }
-
-/* ========================================================== */
-/* ESTILOS DE LAYOUT ESPECÍFICOS PARA DASHBOARD E ADMIN */
-/* ========================================================== */
-
-/* Admin: Estilo do Relógio */
-.admin-clock {
-    text-align: center;
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: #1976d2;
-    padding: 5px 0;
-}
-
-/* Container para a foto, mensagem e data/hora (Dashboard) */
-.user-profile-header {
-    display: flex;
-    justify-content: space-between; /* Empurra o conteúdo para os cantos */
     align-items: center;
-    margin-bottom: 25px;
 }
 
-/* Container da Mensagem (Texto e Data/Hora) - Alinha à esquerda */
-.user-info-text {
-    flex-grow: 1;
-    text-align: left;
-}
-
-/* Estilo da Foto: Tamanho maior, circular, borda */
-.user-profile-photo {
-    width: 120px; 
-    height: 120px;
-    border-radius: 50%; /* Circular */
-    object-fit: cover;
-    border: 3px solid #1976d2; /* Borda azul principal */
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
-    margin-left: 20px; /* Espaçamento da foto para a esquerda */
-}
-
-/* Layout de Links Gerais do Dashboard (index.html) */
-.dashboard-links-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-}
-
-.dashboard-links-grid a {
-    flex-basis: auto; 
-    max-width: 250px; 
-    padding: 10px 15px;
-    font-size: 0.95rem;
-}
-
-/* Layout de Links da Área do Administrador (Gerenciar Usuários) */
-.admin-action-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Duas colunas */
-    gap: 15px;
-}
-
-.admin-action-grid a, .admin-action-grid button {
-    font-size: 0.95rem;
-    padding: 12px 15px;
-}
-
-
-/* ========================================================== */
-/* ESTILOS DE CARDS DE TAREFAS (Gerenciar Tarefas) - NOVAS CLASSES */
-/* ========================================================== */
 .tarefa-card {
     background-color: #fff;
     padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    margin-bottom: 12px;
-    border-left: 5px solid #1976d2; /* Padrão */
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    border-left: 5px solid var(--primary-color); /* Estilo padrão */
 }
 
-/* Card de Tarefa Disponível (Verde) */
-.tarefa-card.admin-card:has(.status-available) {
-    border-left-color: #4CAF50; 
+.tarefa-card-content {
+    flex-grow: 1;
 }
-/* Card de Tarefa Em Andamento/Atribuída (Azul) */
-.tarefa-card.admin-card:has(.status-in-progress) {
-    border-left-color: #2196f3; 
+
+.tarefa-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: var(--primary-dark);
 }
-/* Card de Tarefa Pendente Pagamento (Laranja) */
-.tarefa-card.admin-card:has(.status-pending) {
-    border-left-color: #ff9800; 
+
+.tarefa-info {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Botão de Ação (Dashboard) */
+.tarefa-action-button {
+    margin-left: 15px;
+    white-space: nowrap;
+}
+
+/* -------------------------------------------------------- */
+/* 7. Estilos de Administração (Tarefas e Perfis) */
+/* -------------------------------------------------------- */
+.task-action-button {
+    margin-bottom: 5px;
+}
+
+.task-return-button {
+    margin-bottom: 0;
+}
+
+/* Estilo para os cards de Admin */
+.admin-card {
+    border-left-width: 8px; /* Borda mais grossa para destaque */
+    padding: 15px;
 }
 
 .tarefa-header-admin {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+    align-items: flex-start;
+    margin-bottom: 10px;
 }
 
 .tarefa-nome-admin {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
+    font-weight: bold;
+    font-size: 1.2em;
+    color: var(--text-color);
+    word-break: break-word; /* Quebra texto longo */
+    max-width: calc(100% - 40px);
 }
 
 .tarefa-details-admin {
@@ -424,320 +320,100 @@ input:focus, select:focus, .input-rounded:focus {
 }
 
 .tarefa-info-admin {
-    font-size: 0.9rem;
+    font-size: 0.9em;
     color: #666;
     margin-top: 5px;
 }
 
 .tarefa-status-line {
-    font-size: 0.9rem;
     display: flex;
     justify-content: space-between;
-    padding: 5px 0;
-    border-top: 1px solid #eee;
-    margin-top: 5px;
-}
-
-/* Cores de Status dentro do Card */
-.status-available { color: #4CAF50; font-weight: bold; }
-.status-in-progress { color: #1976d2; font-weight: bold; }
-.status-pending { color: #ff9800; font-weight: bold; }
-
-
-/* ========================================================== */
-/* ESTILOS DE LISTAS E HISTÓRICO (Existentes) */
-/* ========================================================== */
-.financial-summary-card {
-    background-color: #f7f9fa; /* Fundo leve para o card */
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.saldo-destaque-container {
-    padding: 15px 0;
-}
-
-.saldo-destaque-container p:first-child {
-    font-size: 1rem;
-    color: #666;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9em;
     margin-bottom: 5px;
-}
-
-.balance-value {
-    font-size: 2.5rem; 
-    font-weight: 700;
-    display: block;
-    line-height: 1.2;
-    transition: color 0.3s;
-}
-
-.proximo-pagamento-info {
-    padding-top: 10px;
-    text-align: center;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 10px;
-    background-color: #e8f5e9; 
-}
-.proximo-pagamento-info p {
-    margin: 5px 0;
-    color: #333;
-}
-
-.historico-lista {
-    width: 100%;
-    margin-top: 15px;
-}
-
-.transaction-list {
-    list-style: none;
-    padding: 0;
-}
-
-.transaction-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 10px; 
-    
-    border-radius: 8px; 
-    border: 1px solid #eee;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
-    transition: box-shadow 0.3s;
-}
-
-.transaction-item:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.transaction-details {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    margin-right: 15px;
-}
-
-.transaction-description {
     font-weight: 500;
-    font-size: 1rem;
-    color: #333;
 }
 
-.transaction-date {
-    font-size: 0.85rem;
-    color: #888;
+/* Cores de status */
+.tarefa-info-status-success {
+    border: 1px solid var(--success-color);
+    background-color: rgba(76, 175, 80, 0.1); /* Verde claro */
+    color: var(--success-color);
 }
 
-.transaction-amount {
-    font-weight: 700;
-    font-size: 1.05rem;
-    min-width: 80px;
-    text-align: right;
+.tarefa-info-status-warning {
+    border: 1px solid var(--warning-color);
+    background-color: rgba(255, 152, 0, 0.1); /* Laranja claro */
+    color: var(--warning-color);
 }
 
-.positive-text {
-    color: #4CAF50 !important; 
-    font-weight: bold;
-}
-.negative-text {
-    color: #f44336 !important; 
-    font-weight: bold;
+.tarefa-info-status-info {
+    border: 1px solid var(--info-color);
+    background-color: rgba(33, 150, 243, 0.1); /* Azul claro */
+    color: var(--info-color);
 }
 
-.transaction-item.positive {
-    border-left: 5px solid #4CAF50; 
-}
-.transaction-item.positive .transaction-amount {
-    color: #4CAF50; 
-}
-.transaction-item.negative {
-    border-left: 5px solid #d32f2f; 
-}
-.transaction-item.negative .transaction-amount {
-    color: #d32f2f; 
+.tarefa-info-status-default {
+    border: 1px solid #ccc;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
 }
 
-.empty-message {
-    color: #888;
-    text-align: center;
-    padding: 20px;
+/* Estilos de Status (dentro da linha) */
+.status-available { color: var(--success-color); font-weight: bold; }
+.status-in-progress { color: var(--info-color); font-weight: bold; }
+.status-pending { color: var(--warning-color); font-weight: bold; }
+
+/* Botão de ícone (três pontos) */
+.btn-icon {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    line-height: 35px; /* Centraliza o texto/ícone (se usar ícone) */
+    font-size: 1.2em;
+    flex-shrink: 0;
 }
 
-.summary-container {
-    padding: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #f9f9f9;
-    margin-top: 15px;
+.btn-blue {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+.btn-blue:hover {
+    background-color: var(--primary-dark);
 }
 
-.summary-container p {
-    margin: 8px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1rem;
-}
-
-.summary-container hr {
-    border-top: 1px dashed #ccc;
-    margin: 10px 0;
-}
-
-.card-title {
-    font-size: 1.2rem; 
-    margin-bottom: 15px;
-}
-
-.wallet-back-button {
-    margin-bottom: 20px;
-}
-
-.transaction-history-title {
-    color: #444; 
-}
-
-.transaction-history-subtitle {
-    font-size: 0.9em; 
-    color: #888;
-    margin-top: 5px;
-    margin-bottom: 15px;
-}
-
-.next-payment-value-text {
-    font-size: 1.1rem; 
-    font-weight: bold;
-}
-
-.next-payment-date-text {
-    font-weight: 500; 
-    font-size: 0.95rem;
-}
-
-.wallet-action-button {
-    margin-bottom: 10px;
-}
-
-.history-user-title {
-    font-size: 1.2rem; 
-    margin-bottom: 15px;
-}
-
-.admin-history-options {
-    margin-bottom: 20px;
-}
-
-.admin-delete-button {
+/* Estilo para a grade de botões (Modais de Admin) */
+.admin-action-grid {
+    display: grid;
+    gap: 10px;
     margin-top: 10px;
 }
 
-.final-balance-text {
-    font-weight: bold; 
-    font-size: 1.2rem;
-}
-
-/* ========================================================== */
-/* RESPONSIVIDADE GERAL */
-/* ========================================================== */
-@media (max-width: 600px) {
-    body {
-        padding-top: 20px;
-    }
-
+/* Media Query para telas menores */
+@media (max-width: 450px) {
     .center-box {
         padding: 20px;
-        max-width: 95%;
-        margin: 0 10px;
-    }
-    
-    .modal-content {
-        padding: 20px;
     }
 
-    .main-title {
-        font-size: 1.5rem;
-    }
-
-    .btn-rounded {
-        padding: 10px 20px;
-        font-size: 0.9rem;
-    }
-    
-    .balance-value {
-        font-size: 2rem; 
-    }
-
-    .user-profile-header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-    
-    .user-profile-photo {
-        width: 80px; 
-        height: 80px;
-        margin-left: 0;
-        margin-bottom: 15px;
-    }
-    
-    .user-info-text {
-        text-align: center;
-    }
-    
-    .dashboard-links-grid {
-        flex-direction: column;
-        align-items: center;
-    }
-    .dashboard-links-grid a {
-        width: 100%;
-        max-width: 90%;
-    }
-    
-    /* Ajuste para grid de ações do admin em mobile */
-    .admin-action-grid {
-        grid-template-columns: 1fr; /* Uma coluna em telas muito pequenas */
-    }
-    
-    /* Ajuste para listas de histórico */
-    .transaction-item {
-        flex-wrap: wrap;
-        padding: 10px;
-    }
-    .transaction-details {
-        width: 65%;
-    }
-    .transaction-amount {
-        min-width: auto;
-        width: 30%;
-        text-align: right;
-    }
-    
-    /* Ajuste para card de tarefa em mobile */
-    .tarefa-card {
-        position: relative; /* Para posicionar o botão de opções corretamente */
-    }
     .tarefa-header-admin {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
     }
-    .tarefa-header-admin .btn-icon {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        margin: 0;
-    }
+
     .tarefa-nome-admin {
-        width: 100%;
-        padding-right: 50px; /* Espaço para o botão */
+        margin-bottom: 5px;
+        max-width: 100%;
     }
-    .tarefa-status-line {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+
+    .btn-icon {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+    
+    .admin-card {
+        position: relative;
     }
 }
