@@ -276,31 +276,32 @@ body {
 }
 
 .profile-img {
-    width: 120px;
-    height: 120px;
+    /* REDUÇÃO MÁXIMA DA FOTO: 48px */
+    width: 48px;
+    height: 48px;
     border-radius: 50%; /* Torna a imagem redonda */
     object-fit: cover;
-    margin-bottom: 15px;
-    border: 4px solid #1976d2; /* Borda azul */
-    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Sombra para destacar */
+    margin-bottom: 10px; 
+    border: 2px solid #1976d2; /* Borda mais fina */
+    box-shadow: 0 0 8px rgba(0,0,0,0.1); /* Sombra para destacar */
 }
 
 .time-text {
-    font-size: 1.0rem; /* Padronizado: Um pouco menor para dar destaque ao nome */
-    color: #666; /* Cor mais suave */
-    margin-bottom: 8px; /* Espaço menor antes do nome */
-    font-weight: normal; /* Garante que não tenha negrito */
+    font-size: 0.9rem; /* Reduzi um pouco */
+    color: #666; 
+    margin-bottom: 5px; 
+    font-weight: normal; 
 }
 
 .user-name-text {
-    font-size: 2.0rem; /* Padronizado: Fonte maior para o nome */
+    font-size: 1.6rem; /* Reduzi um pouco o nome para ficar mais compacto */
     color: #333;
     margin: 5px 0 2px 0;
-    font-weight: bold; /* Garante que o nome seja o principal destaque */
+    font-weight: bold; 
 }
 
 .user-role-text {
-    font-size: 1.1rem; /* Padronizado */
+    font-size: 0.95rem; /* Reduzi um pouco o cargo */
     color: #1976d2;
     font-weight: bold;
     margin-bottom: 20px;
@@ -309,9 +310,9 @@ body {
 /* --- Menu de Navegação --- */
 .nav-menu {
     display: flex;
-    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+    flex-wrap: wrap; 
     justify-content: center;
-    gap: 12px; /* Espaçamento entre os links */
+    gap: 10px; 
     width: 100%;
     margin-top: 15px;
     margin-bottom: 30px;
@@ -321,12 +322,12 @@ body {
     text-decoration: none;
     color: #1976d2;
     background-color: #e3f2fd; /* Azul claro */
-    padding: 10px 15px;
-    border-radius: 20px;
+    padding: 8px 12px; 
+    border-radius: 18px; 
     font-size: 0.9rem;
     font-weight: bold;
     transition: background-color 0.2s, color 0.2s;
-    white-space: nowrap; /* Impede quebras de linha dentro do link */
+    white-space: nowrap; 
 }
 
 .menu-link:hover {

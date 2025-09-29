@@ -4,135 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Meu Perfil</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
+    
     <div class="center-box">
-        <h1 class="main-title-primary">Dashboard</h1>
+
+        <h1 class="main-title">Dashboard</h1>
         <hr class="divider">
 
-        <div id="profile-container" class="profile-card">
-            <img id="profile-picture" src="assets/perfil-padrao.png" alt="Foto de Perfil" class="profile-img">
-            <p id="time-display" class="time-text brasilia-clock"></p>
-            <h2 id="user-name" class="user-name-text">Carregando...</h2>
-            <p id="user-role" class="user-role-text"></p>
+        <div id="profileCard" class="profile-card">
+            
+            <img id="profileImage" src="assets/default-profile.png" alt="Foto de Perfil" class="profile-img"> 
+            
+            <span id="usernameOverlay" style="color: #1976d2; font-weight: bold; font-size: 1.0rem; margin-top: -30px; margin-bottom: 5px;"></span> 
+            
+            <span id="brasiliaClock" class="brasilia-clock"></span>
+            
+            <h2 id="userName" class="user-name-text">Carregando...</h2>
+            
+            <span id="userRole" class="user-role-text">Carregando Perfil...</span>
+            
+            <hr class="divider"> 
+
+            <nav id="navMenu" class="nav-menu">
+                <p id="loadingLinks">Carregando links...</p>
+            </nav>
+
+            <button id="logoutButton" class="btn-rounded btn-danger wide-button">
+                Sair / Logout
+            </button>
         </div>
         
-        <h2 class="section-title" style="margin-top: 20px;">Ações Rápidas</h2>
-
-        <nav id="nav-menu" class="nav-menu">
-            </nav>
-        
-        <button id="logout-button" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">Sair / Logout</button>
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
+        // Mantenha esta estrutura JS aqui para garantir que o script seja executado após o HTML
 
-        // Garante que o relógio inicie
-        function startBrasilClock(displayElementId) {
-            const timeDisplay = document.getElementById(displayElementId);
-            if (!timeDisplay) return;
-            function updateTime() {
-                const now = new Date();
-                const options = {
-                    timeZone: 'America/Sao_Paulo',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit',
-                    day: '2-digit', month: '2-digit', year: 'numeric'
-                };
-                const brasilTime = now.toLocaleTimeString('pt-BR', options);
-                // O texto do seu relógio no print está com (Brasília), então mantemos assim
-                timeDisplay.textContent = brasilTime.replace(',', ' (Brasília)'); 
+        // Função do Botão de Logout (Se estiver no script.js, remova daqui)
+        document.getElementById('logoutButton').onclick = function() {
+            localStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        };
+
+        // Inicia o processo de carregamento quando a página terminar de carregar
+        window.addEventListener('DOMContentLoaded', () => {
+            // Supondo que essas funções estejam no seu script.js
+            if (typeof loadProfileAndMenu === 'function') {
+                loadProfileAndMenu();
             }
-            updateTime();
-            setInterval(updateTime, 1000);
-        }
-
-        async function loadProfileAndMenu() {
-            const navMenu = document.getElementById('nav-menu');
-            const userNameEl = document.getElementById('user-name');
-            const userRoleEl = document.getElementById('user-role');
-            const profilePictureEl = document.getElementById('profile-picture');
-            const logoutButton = document.getElementById('logout-button');
-            
-            const storedValue = localStorage.getItem('usuarioLogado');
-
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return;
+            if (typeof startBrasiliaClock === 'function') {
+                startBrasiliaClock();
             }
-
-            try {
-                const usuarioLogadoData = JSON.parse(storedValue);
-                const nome = usuarioLogadoData.nome;
-                
-                // 1. Buscar dados completos (incluindo isAdmin e foto) do Firestore
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(nome).get();
-                if (!userDoc.exists) {
-                     throw new Error("Perfil não encontrado no Firestore.");
-                }
-
-                const userData = userDoc.data();
-                
-                // LEITURA CORRETA DO ADMIN, ASSUME FALSE SE O CAMPO NÃO EXISTIR
-                const isAdmin = userData.isAdmin === true; 
-                // LEITURA DA FOTO. O campo no seu Firebase é 'foto'
-                const fotoURL = userData.foto || 'assets/perfil-padrao.png'; 
-
-                // 2. Exibir Dados no Layout
-                userNameEl.textContent = nome;
-                userRoleEl.textContent = isAdmin ? 'Administrador' : 'Membro da Família';
-                profilePictureEl.src = fotoURL; // Define a foto
-
-                startBrasilClock('time-display');
-
-                // 3. Montar os Links
-                const links = [
-                    { href: 'tarefas-disponiveis.html', text: 'Tarefas Disponíveis' },
-                    { href: 'minhas-tarefas.html', text: 'Minhas Tarefas' },
-                    { href: 'tarefas-pendentes.html', text: 'Tarefas Pendentes' },
-                    { href: 'tarefas-concluidas.html', text: 'Tarefas Concluídas' },
-                    { href: 'carteira.html', text: 'Carteira' },
-                    // Links de Admin/Gerenciamento
-                    ...(isAdmin ? [
-                        { href: 'gerenciar-tarefas.html', text: 'Gerenciar Tarefas' },
-                        { href: 'gerenciar-perfis.html', text: 'Gerenciar Perfis' }, 
-                        { href: 'multas.html', text: 'Multas' },
-                        { href: 'gerenciar-carteira.html', text: 'Gerenciar Carteira' }
-                    ] : [])
-                ];
-
-                // Injeta os links no menu com a classe correta para o CSS
-                navMenu.innerHTML = links.map(link => 
-                    `<a href="${link.href}" class="menu-link">${link.text}</a>` 
-                ).join('');
-
-
-                logoutButton.onclick = function() {
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'login.html';
-                };
-                
-            } catch (e) {
-                console.error("Erro ao carregar dados do perfil:", e);
-                // Mostra a mensagem de erro no nome
-                userNameEl.textContent = 'Erro ao carregar perfil.';
-                userRoleEl.textContent = 'Por favor, tente fazer login novamente.';
-                
-                // Força o logout e redireciona se houver erro grave
-                setTimeout(() => {
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'login.html';
-                }, 3000);
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', loadProfileAndMenu);
+        });
     </script>
 </body>
 </html>
