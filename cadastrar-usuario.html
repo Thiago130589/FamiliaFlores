@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro | Família Flores</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+</head>
+<body>
+    <div class="center-box small-box">
+        <h1 class="main-title-primary">Novo Cadastro</h1>
+        <hr class="divider">
+        
+        <div class="input-group-vertical">
+            <label class="input-label" for="new-username">Nome de Usuário:</label>
+            <input type="text" id="new-username" class="input-rounded" placeholder="Escolha seu nome (ID)" required>
+        </div>
+
+        <div class="input-group-vertical">
+            <label class="input-label" for="new-password">Senha:</label>
+            <input type="password" id="new-password" class="input-rounded" placeholder="Escolha sua senha" required>
+        </div>
+        
+        <button id="register-submit-button" class="btn-rounded btn-success wide-button" style="margin-top: 20px;">Finalizar Cadastro</button>
+        <a href="login.html" class="link-text" style="display: block; margin-top: 10px;">Voltar para o Login</a>
+
+        <p id="register-message" class="error-message" style="margin-top: 10px; display: none;">Mensagem de Status</p>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+
+        document.getElementById('register-submit-button').addEventListener('click', registerUser);
+
+        async function registerUser() {
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value.trim();
+            const registerMessageEl = document.getElementById('register-message');
+            
+            registerMessageEl.style.display = 'none';
+
+            if (username.length < 3 || password.length < 3) {
+                registerMessageEl.textContent = 'Nome de usuário e senha devem ter no mínimo 3 caracteres.';
+                registerMessageEl.style.color = 'red';
+                registerMessageEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                // 1. Verifica se o usuário já existe
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+
+                if (userDoc.exists) {
+                    registerMessageEl.textContent = 'Nome de Usuário já está em uso. Escolha outro.';
+                    registerMessageEl.style.color = 'red';
+                    registerMessageEl.style.display = 'block';
+                    return;
+                }
+                
+                // 2. Cria o novo usuário
+                await firestore.collection(USERS_COLLECTION).doc(username).set({
+                    nome: username,
+                    senha: password, // Lembre-se, criptografia é essencial para um projeto real!
+                    isAdmin: false, // Novos usuários são membros por padrão
+                    saldo: 0.00,
+                    // Adicione aqui outros campos padrão (ex: tarefasConcluidas: 0)
+                });
+                
+                // 3. Sucesso: Redireciona para o Login
+                registerMessageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
+                registerMessageEl.style.color = 'green';
+                registerMessageEl.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error("Erro no cadastro:", error);
+                registerMessageEl.textContent = 'Ocorreu um erro: ' + error.message;
+                registerMessageEl.style.color = 'red';
+                registerMessageEl.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

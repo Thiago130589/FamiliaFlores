@@ -17,7 +17,7 @@
         
         <div class="input-group-vertical">
             <label class="input-label" for="username">Nome de Usuário:</label>
-            <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
+            <input type="text" id="username" class="input-rounded" placeholder="Seu nome (ID do Firestore)" required>
         </div>
 
         <div class="input-group-vertical">
@@ -27,15 +27,24 @@
         
         <button id="login-button" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Entrar</button>
 
+        <button id="register-button" class="btn-rounded btn-secondary wide-button" style="margin-top: 10px;">Cadastrar Novo Usuário</button>
+
         <p id="error-message" class="error-message" style="margin-top: 10px; display: none;">Mensagem de Erro</p>
     </div>
 
     <script>
-        // Tenta usar a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
         document.getElementById('login-button').addEventListener('click', attemptLogin);
+        document.getElementById('register-button').addEventListener('click', redirectToRegister); // NOVO EVENTO
+
+        function redirectToRegister() {
+            // Assume que a página de cadastro é 'cadastrar-perfil.html' ou 'editar-perfil.html' (que pode ser adaptada)
+            // Usaremos 'editar-perfil.html' por agora, com a intenção de adaptá-la para cadastro se necessário.
+            // Para simplificar o fluxo, vamos criar um novo arquivo chamado 'cadastrar-usuario.html'
+            window.location.href = 'cadastrar-usuario.html'; 
+        }
 
         async function attemptLogin() {
             const username = document.getElementById('username').value.trim();
@@ -51,7 +60,7 @@
             }
 
             try {
-                // Tenta buscar o usuário usando o nome de usuário (ID do documento)
+                // Tenta buscar o usuário usando o nome de usuário (que é o ID do documento)
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (!userDoc.exists) {
@@ -62,7 +71,7 @@
 
                 const userData = userDoc.data();
                 
-                // Verifica a senha (em um projeto real, NUNCA armazene senhas sem criptografia)
+                // Verifica a senha 
                 if (userData.senha !== password) {
                     errorMessageEl.textContent = 'Senha incorreta.';
                     errorMessageEl.style.display = 'block';
