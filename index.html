@@ -1,67 +1,119 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Meu Perfil</title>
-    <link rel="stylesheet" href="css/style.css"> 
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Família Flores</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
-    
-    <div class="center-box">
+    <div class="center-box large-box">
+        <h1 class="main-title">Dashboard</h1>
+        <hr class="divider">
+        
+        <div id="loading-state" style="text-align: center;">
+            <div style="width: 50px; height: 50px; margin: 0 auto 15px; border: 5px solid #1976d2; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="color: #1976d2; font-weight: 500;">Carregando...</p>
+            <p style="font-size: 0.9rem; color: #888;">Carregando Perfil...</p>
+            <p style="margin-top: 15px; font-size: 0.9rem; color: #888;">Carregando links...</p>
+        </div>
+        
+        <style>
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
 
-        <h1 class="main-title">Dashboard</h1>
-        <hr class="divider">
+        <div id="dashboard-content" style="display: none;">
+            
+            <h2 id="user-title" style="text-align: center; color: #333; margin-top: 0;"></h2>
+            <p id="saldo-info" style="text-align: center; font-size: 1.5rem; font-weight: bold;"></p>
+            
+            <hr class="divider">
+            
+            <div id="dashboard-links" style="display: grid; gap: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <a href="minhas-tarefas.html" class="btn-rounded btn-primary wide-button">Minhas Tarefas</a>
+                <a href="tarefas-disponiveis.html" class="btn-rounded btn-primary wide-button">Tarefas Disponíveis</a>
+                <a href="historico-tarefas.html" class="btn-rounded btn-secondary wide-button">Histórico de Tarefas</a>
+                <a href="historico-multas.html" class="btn-rounded btn-secondary wide-button">Histórico de Multas</a>
+                <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">Histórico de Pagamentos</a>
+                
+                <div id="admin-links" style="display: none; grid-column: 1 / -1; display: grid; gap: 15px; grid-template-columns: subgrid;">
+                    <h3 style="grid-column: 1 / -1; margin: 5px 0 0; color: #d32f2f; text-align: center;">Área do Administrador</h3>
+                    <a href="gerenciar-tarefas.html" class="btn-rounded btn-danger wide-button">Gerenciar Tarefas</a>
+                    <a href="gerenciar-perfis.html" class="btn-rounded btn-danger wide-button">Gerenciar Perfis</a>
+                    <a href="gerenciar-carteira.html" class="btn-rounded btn-danger wide-button">Gerenciar Carteira</a>
+                    <a href="multas.html" class="btn-rounded btn-danger wide-button">Aplicar Multa</a>
+                    <a href="tarefas-pendentes.html" class="btn-rounded btn-danger wide-button">Pagamentos Pendentes</a>
+                    <a href="tornar-administrador.html" class="btn-rounded btn-danger wide-button">Gerenciar Admins</a>
+                </div>
 
-        <div id="profileCard" class="profile-card">
-            
-            <span id="usernameOverlay" class="time-text"></span> 
+            </div>
+            
+            <hr class="divider">
+        </div>
 
-            <img id="profileImage" src="assets/default-profile.png" alt="" class="profile-img"> 
-            
-            <span id="brasiliaClock" class="brasilia-clock"></span>
-            
-            <hr class="dashed-divider" style="margin-top: 5px;">
+        <button class="btn-rounded btn-danger wide-button" id="btn-logout" style="margin-top: 20px;">Sair / Logout</button>
+    </div>
 
-            <h2 id="userName" class="user-name-text">Carregando...</h2>
-            
-            <span id="userRole" class="user-role-text">Carregando Perfil...</span>
-            
-            <hr class="divider"> 
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-            <nav id="navMenu" class="nav-menu">
-                <p id="loadingLinks">Carregando links...</p>
-            </nav>
+        function getUsuarioLogado() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            try {
+                return JSON.parse(storedValue);
+            } catch (e) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
 
-            <button id="logoutButton" class="btn-rounded btn-danger wide-button">
-                Sair / Logout
-            </button>
-        </div>
-        
-    </div>
+        async function loadDashboard() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo) return;
 
-    <script>
-        // Lógica de Logout no final do corpo
-        document.getElementById('logoutButton').onclick = function() {
-            localStorage.removeItem('usuarioLogado');
-            window.location.href = 'login.html';
-        };
+            document.getElementById('loading-state').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
 
-        // Inicia o processo de carregamento quando a página terminar de carregar
-        window.addEventListener('DOMContentLoaded', () => {
-            // Supondo que essas funções estão definidas no seu arquivo script.js
-            if (typeof loadProfileAndMenu === 'function') {
-                loadProfileAndMenu();
-            }
-            if (typeof startBrasiliaClock === 'function') {
-                startBrasiliaClock();
-            }
-        });
-    </script>
+            document.getElementById('user-title').textContent = `Bem-vindo(a), ${userInfo.nome}!`;
+            
+            // 1. Carregar Saldo
+            try {
+                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
+                const saldo = userDoc.exists ? (userDoc.data().saldo || 0) : 0;
+                
+                const saldoEl = document.getElementById('saldo-info');
+                saldoEl.innerHTML = `Saldo Atual: <span style="color: ${saldo >= 0 ? '#4CAF50' : '#d32f2f'}">${formatarMoeda(saldo)}</span>`;
+
+                // 2. Exibir links de Admin se for Admin
+                const isAdmin = (userInfo.isAdmin === true) || (userInfo.nome.toLowerCase() === 'thiago');
+                if (isAdmin) {
+                    document.getElementById('admin-links').style.display = 'grid';
+                }
+
+            } catch (e) {
+                console.error("Erro ao carregar saldo ou links de admin:", e);
+                document.getElementById('saldo-info').textContent = 'Erro ao carregar saldo.';
+            }
+
+            // 3. Lógica de Logout
+            document.getElementById('btn-logout').onclick = () => {
+                localStorage.removeItem('usuarioLogado');
+                window.location.href = 'login.html';
+            };
+        }
+
+        window.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
 </body>
 </html>

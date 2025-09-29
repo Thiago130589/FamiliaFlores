@@ -32,7 +32,11 @@
         // Função para obter o nome do usuário E verificar se é Admin
         function getUsuarioInfo() {
             const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) return { nome: null, isAdmin: false };
+            if (!storedValue) {
+                // Se não estiver logado, redireciona
+                window.location.href = 'login.html'; 
+                return { nome: null, isAdmin: false };
+            }
             try {
                 const obj = JSON.parse(storedValue);
                 if (obj && obj.nome) {
@@ -41,6 +45,8 @@
                     return { nome: String(obj.nome).trim(), isAdmin: isUserAdmin };
                 }
             } catch (e) {
+                // Redireciona em caso de erro de parsing
+                window.location.href = 'login.html';
                 return { nome: null, isAdmin: false };
             }
             return { nome: null, isAdmin: false };
@@ -60,7 +66,7 @@
             }
 
             try {
-                let query = firestore.collection('tarefasConcluidas');
+                let query = firestore.collection('tarefasConcluidas').orderBy('dataPagamento', 'desc'); // Adiciona ordenação
 
                 // Filtra apenas as tarefas do usuário, se não for Admin
                 if (!isAdmin) {
@@ -73,15 +79,15 @@
                 lista.innerHTML = ''; // Limpa a mensagem de carregamento
 
                 if (snapshot.empty) {
-                    lista.innerHTML = `<p>Não há tarefas concluídas e pagas ${isAdmin ? 'de nenhum usuário' : 'no seu histórico'}.</p>`;
+                    lista.innerHTML = `<p class="empty-message">Não há tarefas concluídas e pagas ${isAdmin ? 'no sistema' : 'no seu histórico'}.</p>`;
                     return;
                 }
 
                 snapshot.forEach(doc => {
                     const tarefa = doc.data();
                     
-                    // Checagem extra de segurança para membros
-                    if (!isAdmin && tarefa.atribuidaPara !== userName) return;
+                    // Checagem extra de segurança para membros (removida, pois o filtro do firestore é mais confiável)
+                    // if (!isAdmin && tarefa.atribuidaPara !== userName) return; 
                     
                     const elemento = document.createElement('div');
                     elemento.className = 'tarefa-card-concluida'; // Classe para estilização

@@ -33,7 +33,7 @@
         <h3 id="resultado-titulo" style="margin-top: 30px; display: none;"></h3>
         
         <ul id="lista-resultados" class="list-rounded">
-            </ul>
+        </ul>
         
         <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Gerenciamento</a>
     </div>
@@ -48,6 +48,10 @@
         function getQueryParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(param);
+        }
+
+        function formatCurrency(value) {
+            return parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
         function getUsuarioLogado() {
@@ -97,12 +101,12 @@
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoAnalisado).get();
                 if (!userDoc.exists) {
                     statusEl.className = 'error-message';
-                    statusEl.textContent = Erro: Perfil de '' não encontrado.;
+                    // CORREÇÃO: Uso de template literal
+                    statusEl.textContent = `Erro: Perfil de '${usuarioSendoAnalisado}' não encontrado.`;
                     return;
                 }
 
                 const userData = userDoc.data();
-                // Assumindo um array de pagamentos realizados, por exemplo, quando o usuário paga uma multa.
                 // Estrutura esperada: [{ data: 'YYYY-MM-DD', valor: 5.00, nome: 'Pagamento de Multa X' }]
                 const pagamentos = userData.pagamentosRealizados || []; 
 
@@ -113,25 +117,29 @@
 
                 if (pagamentosFiltrados.length === 0) {
                     statusEl.className = 'info-message';
-                    statusEl.textContent = Nenhum pagamento realizado encontrado para  no período selecionado.;
+                    // CORREÇÃO: Uso de template literal
+                    statusEl.textContent = `Nenhum pagamento realizado encontrado para ${usuarioSendoAnalisado} no período selecionado.`;
                 } else {
                     let totalValorPago = 0;
                     pagamentosFiltrados.forEach(pagamento => {
                         const li = document.createElement('li');
                         li.className = 'list-item list-item-green';
-                        li.innerHTML = 
-                            <strong>Nome:</strong>  <br>
-                            <strong>Data do Pagamento:</strong>  <br>
-                            <strong>Valor Pago:</strong> R$ 
-                        ;
+                        // CORREÇÃO: Uso de template literal e dados corretos
+                        li.innerHTML = `
+                            <strong>Nome:</strong> ${pagamento.nome || 'Pagamento Desconhecido'}<br>
+                            <strong>Data do Pagamento:</strong> ${pagamento.data}<br>
+                            <strong>Valor Pago:</strong> ${formatCurrency(pagamento.valor)}
+                        `;
                         listaEl.appendChild(li);
                         totalValorPago += pagamento.valor;
                     });
                     
-                    tituloEl.textContent = Pagamentos Realizados ( ocorrências) (Total: R$ );
+                    // CORREÇÃO: Uso de template literal e exibição do total
+                    tituloEl.textContent = `Pagamentos Realizados (${pagamentosFiltrados.length} ocorrências) (Total: ${formatCurrency(totalValorPago)})`;
                     tituloEl.style.display = 'block';
                     statusEl.className = 'success-message';
-                    statusEl.textContent = ${pagamentosFiltrados.length} pagamento(s) realizado(s) encontrado(s) no período.;
+                    // CORREÇÃO: Uso de template literal
+                    statusEl.textContent = `${pagamentosFiltrados.length} pagamento(s) realizado(s) encontrado(s) no período.`;
                 }
 
             } catch (error) {
@@ -153,7 +161,8 @@
                 return;
             }
 
-            document.getElementById('user-title').textContent = Usuário: ;
+            // CORREÇÃO: Uso de template literal
+            document.getElementById('user-title').textContent = `Usuário: ${usuarioSendoAnalisado}`;
             
             document.getElementById('btn-buscar-pagamentos').onclick = fetchAndRenderPagamentos;
 

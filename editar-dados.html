@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Dados do Perfil</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
+    <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box large-box">
@@ -17,11 +18,11 @@
         <hr class="divider">
         
         <form id="edit-form">
-            <label class="input-label" for="new-nome">Primeiro Nome (ID do Perfil):</label>
-            <input type="text" id="new-nome" class="input-rounded" disabled title="O nome primário não pode ser alterado, pois é a chave de acesso.">
+            <label class="input-label" for="new-nome">Nome de Usuário (ID):</label>
+            <input type="text" id="new-nome" class="input-rounded" disabled title="O nome de usuário primário não pode ser alterado.">
             
-            <label class="input-label" for="new-sobrenome">Sobrenome:</label>
-            <input type="text" id="new-sobrenome" class="input-rounded" required>
+            <label class="input-label" for="new-displayname">Nome de Exibição Completo:</label>
+            <input type="text" id="new-displayname" class="input-rounded" placeholder="Ex: Maria Flores" required>
 
             <label class="input-label" for="new-idade">Idade:</label>
             <input type="number" id="new-idade" class="input-rounded" min="1" max="150" required>
@@ -37,68 +38,49 @@
             <button type="submit" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">Salvar Alterações</button>
         </form>
 
-        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao Gerenciamento</a>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">Voltar ao Perfil</a>
     </div>
 
     <script>
+        // Agora, se o script.js for carregado, 'getUsuarioLogado' já deve estar global
+        // Se esta página for acessada via dashboard, usamos a lógica do usuário logado, não via URL.
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
         
-        let usuarioSendoEditado = '';
-
-        // Funções de Utilitário
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                const obj = JSON.parse(storedValue);
-                // Apenas Administradores podem acessar
-                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
-                    alert("Acesso negado. Apenas administradores podem editar perfis.");
-                    window.location.href = 'index.html';
-                    return null;
-                }
-                return obj;
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
+        let usuarioSendoEditado = ''; // Será o ID do usuário logado
 
         async function loadUserData() {
-            // Verifica acesso de Admin
-            if (!getUsuarioLogado()) return; 
+            // Usa o getUsuarioLogado() do script.js
+            const user = getUsuarioLogado(); 
+            if (!user) return; // Redirecionado para login
 
-            usuarioSendoEditado = getQueryParam('user');
-            if (!usuarioSendoEditado) {
-                document.getElementById('status-message').className = 'error-message';
-                document.getElementById('status-message').textContent = 'Erro: Usuário não especificado.';
-                return;
+            // O usuário a ser editado é o próprio usuário logado
+            usuarioSendoEditado = user.nome;
+
+            // Altera o link de volta se o usuário for um administrador gerenciando outro perfil (lógica avançada)
+            const adminData = getUsuarioLogado(); 
+            const isEditingSelf = (adminData.nome === usuarioSendoEditado);
+            if (!isEditingSelf && (adminData.role === 'Admin' || adminData.role === 'Administrador')) {
+                 document.querySelector('a.btn-rounded').href = 'gerenciar-perfis.html';
+                 document.getElementById('user-title').textContent = `Editando: ${usuarioSendoEditado}`;
+            } else {
+                 document.getElementById('user-title').textContent = 'Seus Dados';
             }
 
-            document.getElementById('user-title').textContent = Usuário: ;
 
             try {
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(usuarioSendoEditado).get();
                 if (!userDoc.exists) {
                     document.getElementById('status-message').className = 'error-message';
-                    document.getElementById('status-message').textContent = Erro: Perfil de '' não encontrado.;
+                    document.getElementById('status-message').textContent = 'Erro: Perfil não encontrado no banco de dados.';
                     return;
                 }
 
                 const userData = userDoc.data();
                 
-                // Preenche os campos (Nome primário é desabilitado)
+                // Preenche os campos
                 document.getElementById('new-nome').value = usuarioSendoEditado;
-                document.getElementById('new-sobrenome').value = userData.sobrenome || '';
+                document.getElementById('new-displayname').value = userData.displayName || '';
                 document.getElementById('new-idade').value = userData.idade || '';
                 
                 document.getElementById('status-message').textContent = 'Dados carregados. Edite e salve.';
@@ -115,14 +97,17 @@
             const statusEl = document.getElementById('status-message');
             statusEl.className = 'info-message';
             statusEl.textContent = 'Verificando e salvando...';
+            
+            const user = getUsuarioLogado();
+            if (!user) return; 
 
-            const newSobrenome = document.getElementById('new-sobrenome').value.trim();
+            const newDisplayName = document.getElementById('new-displayname').value.trim();
             const newIdade = parseInt(document.getElementById('new-idade').value);
             const newSenha = document.getElementById('new-senha').value;
             const confirmSenha = document.getElementById('confirm-senha').value;
 
             // 1. Validação de Senha
-            if (newSenha !== confirmSenha) {
+            if (newSenha && newSenha !== confirmSenha) {
                 statusEl.className = 'error-message';
                 statusEl.textContent = 'As senhas não coincidem.';
                 return;
@@ -130,11 +115,11 @@
 
             // 2. Monta o objeto de atualização
             const updates = {};
-            updates.sobrenome = newSobrenome;
+            updates.displayName = newDisplayName;
             updates.idade = newIdade;
 
             if (newSenha) {
-                updates.senha = newSenha; // Não estamos criptografando aqui, apenas salvando o valor
+                updates.senha = newSenha; 
             }
 
             if (Object.keys(updates).length === 0) {
@@ -145,22 +130,21 @@
 
             // 3. Salva no Firestore
             try {
-                const userRef = firestore.collection(USERS_COLLECTION).doc(usuarioSendoEditado);
+                const userRef = firestore.collection(USERS_COLLECTION).doc(user.nome);
                 await userRef.update(updates);
 
                 statusEl.className = 'success-message';
                 statusEl.textContent = 'Dados do perfil atualizados com sucesso!';
                 
-                // Limpa os campos de senha após o sucesso
                 document.getElementById('new-senha').value = '';
                 document.getElementById('confirm-senha').value = '';
 
-                // Se o ADMIN editou a própria conta, atualiza o localStorage
-                const adminData = getUsuarioLogado();
-                if (adminData && adminData.nome === usuarioSendoEditado) {
-                    const updatedData = { ...adminData, ...updates };
-                    localStorage.setItem('usuarioLogado', JSON.stringify(updatedData));
-                }
+                // Atualiza o localStorage com os novos dados
+                const updatedData = { ...user, ...updates };
+                // Garante que a senha não vá para o localStorage
+                delete updatedData.senha; 
+                localStorage.setItem('usuarioLogado', JSON.stringify(updatedData));
+
 
             } catch (error) {
                 console.error("Erro ao salvar alterações:", error);

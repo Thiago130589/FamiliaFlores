@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Tarefas</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
 </head>
 <body>
     <div class="center-box">
-        <h1 style="color: #1976d2;">Minhas Tarefas</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+        <h1 class="main-title-blue">Minhas Tarefas</h1>
+        <hr class="divider">
 
         <div id="minhas-tarefas-list" style="width: 100%;">
-            <p>Carregando tarefas...</p>
+            <p class="empty-message">Carregando tarefas...</p>
         </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+        <button onclick="voltarAoPerfil()" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao perfil</button>
     </div>
 
     <script>
@@ -32,26 +32,46 @@
         // Função utilitária para obter o nome do usuário de forma segura
         function getNomeUsuario() {
             const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) return null;
+            if (!storedValue) {
+                // Se não estiver logado, redireciona
+                window.location.href = 'login.html'; 
+                return null;
+            }
             try {
                 const obj = JSON.parse(storedValue);
                 // Retorna o nome, garantindo que seja string e sem espaços extras
                 return String(obj.nome).trim(); 
             } catch (e) {
+                window.location.href = 'login.html';
                 return null;
             }
+        }
+
+        // Função para formatar a data (melhor do que apenas .toLocaleDateString)
+        function formatarDataTarefa(timestamp) {
+            // Verifica se é um timestamp válido (como o Firestore salva)
+            if (timestamp && timestamp.seconds) {
+                return new Date(timestamp.seconds * 1000).toLocaleDateString('pt-BR');
+            }
+            // Tenta tratar como string (seu padrão)
+            if (typeof timestamp === 'string' && timestamp.length >= 10) {
+                 // Converte 'AAAA-MM-DD' para 'DD/MM/AAAA'
+                const parts = timestamp.substring(0, 10).split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return 'Data N/A';
         }
 
 
         // Função para carregar tarefas atribuídas ao usuário logado
         async function loadMinhasTarefas() {
             const lista = document.getElementById('minhas-tarefas-list');
-            lista.innerHTML = '<p>Carregando tarefas...</p>'; // Garante o loader
+            lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>'; // Garante o loader
             
             const userName = getNomeUsuario();
             
             if (!userName) {
-                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
                 return;
             }
 
@@ -60,39 +80,42 @@
                 const snapshot = await firestore.collection('tarefasAtribuidas')
                     .where('atribuidaPara', '==', userName) // Filtra pelo nome do usuário logado (string)
                     .where('status', 'in', ['atribuida', 'PendentePagamento'])
+                    // Ordena por data de criação (ou outro campo relevante)
+                    .orderBy('dataAtribuicao', 'desc') 
                     .get();
 
                 lista.innerHTML = ''; // Limpa o loader
 
                 if (snapshot.empty) {
-                    lista.innerHTML = '<p>Você não tem tarefas em andamento ou pendentes de pagamento.</p>';
+                    lista.innerHTML = '<p class="empty-message">Você não tem tarefas em andamento ou pendentes de pagamento.</p>';
                     return;
                 }
 
                 snapshot.forEach(doc => {
                     const tarefa = doc.data();
                     
-                    // O filtro do Firestore já faz o trabalho, mas essa checagem protege contra inconsistências
-                    if (tarefa.atribuidaPara !== userName) return;
-                    
                     const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-minhas'; // Nova classe para estilização
+                    // Usando o card de tarefa padrão que você deve ter no css/style.css
+                    elemento.className = 'tarefa-card'; 
                     
                     const isPendentePagamento = tarefa.status === 'PendentePagamento';
                     
                     const statusText = isPendentePagamento 
-                        ? '<span style="color: orange; font-weight: bold;">Pendente Pagamento</span>' 
-                        : '<span style="color: #1976d2;">Em Andamento</span>';
-                        
+                        ? `<span class="status-pending">Pendente Pagamento</span>` 
+                        : `<span class="status-inprogress">Em Andamento</span>`;
+                            
                     const buttonHtml = isPendentePagamento 
                         ? `<button class="btn-disabled">Aguardando Pagamento</button>` 
-                        : `<button onclick="concluirTarefa('${doc.id}', '${tarefa.nome}')" class="btn-green">Concluir Tarefa</button>`;
+                        : `<button onclick="concluirTarefa('${doc.id}', '${tarefa.nome}')" class="btn-rounded btn-green">Concluir Tarefa</button>`;
+
+                    // Usando a função de formatação
+                    const dataFormatada = formatarDataTarefa(tarefa.data); 
 
                     elemento.innerHTML = `
-                        <div class="tarefa-details-minhas">
-                            <span class="tarefa-nome">${tarefa.nome}</span>
+                        <div class="tarefa-details">
+                            <span class="tarefa-nome">${tarefa.nome} (${dataFormatada})</span>
                             <span class="tarefa-status">${statusText}</span>
-                            <span class="tarefa-info">R$ ${parseFloat(tarefa.valor || 0).toFixed(2)} | Horário: ${tarefa.inicio} - ${tarefa.fim}</span>
+                            <span class="tarefa-info">R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')} | ${tarefa.inicio} - ${tarefa.fim}</span>
                         </div>
                         ${buttonHtml}
                     `;
@@ -101,8 +124,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar minhas tarefas:", error);
-                // Nota: O Admin precisa de um índice composto para este filtro no Firebase Console se for usar em produção.
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, verifique o Console (F12).</p>`;
+                lista.innerHTML = `<p class="error-message">Erro ao carregar tarefas. Verifique o Console (F12).</p>`;
             }
         }
 
@@ -118,7 +140,7 @@
                 // Manda a tarefa para a fila de pagamento do Admin
                 await taskRef.update({ 
                     status: 'PendentePagamento', 
-                    // Salva apenas a data (AAAA-MM-DD)
+                    // Salva a data de conclusão no padrão 'AAAA-MM-DD'
                     dataConclusao: new Date().toISOString().split('T')[0] 
                 });
 

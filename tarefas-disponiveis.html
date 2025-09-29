@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarefas Disponíveis</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
 </head>
 <body>
     <div class="center-box">
-        <h1 style="color: #1976d2;">Tarefas Disponíveis</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+        <h1 class="main-title-blue">Tarefas Disponíveis</h1>
+        <hr class="divider">
 
         <div id="tarefas-list" style="width: 100%;">
             <p id="loading-message">Carregando tarefas...</p>
         </div>
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
+        <button onclick="voltarAoPerfil()" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao perfil</button>
     </div>
 
     <script>
@@ -32,10 +32,14 @@
         // Função utilitária para obter o objeto completo do usuário
         function getUsuarioObjeto() {
             const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) return null;
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return null;
+            }
             try {
                 return JSON.parse(storedValue);
             } catch (e) {
+                window.location.href = 'login.html';
                 return null;
             }
         }
@@ -43,46 +47,50 @@
         // Função para carregar tarefas com status 'disponivel'
         async function loadTarefasDisponiveis() {
             const lista = document.getElementById('tarefas-list');
-            lista.innerHTML = '<p id="loading-message">Carregando tarefas...</p>';
+            lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>';
             
             const user = getUsuarioObjeto();
             if (!user || !user.nome) {
-                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
                 return;
             }
 
             try {
                 // Busca todas as tarefas da coleção 'tarefasDisponiveis'
-                const snapshot = await firestore.collection('tarefasDisponiveis').get();
+                const snapshot = await firestore.collection('tarefasDisponiveis')
+                    .orderBy('criadaEm', 'asc') // Ordenar do mais antigo para o mais novo
+                    .get();
 
                 // Limpa a lista antes de preencher
                 lista.innerHTML = ''; 
 
                 if (snapshot.empty) {
-                    lista.innerHTML = '<p>Não há tarefas disponíveis no momento.</p>';
+                    lista.innerHTML = '<p class="empty-message">Não há tarefas disponíveis no momento.</p>';
                     return;
                 }
 
                 snapshot.forEach(doc => {
                     const tarefa = doc.data();
                     const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-disponivel';
+                    elemento.className = 'tarefa-card';
                     
+                    const dataFormatada = new Date(tarefa.data).toLocaleDateString('pt-BR');
+
                     elemento.innerHTML = `
-                        <div class="tarefa-details-disponivel">
-                            <span class="tarefa-nome">${tarefa.nome}</span>
+                        <div class="tarefa-details">
+                            <span class="tarefa-nome">${tarefa.nome} (${dataFormatada})</span>
                             <span class="tarefa-info">
-                                Valor: R$ ${parseFloat(tarefa.valor || 0).toFixed(2)} | Horário: ${tarefa.inicio} - ${tarefa.fim}
+                                Valor: R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')} | ${tarefa.inicio} - ${tarefa.fim}
                             </span>
                         </div>
-                        <button onclick="pegarTarefa('${doc.id}')" class="btn-green">Pegar Tarefa</button>
+                        <button onclick="pegarTarefa('${doc.id}')" class="btn-rounded btn-green">Pegar Tarefa</button>
                     `;
                     lista.appendChild(elemento);
                 });
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar tarefas. Se o erro persistir, verifique o Console (F12).</p>`;
+                lista.innerHTML = `<p class="error-message">Erro ao carregar tarefas. Verifique o Console (F12).</p>`;
             }
         }
 
@@ -91,7 +99,6 @@
             const user = getUsuarioObjeto();
             if (!user || !user.nome) {
                 alert('Usuário não identificado. Faça login novamente.');
-                voltarAoPerfil();
                 return;
             }
 
@@ -101,8 +108,8 @@
 
             try {
                 const taskRef = firestore.collection('tarefasDisponiveis').doc(taskId);
+                const assignedRef = firestore.collection('tarefasAtribuidas').doc(); // Novo Doc ID
                 
-                // Usando o lote (batch) para garantir que a exclusão e a adição são atômicas (ou tudo ou nada)
                 const batch = firestore.batch();
 
                 const taskDoc = await taskRef.get();
@@ -117,20 +124,17 @@
                 
                 // 1. Prepara a nova tarefa para a coleção 'tarefasAtribuidas'
                 const novaTarefaAtribuida = {
-                    nome: tarefaData.nome,
-                    data: tarefaData.data,
-                    inicio: tarefaData.inicio,
-                    fim: tarefaData.fim,
-                    valor: tarefaData.valor,
+                    ...tarefaData, // Copia todos os campos da tarefa disponível
                     status: 'atribuida', // Novo status
-                    criadaEm: tarefaData.criadaEm, 
                     dataAtribuicao: new Date().toISOString(),
                     atribuidaPara: user.nome // Apenas o nome do usuário
                 };
 
-                // Cria um novo documento na coleção 'tarefasAtribuidas'
-                const newAssignedTaskRef = firestore.collection('tarefasAtribuidas').doc();
-                batch.set(newAssignedTaskRef, novaTarefaAtribuida);
+                // Remove o campo 'status' antigo se ele existir na cópia (se houver)
+                delete novaTarefaAtribuida.status; 
+                
+                // Adiciona a tarefa na coleção 'tarefasAtribuidas'
+                batch.set(assignedRef, novaTarefaAtribuida);
 
                 // 2. Deleta a tarefa da coleção 'tarefasDisponiveis'
                 batch.delete(taskRef);

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro | Família Flores</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -16,7 +16,7 @@
         <hr class="divider">
         
         <div class="input-group-vertical">
-            <label class="input-label" for="new-username">Nome de Usuário:</label>
+            <label class="input-label" for="new-username">Nome de Usuário (ID):</label>
             <input type="text" id="new-username" class="input-rounded" placeholder="Escolha seu nome (ID)" required>
         </div>
 
@@ -62,13 +62,15 @@
                     return;
                 }
                 
-                // 2. Cria o novo usuário
+                // 2. Cria o novo usuário com campos essenciais
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
-                    nome: username,
-                    senha: password, // Lembre-se, criptografia é essencial para um projeto real!
-                    isAdmin: false, // Novos usuários são membros por padrão
+                    nome: username, // ID (Chave)
+                    displayName: username, // Nome de exibição inicial
+                    senha: password, 
+                    role: 'Membro', // Novo campo, crucial para o menu!
+                    isAdmin: false, 
                     saldo: 0.00,
-                    // Adicione aqui outros campos padrão (ex: tarefasConcluidas: 0)
+                    dataRegistro: new Date().toISOString()
                 });
                 
                 // 3. Sucesso: Redireciona para o Login

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minha Carteira</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -12,7 +12,7 @@
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title-green" id="profile-name">Minha Carteira</h1>
+        <h1 class="main-title-green">Minha Carteira</h1> 
         <hr class="divider">
         
         <div class="saldo-card">
@@ -50,11 +50,14 @@
             }
         }
 
+        function formatBRL(value) {
+            return parseFloat(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
         async function loadCarteira() {
             const userName = getUsuarioLogado();
             if (!userName) return;
 
-            document.getElementById('profile-name').textContent = Carteira de ;
             const saldoEl = document.getElementById('saldo-valor');
             const historicoEl = document.getElementById('historico-lista');
             historicoEl.innerHTML = '<p class="empty-message">Buscando transações...</p>';
@@ -62,14 +65,15 @@
             try {
                 const userDoc = await firestore.collection('users').doc(userName).get();
                 if (!userDoc.exists) {
-                    saldoEl.textContent = 'R$ 0,00';
-                    historicoEl.innerHTML = '<p class="empty-message">Usuário não encontrado.</p>';
+                    saldoEl.textContent = formatBRL(0);
+                    historicoEl.innerHTML = '<p class="error-message">Usuário não encontrado.</p>';
                     return;
                 }
                 
                 const userData = userDoc.data();
                 const saldo = parseFloat(userData.saldo || 0);
-                saldoEl.textContent = R$ ;
+                // Exibe o saldo formatado
+                saldoEl.textContent = formatBRL(saldo); 
 
                 // 1. Buscar Ganhos (Tarefas Concluídas)
                 const tarefasSnapshot = await firestore.collection('tarefasConcluidas')
@@ -83,27 +87,28 @@
                 tarefasSnapshot.forEach(doc => {
                     const tarefa = doc.data();
                     const valor = parseFloat(tarefa.valor || 0);
-                    // Garante que a data seja um objeto Date ou uma string formatada
-                    const data = tarefa.dataConclusao.toDate ? tarefa.dataConclusao.toDate() : new Date(tarefa.dataConclusao);
+                    // Pega a data mais confiável (data de conclusão)
+                    const dataConclusao = tarefa.dataConclusao ? new Date(tarefa.dataConclusao) : new Date();
 
                     historico.push({
                         tipo: 'ganho',
-                        descricao: tarefa.titulo || 'Tarefa Concluída',
+                        descricao: tarefa.nome || 'Tarefa Concluída',
                         valor: valor,
-                        data: data
+                        data: dataConclusao
                     });
                 });
 
                 // 2. Mapear Multas
                 const multas = userData.multas || [];
                 multas.forEach(multa => {
-                    const valor = parseFloat(multa.valor || 0); // Valor deve ser negativo no Firestore
+                    const valor = parseFloat(multa.valor || 0);
                     const data = new Date(multa.data);
                     
                     historico.push({
                         tipo: 'multa',
-                        descricao: Multa: ,
-                        valor: valor,
+                        descricao: `Multa: ${multa.motivo || 'Motivo não especificado'}`,
+                        // Armazena o valor como negativo para facilitar o cálculo do saldo, mas exibe o valor positivo
+                        valor: -Math.abs(valor), 
                         data: data
                     });
                 });
@@ -119,28 +124,28 @@
 
                 let html = '<ul class="transaction-list">';
                 historico.forEach(item => {
-                    const valorAbsoluto = Math.abs(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    const valorAbsoluto = formatBRL(Math.abs(item.valor));
                     const dataFormatada = item.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                     const isPositive = item.tipo === 'ganho';
                     const icon = isPositive ? '&#x2714;' : '&#x2716;'; // Checkmark / X
 
-                    html += 
-                        <li class="transaction-item ">
-                            <span class="transaction-icon"></span>
+                    html += `
+                        <li class="transaction-item ${isPositive ? 'ganho' : 'multa'}">
+                            <span class="transaction-icon">${icon}</span>
                             <div class="transaction-details">
-                                <span class="transaction-description"></span>
-                                <span class="transaction-date"></span>
+                                <span class="transaction-description">${item.descricao}</span>
+                                <span class="transaction-date">${dataFormatada}</span>
                             </div>
-                            <span class="transaction-amount"> </span>
+                            <span class="transaction-amount">${isPositive ? '+' : '-'} ${valorAbsoluto}</span>
                         </li>
-                    ;
+                    `;
                 });
                 html += '</ul>';
                 historicoEl.innerHTML = html;
 
             } catch (error) {
                 console.error("Erro ao carregar carteira:", error);
-                historicoEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira.</p>';
+                historicoEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira. Verifique o Console (F12).</p>';
             }
         }
 

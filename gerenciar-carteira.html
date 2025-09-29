@@ -3,11 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <title>Gerenciar Carteira</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
-    <h1>Gerenciar Carteira</h1>
-    <p>Página para o administrador colocar ou retirar valores das carteiras.</p>
-    <a href="index.html" class="profile-link">Voltar ao perfil</a>
+    <div class="center-box large-box">
+        <h1 class="main-title-green">Gerenciar Carteira</h1>
+        <p id="user-info">Gerenciando a carteira de: <b>Carregando...</b></p>
+        <hr class="divider">
+
+        <h2 style="margin-top: 30px;">Saldo Atual: <span id="saldo-atual" class="saldo-display">R$ 0.00</span></h2>
+        
+        <div style="margin-top: 40px;">
+            <label class="input-label" for="valor-carteira">Valor (R$):</label>
+            <input type="number" id="valor-carteira" class="input-rounded" step="0.01" min="0" placeholder="Ex: 10.50">
+        </div>
+
+        <div class="action-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+            <button id="btn-adicionar" class="btn-rounded btn-primary">Adicionar Valor</button>
+            <button id="btn-retirar" class="btn-rounded btn-danger">Retirar Valor</button>
+        </div>
+
+        <div id="status-message" class="info-message" style="margin-top: 20px; min-height: 20px;"></div>
+
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 30px;">Voltar ao Gerenciamento de Perfis</a>
+    </div>
+
+    <script>
+        const CARTEIRA_PREFIX = 'carteira_';
+        let usuarioGerenciado = '';
+
+        // Função para obter o parâmetro 'user' da URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // Função para formatar o saldo (simples)
+        function formatarSaldo(valor) {
+            return `R$ ${parseFloat(valor).toFixed(2)}`;
+        }
+
+        // Função principal para carregar o saldo e configurar a tela
+        function carregarCarteira() {
+            usuarioGerenciado = getQueryParam('user');
+            const statusEl = document.getElementById('status-message');
+            const saldoEl = document.getElementById('saldo-atual');
+            const userInfoEl = document.getElementById('user-info');
+
+            if (!usuarioGerenciado) {
+                userInfoEl.innerHTML = '<b>Erro: Usuário não especificado.</b>';
+                statusEl.textContent = 'Retorne à página de gerenciamento de perfis.';
+                document.getElementById('btn-adicionar').disabled = true;
+                document.getElementById('btn-retirar').disabled = true;
+                return;
+            }
+
+            userInfoEl.innerHTML = `Gerenciando a carteira de: <b>${usuarioGerenciado}</b>`;
+
+            // O saldo é armazenado no localStorage
+            const saldoStr = localStorage.getItem(CARTEIRA_PREFIX + usuarioGerenciado) || '0.00';
+            let saldo = parseFloat(saldoStr);
+            
+            if (isNaN(saldo)) {
+                saldo = 0.00;
+            }
+            
+            saldoEl.textContent = formatarSaldo(saldo);
+            statusEl.textContent = 'Pronto para alteração.';
+        }
+
+        // Função para salvar o novo saldo no localStorage
+        function salvarNovoSaldo(novoSaldo) {
+            localStorage.setItem(CARTEIRA_PREFIX + usuarioGerenciado, novoSaldo.toFixed(2));
+            document.getElementById('saldo-atual').textContent = formatarSaldo(novoSaldo);
+        }
+
+        // Função para processar a transação (Adicionar ou Retirar)
+        function processarTransacao(tipo) {
+            const valorInput = document.getElementById('valor-carteira');
+            const valorStr = valorInput.value.replace(',', '.').trim();
+            const valor = parseFloat(valorStr);
+            const statusEl = document.getElementById('status-message');
+            
+            statusEl.className = 'info-message';
+            statusEl.textContent = '';
+
+            if (isNaN(valor) || valor <= 0) {
+                statusEl.className = 'error-message';
+                statusEl.textContent = 'Por favor, insira um valor positivo e válido.';
+                return;
+            }
+
+            const saldoStr = localStorage.getItem(CARTEIRA_PREFIX + usuarioGerenciado) || '0.00';
+            let saldoAtual = parseFloat(saldoStr);
+
+            let novoSaldo;
+            let mensagem;
+
+            if (tipo === 'adicionar') {
+                novoSaldo = saldoAtual + valor;
+                mensagem = `R$ ${valor.toFixed(2)} ADICIONADO(S) à carteira de ${usuarioGerenciado}.`;
+            } else if (tipo === 'retirar') {
+                if (valor > saldoAtual) {
+                    if (!confirm(`O valor de retirada (R$ ${valor.toFixed(2)}) é maior que o saldo atual (R$ ${saldoAtual.toFixed(2)}). Deseja permitir um saldo negativo?`)) {
+                        statusEl.className = 'error-message';
+                        statusEl.textContent = 'Retirada cancelada. Saldo não alterado.';
+                        return;
+                    }
+                }
+                novoSaldo = saldoAtual - valor;
+                mensagem = `R$ ${valor.toFixed(2)} RETIRADO(S) da carteira de ${usuarioGerenciado}.`;
+            } else {
+                return;
+            }
+
+            salvarNovoSaldo(novoSaldo);
+            valorInput.value = ''; // Limpa o campo de valor
+            statusEl.className = 'success-message';
+            statusEl.textContent = `${mensagem} Novo saldo: ${formatarSaldo(novoSaldo)}`;
+        }
+
+        // Listeners
+        document.getElementById('btn-adicionar').addEventListener('click', () => processarTransacao('adicionar'));
+        document.getElementById('btn-retirar').addEventListener('click', () => processarTransacao('retirar'));
+
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', carregarCarteira);
+    </script>
 </body>
 </html>

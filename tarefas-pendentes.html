@@ -6,9 +6,9 @@
     <link rel="stylesheet" href="style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
@@ -23,7 +23,6 @@
     </div>
 
     <script>
-    // Utiliza a variável global 'db' definida em firebase-init.js
     const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
     let usuarioAtual = null;
     let isAdmin = false;
@@ -60,11 +59,11 @@
         isAdmin = userInfo.isAdmin;
 
         if (!usuarioAtual) {
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
             return;
         }
         
-        lista.innerHTML = '<p style="color: #888; text-align: center;">Carregando tarefas...</p>';
+        lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>';
 
 
         try {
@@ -82,13 +81,13 @@
             snapshot.forEach(doc => {
                 const tarefa = doc.data();
                 
-                // CORREÇÃO: Trata tarefas onde 'atribuidaPara' ainda é um objeto (legado)
+                // Trata tarefas onde 'atribuidaPara' ainda é um objeto (legado)
                 let nomeAtribuido = tarefa.atribuidaPara;
                 if (typeof tarefa.atribuidaPara === 'object' && tarefa.atribuidaPara !== null && tarefa.atribuidaPara.nome) {
                     nomeAtribuido = tarefa.atribuidaPara.nome;
                 }
                 
-                // Se for membro, e houver inconsistência no BD (filtro não funcionou 100%), pula
+                // Filtro de segurança (caso o filtro do Firestore falhe em casos legados)
                 if (!isAdmin && nomeAtribuido !== usuarioAtual) {
                     return; 
                 }
@@ -97,45 +96,41 @@
             });
 
             if (tarefas.length === 0) {
-                lista.innerHTML = `<p style="color: #888; text-align: center;">Não há tarefas pendentes de pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
+                lista.innerHTML = `<p class="empty-message">Não há tarefas pendentes de pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
                 return;
             }
             
             // RENDERIZAÇÃO
             lista.innerHTML = tarefas.map((t) => {
-                // O Firebase salva datas como AAAA-MM-DD para o filtro.
                 const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
                 
-                // dataConclusao pode vir apenas como AAAA-MM-DD
                 let dataConclusao = 'N/A';
                 let horaConclusao = '';
+                let isFullDateTime = false;
 
                 if (t.dataConclusao) {
-                    // Tenta converter, assumindo que se for só AAAA-MM-DD é o início do dia
                     const dataObj = new Date(t.dataConclusao); 
-                    if (!isNaN(dataObj)) {
-                         dataConclusao = dataObj.toLocaleDateString('pt-BR');
-                         horaConclusao = dataObj.toLocaleTimeString('pt-BR').substring(0, 5);
+                    if (!isNaN(dataObj) && t.dataConclusao.includes('T')) {
+                        isFullDateTime = true;
+                        dataConclusao = dataObj.toLocaleDateString('pt-BR');
+                        horaConclusao = dataObj.toLocaleTimeString('pt-BR').substring(0, 5);
+                    } else if (!isNaN(dataObj)) {
+                        dataConclusao = dataObj.toLocaleDateString('pt-BR');
                     } else {
-                        // Se for apenas a string da data salva
                         dataConclusao = t.dataConclusao; 
-                        horaConclusao = '00:00'; 
                     }
                 }
                 
-
                 let infoAdicional = '';
                 let botaoAcao = '';
 
                 if (isAdmin) {
-                    // ADMIN: Mostra quem fez, valor e o botão de pagamento
                     infoAdicional = `<br><span style="color: #1976d2; font-size: 0.9rem; font-weight: bold;">Usuário: ${t.atribuidaPara}</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} ${t.dataConclusao.includes('T') ? `às ${horaConclusao}` : ''}</span>`;
-                    infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: R$ ${parseFloat(t.valor || 0).toFixed(2).replace('.', ',')}</span>`;
+                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} ${isFullDateTime ? `às ${horaConclusao}` : ''}</span>`;
+                    infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(t.valor)}</span>`;
                     
                     botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAMENTO</button>`;
                 } else {
-                    // MEMBRO: Apenas mostra que a tarefa está aguardando
                     infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando aprovação de pagamento.</span>`;
                     infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
                 }
@@ -167,7 +162,7 @@
 
         } catch (error) {
             console.error("Erro ao carregar tarefas pendentes:", error);
-            lista.innerHTML = '<p style="color: #d32f2f; text-align: center;">Erro ao carregar tarefas pendentes. O administrador pode precisar criar um índice no Firebase para o filtro de status e usuário.</p>';
+            lista.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes. Verifique o console para detalhes.</p>';
         }
     }
 
@@ -178,13 +173,12 @@
      * 3. Deleta a tarefa de tarefasAtribuidas.
      */
     async function pagarTarefa(tarefaId, usuarioNome, valor) {
-        if (!confirm(`Confirmar pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome}? A tarefa será FINALIZADA.`)) {
+        if (!confirm(`Confirmar pagamento de ${formatarMoeda(valor)} para ${usuarioNome}? A tarefa será FINALIZADA.`)) {
             return;
         }
 
         try {
             const tarefaRef = firestore.collection('tarefasAtribuidas').doc(tarefaId);
-            // O nome do usuário é o ID do documento na coleção 'users'
             const userRef = firestore.collection('users').doc(usuarioNome); 
             
             await firestore.runTransaction(async (transaction) => {
@@ -219,7 +213,7 @@
                 transaction.delete(tarefaRef);
             });
 
-            alert(`Pagamento de R$ ${valor.toFixed(2).replace('.', ',')} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
+            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
             renderTarefasPendentes(); // Recarrega a lista
             
         } catch (error) {
@@ -227,7 +221,6 @@
             alert(`Erro ao processar o pagamento: ${error.message || 'Tente novamente.'}`);
         }
     }
-
 
     window.addEventListener('DOMContentLoaded', renderTarefasPendentes);
     </script>

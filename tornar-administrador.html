@@ -2,12 +2,129 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Tornar Administrador</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Administradores</title>
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
 </head>
 <body>
-    <h1>Tornar Administrador</h1>
-    <p>Página para o administrador promover membros a administradores.</p>
-    <a href="index.html" class="profile-link">Voltar ao perfil</a>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: #1976d2;">Gerenciar Administradores</h1>
+        <p class="info-message">Aqui você pode promover/rebaixar membros. Administradores têm acesso total ao sistema de gerenciamento.</p>
+        <hr class="divider">
+        
+        <div id="usuarios-lista" class="historico-lista">
+            <p class="empty-message">Carregando usuários...</p>
+        </div>
+
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+
+        // 1. Verifica se o usuário logado é Admin antes de carregar a página
+        function checkAdminAccess() {
+            const storedValue = localStorage.getItem('usuarioLogado');
+            if (!storedValue) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            try {
+                const obj = JSON.parse(storedValue);
+                // Permite apenas administradores (isAdmin: true ou nome 'thiago')
+                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
+                    alert("Acesso negado. Apenas administradores.");
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        // 2. Carregar e renderizar todos os usuários
+        async function renderUsuarios() {
+            if (!checkAdminAccess()) return;
+
+            const listaEl = document.getElementById('usuarios-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
+
+            try {
+                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+                let html = '<ul class="transaction-list">';
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    const isUserAdmin = userData.isAdmin === true;
+                    
+                    // Não permite alterar o próprio status ou o status de 'thiago'
+                    const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado')).nome;
+                    const canEdit = userName.toLowerCase() !== 'thiago' && userName !== usuarioLogado;
+
+                    const statusText = isUserAdmin ? 'Administrador' : 'Membro Comum';
+                    const statusClass = isUserAdmin ? 'positive-text' : 'negative-text';
+                    const buttonText = isUserAdmin ? 'Rebaixar' : 'Promover';
+                    const buttonClass = isUserAdmin ? 'btn-danger' : 'btn-success';
+
+                    html += 
+                        `<li class="transaction-item">
+                            <div class="transaction-details">
+                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-date ${statusClass}">${statusText}</span>
+                            </div>
+                            ${canEdit ? 
+                                `<button class="btn-rounded ${buttonClass}" 
+                                        onclick="toggleAdminStatus('${userName}', ${isUserAdmin})">
+                                    ${buttonText}
+                                </button>`
+                                : `<span class="btn-rounded btn-secondary" style="opacity: 0.8; cursor: default;">Status Fixo</span>`}
+                        </li>`;
+                });
+                
+                html += '</ul>';
+                listaEl.innerHTML = html;
+
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de usuários.</p>';
+            }
+        }
+
+        // 3. Função para Promover/Rebaixar
+        async function toggleAdminStatus(userName, isCurrentlyAdmin) {
+            const novoStatus = !isCurrentlyAdmin;
+            const acao = novoStatus ? 'Promover' : 'Rebaixar';
+            const novoStatusText = novoStatus ? 'Administrador' : 'Membro Comum';
+
+            if (!confirm(`Tem certeza que deseja ${acao} o usuário ${userName} para ${novoStatusText}?`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
+                
+                await userRef.update({
+                    isAdmin: novoStatus
+                });
+
+                alert(`Usuário ${userName} foi ${acao.toLowerCase()} para ${novoStatusText} com sucesso!`);
+                renderUsuarios(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error(`Erro ao ${acao.toLowerCase()} usuário:`, error);
+                alert(`Erro ao ${acao.toLowerCase()} usuário. Tente novamente.`);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', renderUsuarios);
+    </script>
 </body>
 </html>

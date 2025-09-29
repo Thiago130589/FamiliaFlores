@@ -233,10 +233,10 @@
                 
                 // Trata o campo atribuidaPara (agora a coleção é o nome da tarefa, e não o status)
                 assignedTo = typeof tarefa.atribuidaPara === 'string' 
-                            ? tarefa.atribuidaPara 
-                            : tarefa.atribuidaPara && tarefa.atribuidaPara.nome 
-                                ? tarefa.atribuidaPara.nome
-                                : 'Usuário Desconhecido';
+                             ? tarefa.atribuidaPara 
+                             : tarefa.atribuidaPara && tarefa.atribuidaPara.nome 
+                                 ? tarefa.atribuidaPara.nome
+                                 : 'Usuário Desconhecido';
 
                 detailsHtml = `
                     <div class="tarefa-status-info">
