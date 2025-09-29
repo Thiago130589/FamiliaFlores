@@ -5,75 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="stylesheet" href="css/style.css"> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title" id="welcome-message">Carregando...</h1>
-        <p style="text-align: center; margin-bottom: 20px;">Seu dashboard.</p>
-        <hr class="divider">
-
-        <div id="saldo-card" class="dashboard-card" style="border-left-color: var(--success-color); margin-bottom: 25px;">
-            <div class="tarefa-card-content">
-                <span class="tarefa-name">Seu Saldo Atual:</span>
-                <span class="tarefa-info" id="current-saldo">R$ 0,00</span>
-            </div>
-            </div>
-
-        <div class="admin-action-grid">
-            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button task-action-button">
-                Minhas Tarefas (Em Andamento)
-            </a>
-
-            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button task-action-button">
-                Pegar Novas Tarefas
-            </a>
-            
-            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button task-action-button">
-                Histórico de Tarefas Pagas
-            </a>
-            
-            <a href="editar-perfil.html" class="btn-rounded btn-secondary-text wide-button task-action-button">
-                Configurações do Perfil
-            </a>
-            
-            <button onclick="logout()" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">
-                Sair
-            </button>
+        <div class="header-actions">
+            <h1 class="main-title" id="welcome-message" style="text-align: left;">Carregando...</h1>
+            <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
         </div>
         
-        <a id="admin-link" href="admin.html" class="btn-rounded btn-warning wide-button hidden-start" style="margin-top: 15px;">
+        <p style="text-align: center; margin-bottom: 20px;">Seu dashboard.</p>
+        <hr style="border-color: #ddd;">
+
+        <div id="saldo-card" class="tarefa-card" style="border-left-color: var(--success-color); margin-bottom: 25px;">
+            <div class="tarefa-header-admin">
+                <span class="tarefa-nome-admin">Seu Saldo Atual:</span>
+                <span class="positive-text" id="current-saldo">R$ 0,00</span>
+            </div>
+            <p class="info-message">Atualizado em tempo real.</p>
+        </div>
+
+        <div class="action-grid action-grid-two-cols">
+            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button">
+                Minhas Tarefas
+            </a>
+            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button">
+                Pegar Novas Tarefas
+            </a>
+            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
+                Histórico de Tarefas Pagas
+            </a>
+            <a href="historico-multas.html" class="btn-rounded btn-warning wide-button">
+                Histórico de Multas
+            </a>
+        </div>
+        
+        <a id="admin-link" href="area-administrador.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
         </a>
+
+        <div class="action-grid button-spacing-top">
+             <a href="gerenciar-perfil.html" class="btn-rounded btn-secondary-text wide-button">
+                 Configurações do Perfil
+             </a>
+        </div>
     </div>
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
 
         // 1. Carrega informações e checa o login
         async function loadDashboard() {
+            // Verifica login e redireciona se necessário (função no script.js)
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
-                // Redireciona se não houver login
-                window.location.href = 'login.html';
+                // getUsuarioLogado() já deve redirecionar, mas este é um fallback
+                window.location.href = 'login.html'; 
                 return;
             }
 
             // Exibe o nome do usuário
             document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
 
-            // Verifica e exibe o link do Admin
+            // 2. Verifica e exibe o link do Admin
+            const adminLink = document.getElementById('admin-link');
             if (userInfo.isAdmin) {
-                document.getElementById('admin-link').classList.remove('hidden-start');
+                adminLink.classList.remove('hidden-start');
+            } else {
+                adminLink.classList.add('hidden-start');
             }
 
-            // 2. Carrega o Saldo (necessário buscar do Firestore, pois o localStorage pode estar desatualizado)
+            // 3. Carrega o Saldo
             try {
-                const userDoc = await firestore.collection('users').doc(userInfo.nome).get();
+                // Usa o nome exato (com capitalização, ex: 'Thiago') para buscar no Firestore
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
@@ -81,6 +93,12 @@
                     
                     // Usa a função formatarMoeda do script.js
                     document.getElementById('current-saldo').textContent = formatarMoeda(saldo);
+                    
+                    // Define a cor do saldo (opcional)
+                    const saldoElement = document.getElementById('current-saldo');
+                    saldoElement.classList.remove('positive-text', 'negative-text');
+                    saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+                    
                 } else {
                     document.getElementById('current-saldo').textContent = formatarMoeda(0);
                 }
@@ -91,6 +109,7 @@
             }
         }
 
+        // Garante que a função seja executada quando a página carregar
         window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>

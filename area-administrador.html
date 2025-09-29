@@ -3,73 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Área do Administrador</title>
+    <title>Painel Administrativo</title>
     <link rel="stylesheet" href="css/style.css"> 
-    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title">Área do Administrador</h1>
-        <a href="index.html" class="btn-secondary-text btn-rounded" style="margin-bottom: 20px;">
-            &#8592; Voltar para o Dashboard
-        </a>
-        <hr class="divider">
+        <h1 class="main-title main-title-danger">Painel do Administrador</h1>
+        <p class="center-text info-message">Menu central de gerenciamento do sistema.</p>
 
-        <div id="admin-content" style="display: none;">
-            
-            <p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 25px;">Selecione uma opção de gerenciamento:</p>
+        <div class="button-spacing-top">
+            <a href="index.html" class="btn-rounded btn-secondary wide-button">← Voltar ao Dashboard</a>
+        </div>
+        
+        <hr class="divider" style="margin: 25px 0;">
 
-            <div class="admin-links-grid-full">
-                <a href="gerenciar-tarefas.html" class="btn-rounded btn-primary">Gerenciar Tarefas</a>
-                <a href="gerenciar-perfis.html" class="btn-rounded btn-primary">Gerenciar Perfis</a>
-                <a href="multas.html" class="btn-rounded btn-danger">Aplicar Multas</a>
-                <a href="historico-pagamentos.html" class="btn-rounded btn-success">Pagamentos Pendentes</a>
-                <a href="tornar-administrador.html" class="btn-rounded btn-secondary">Gerenciar Admins</a>
-            </div>
+        <h2 class="section-title">Gerenciamento de Tarefas e Finanças</h2>
+        
+        <div class="action-grid action-grid-two-cols">
+            <a href="gerenciar-tarefas.html" class="btn-rounded btn-primary wide-button">
+                Gerenciar Tarefas (Criação, Edição)
+            </a>
+            <a href="historico-pagamentos-admin.html" class="btn-rounded btn-success wide-button">
+                Histórico de Pagamentos (Admin)
+            </a>
+            <a href="historico-multas.html" class="btn-rounded btn-warning wide-button">
+                Histórico de Multas
+            </a>
+            <a href="gerenciar-carteira.html" class="btn-rounded btn-info wide-button">
+                Gerenciar Carteira (Ajuste Saldo)
+            </a>
         </div>
 
-        <div id="acesso-negado" style="display: none; text-align: center; margin-top: 50px;">
-            <h2 class="error-color">Acesso Negado</h2>
-            <p>Seu perfil não possui permissão para acessar esta área.</p>
-            <button class="btn-rounded btn-primary" onclick="window.location.href='index.html'" style="margin-top: 20px;">
-                Voltar
-            </button>
+        <h2 class="section-title">Gerenciamento de Usuários</h2>
+        
+        <div class="action-grid action-grid-two-cols">
+            <a href="gerenciar-perfis.html" class="btn-rounded btn-primary wide-button">
+                Gerenciar Perfis (Editar Dados)
+            </a>
+            <a href="tornar-administrador.html" class="btn-rounded btn-danger wide-button">
+                Tornar/Remover Administrador
+            </a>
         </div>
     </div>
-
+    
     <script>
-        // Função utilitária para pegar o usuário logado e redirecionar se não existir
-        function getUsuarioLogado() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
-            }
-            try {
-                return JSON.parse(storedValue);
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const userInfo = getUsuarioLogado();
-            
-            if (!userInfo) return; // Se não estiver logado, já foi redirecionado
-
-            // Verifica o status de administrador
-            if (userInfo.isAdmin === true) {
-                // Se for admin, mostra o conteúdo
-                document.getElementById('admin-content').style.display = 'block';
-            } else {
-                // Se não for admin, mostra o acesso negado
-                document.getElementById('acesso-negado').style.display = 'block';
+        // Lógica de segurança simples: Garante que apenas administradores acessem esta página.
+        window.addEventListener('DOMContentLoaded', () => {
+            const userInfo = getUsuarioLogado(); 
+            if (!userInfo || !userInfo.isAdmin) {
+                alert("Acesso negado. Apenas administradores podem ver esta página.");
+                window.location.href = 'index.html';
             }
         });
     </script>
