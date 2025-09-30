@@ -19,6 +19,7 @@
                 <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
                 
                 <p id="welcome-message" class="info-message center-text" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
+                <p id="user-role-status" class="status-badge center-text" style="margin-top: 5px; font-weight: bold;"></p>
             </div>
             
             <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
@@ -46,7 +47,7 @@
             </a>
         </div>
         
-        <a id="admin-link" href="area-administrador.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
+        <a id="admin-link" href="gerenciar-tarefas.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
         </a>
 
@@ -99,18 +100,38 @@
             }
         }
 
-        // LÓGICA DO DASHBOARD (MANTIDA)
+        // LÓGICA DO DASHBOARD (Ajustada)
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
+                // getUsuarioLogado() já redireciona se não houver login.
+                // Mas garantimos aqui por segurança.
                 window.location.href = 'login.html'; 
                 return;
             }
 
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
+            const welcomeMessageElement = document.getElementById('welcome-message');
+            const adminLink = document.getElementById('admin-link');
+            const userRoleStatus = document.getElementById('user-role-status'); // Novo elemento
 
-            document.getElementById('welcome-message').textContent = `Olá, ${userInfo.nome}!`;
+            // 1. Saudação
+            welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
+
+            // 2. Exibe o status (Administrador / Membro)
+            if (userInfo.isAdmin) {
+                userRoleStatus.textContent = 'Administrador';
+                userRoleStatus.style.color = 'var(--danger-color)'; // Cor Admin
+                adminLink.classList.remove('hidden-start');
+                adminLink.href = 'gerenciar-tarefas.html'; // Corrigido o link para o arquivo correto
+            } else {
+                userRoleStatus.textContent = 'Membro';
+                userRoleStatus.style.color = 'var(--info-color)'; // Cor Membro
+                adminLink.classList.add('hidden-start');
+            }
+
+            // 3. Carrega Saldo e Foto do Firestore
+            const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
 
             if (userDoc.exists) {
                 const userData = userDoc.data();
@@ -123,18 +144,14 @@
                 const saldoElement = document.getElementById('current-saldo');
                 saldoElement.textContent = formatarMoeda(saldo);
                 
+                // Aplica cor ao saldo
                 saldoElement.classList.remove('positive-text', 'negative-text');
                 saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
             } else {
-                 document.getElementById('current-saldo').textContent = formatarMoeda(0);
+                // Caso o doc não exista (o que não deve ocorrer após o login), exibe 0.
+                document.getElementById('current-saldo').textContent = formatarMoeda(0);
             }
             
-            const adminLink = document.getElementById('admin-link');
-            if (userInfo.isAdmin) {
-                adminLink.classList.remove('hidden-start');
-            } else {
-                adminLink.classList.add('hidden-start');
-            }
         }
 
         window.addEventListener('DOMContentLoaded', loadDashboard);

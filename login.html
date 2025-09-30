@@ -34,6 +34,8 @@
     </div>
 
     <script>
+        // O firestore está sendo carregado no js/firebase-init.js. 
+        // Aqui, definimos uma variável local caso o db ainda não esteja pronto.
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
@@ -55,6 +57,7 @@
                 // Usa o nome digitado EXATAMENTE como está (ex: 'Thiago')
                 const userIdToFetch = usernameInput; 
                 
+                // Busca o documento do usuário pelo ID (nome de usuário)
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
                 if (!userDoc.exists) {
@@ -65,23 +68,25 @@
 
                 const userData = userDoc.data();
                 
+                // Trata a possibilidade do campo ser 'password' ou 'senha'
                 const storedPassword = userData.password || userData.senha; 
 
+                // **ATENÇÃO: Sem hash, as senhas são comparadas em texto puro. Recomendado apenas para ambiente de testes/local.**
                 if (!storedPassword || storedPassword !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
-                // CORREÇÃO APLICADA AQUI: Apenas verifica se isAdmin é true, 
-                // sem a verificação manual de nome.
+                // Verifica se o campo 'isAdmin' existe e é verdadeiro (true) no Firestore
                 const isUserAdmin = (userData.isAdmin === true);
 
                 const usuarioLogado = {
                     nome: userIdToFetch,
-                    isAdmin: isUserAdmin,
+                    isAdmin: isUserAdmin, // Salva o status de administrador
                 };
 
+                // Salva o objeto completo com o status de Admin no localStorage
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
 
                 window.location.href = 'index.html';
