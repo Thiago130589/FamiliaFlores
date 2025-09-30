@@ -9,7 +9,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <script src="js/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
 <body>
@@ -24,8 +26,8 @@
         </div>
 
         <div class="form-group">
-            <label for="reg-email">E-mail</label>
-            <input type="email" id="reg-email" class="input-rounded" placeholder="Seu e-mail" required>
+            <label for="reg-sobrenome">Sobrenome</label>
+            <input type="text" id="reg-sobrenome" class="input-rounded" placeholder="Seu Sobrenome" required>
         </div>
 
         <div class="form-group">
@@ -72,7 +74,7 @@
         
         async function registerUser() {
             const username = document.getElementById('reg-username').value.trim();
-            const email = document.getElementById('reg-email').value.trim(); 
+            const sobrenome = document.getElementById('reg-sobrenome').value.trim(); // ATUALIZADO
             const password = document.getElementById('reg-password').value.trim();
             const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
             const fotoFile = document.getElementById('reg-foto-upload').files[0]; 
@@ -85,7 +87,7 @@
             uploadStatusEl.textContent = '';
 
             // 1. Validações Básicas
-            if (!username || !email || !password || !confirmPassword) {
+            if (!username || !sobrenome || !password || !confirmPassword) { // ATUALIZADO
                 messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
@@ -99,6 +101,7 @@
                 return;
             }
 
+            // Validação de Senha Simplificada (apenas 6 caracteres)
             if (password.length < 6) {
                 messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
                 messageEl.classList.add('error-message');
@@ -107,7 +110,7 @@
             }
             
             if (username.includes(' ')) {
-                messageEl.textContent = 'O Nome de Usuário não pode conter espaços.';
+                messageEl.textContent = 'O Nome de Usuário (Apelido) não pode conter espaços.';
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
                 return;
@@ -118,7 +121,7 @@
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (userDoc.exists) {
-                    messageEl.textContent = `Nome de usuário '${username}' já está em uso.`;
+                    messageEl.textContent = `Nome de usuário (Apelido) '${username}' já está em uso.`;
                     messageEl.classList.add('error-message');
                     messageEl.classList.remove('hidden-start');
                     return;
@@ -126,23 +129,17 @@
 
                 let fotoUrl = null;
 
-                // 3. UPLOAD DA FOTO (CRÍTICO)
-                // Usamos o Storage se ele estiver inicializado globalmente
+                // 3. UPLOAD DA FOTO 
                 if (fotoFile && typeof storage !== 'undefined') { 
                     uploadStatusEl.textContent = 'Fazendo upload da foto... Aguarde...';
                     
-                    // Cria uma referência única no Storage (ex: 'profile_pics/usuario123.jpg')
                     const storageRef = storage.ref(`profile_pics/${username}/${fotoFile.name}`);
                     const uploadTask = storageRef.put(fotoFile);
 
-                    // Acompanha e espera o upload
                     await uploadTask;
                     
-                    // Pega a URL pública
                     fotoUrl = await storageRef.getDownloadURL();
                     uploadStatusEl.textContent = 'Upload da foto concluído!';
-                } else if (fotoFile && typeof storage === 'undefined') {
-                    console.warn("Firebase Storage não está inicializado. A foto não será salva. Verifique js/firebase-init.js.");
                 }
 
 
@@ -150,7 +147,7 @@
                 // ATENÇÃO: Senha Salva em Texto Puro! (Não é seguro)
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
                     nome: username,
-                    email: email, 
+                    sobrenome: sobrenome, // ATUALIZADO
                     senha: password, 
                     saldo: 0, 
                     isAdmin: false, 
