@@ -5,20 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cadastro de Usuário</title>
     <link rel="stylesheet" href="css/style.css"> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box">
         <h1 class="main-title">Cadastro de Usuário</h1>
-        <p style="text-align: center; margin-bottom: 20px;">Crie sua conta para começar.</p>
+        <p style="text-align: center; margin-bottom: 20px;">Crie sua conta e personalize seu perfil.</p>
         <hr class="divider">
 
         <div class="form-group">
             <label for="reg-username">Nome de Usuário (Apelido)</label>
             <input type="text" id="reg-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
+        </div>
+
+        <div class="form-group">
+            <label for="reg-email">E-mail</label>
+            <input type="email" id="reg-email" class="input-rounded" placeholder="Seu e-mail" required>
         </div>
 
         <div class="form-group">
@@ -31,6 +38,24 @@
             <input type="password" id="reg-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
         </div>
 
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Foto de Perfil (Opcional)</label>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="reg-foto-upload" accept="image/*" class="input-rounded" style="flex-grow: 1;">
+                
+                <button 
+                    type="button" 
+                    class="btn-icon btn-secondary btn-rounded" 
+                    onclick="alert('Funcionalidade de acesso à câmera requer permissões e um código mais complexo, em desenvolvimento.')"
+                    title="Tirar Foto com a Câmera"
+                >
+                    📷
+                </button>
+            </div>
+            <p id="upload-status" class="info-message" style="margin-top: 5px;"></p>
+        </div>
+        
         <button onclick="registerUser()" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
             Cadastrar
         </button>
@@ -41,21 +66,27 @@
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Agora 'db' e 'storage' são globais e acessíveis se firebase-init.js foi configurado
+        const firestore = db;
         const USERS_COLLECTION = 'users';
-
+        
         async function registerUser() {
             const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim(); 
             const password = document.getElementById('reg-password').value.trim();
             const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
+            const fotoFile = document.getElementById('reg-foto-upload').files[0]; 
             const messageEl = document.getElementById('register-message');
+            const uploadStatusEl = document.getElementById('upload-status');
 
             messageEl.classList.add('hidden-start');
             messageEl.textContent = '';
             messageEl.classList.remove('error-message', 'positive-text');
+            uploadStatusEl.textContent = '';
 
-            if (!username || !password || !confirmPassword) {
-                messageEl.textContent = 'Por favor, preencha todos os campos.';
+            // 1. Validações Básicas
+            if (!username || !email || !password || !confirmPassword) {
+                messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
                 return;
@@ -75,39 +106,61 @@
                 return;
             }
             
-            // Não permite espaços no nome de usuário
             if (username.includes(' ')) {
-                messageEl.textContent = 'O nome de usuário não pode conter espaços.';
+                messageEl.textContent = 'O Nome de Usuário não pode conter espaços.';
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
                 return;
             }
 
-
             try {
-                // 1. Verifica se o usuário já existe
+                // 2. Verifica se o usuário já existe
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
                 if (userDoc.exists) {
-                    messageEl.textContent = 'Nome de usuário já está em uso.';
+                    messageEl.textContent = `Nome de usuário '${username}' já está em uso.`;
                     messageEl.classList.add('error-message');
                     messageEl.classList.remove('hidden-start');
                     return;
                 }
 
-                // 2. Cria o novo usuário
-                // ATENÇÃO: A senha está sendo salva em texto puro. Em um ambiente de produção, use hashing (ex: Firebase Authentication)
+                let fotoUrl = null;
+
+                // 3. UPLOAD DA FOTO (CRÍTICO)
+                // Usamos o Storage se ele estiver inicializado globalmente
+                if (fotoFile && typeof storage !== 'undefined') { 
+                    uploadStatusEl.textContent = 'Fazendo upload da foto... Aguarde...';
+                    
+                    // Cria uma referência única no Storage (ex: 'profile_pics/usuario123.jpg')
+                    const storageRef = storage.ref(`profile_pics/${username}/${fotoFile.name}`);
+                    const uploadTask = storageRef.put(fotoFile);
+
+                    // Acompanha e espera o upload
+                    await uploadTask;
+                    
+                    // Pega a URL pública
+                    fotoUrl = await storageRef.getDownloadURL();
+                    uploadStatusEl.textContent = 'Upload da foto concluído!';
+                } else if (fotoFile && typeof storage === 'undefined') {
+                    console.warn("Firebase Storage não está inicializado. A foto não será salva. Verifique js/firebase-init.js.");
+                }
+
+
+                // 4. Cria o novo usuário no Firestore
+                // ATENÇÃO: Senha Salva em Texto Puro! (Não é seguro)
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
                     nome: username,
-                    senha: password, // Senha não segura!
+                    email: email, 
+                    senha: password, 
                     saldo: 0, 
                     isAdmin: false, 
+                    fotoUrl: fotoUrl, 
                     dataCadastro: new Date().toISOString()
                 });
 
-                // 3. Sucesso e redirecionamento
+                // 5. Sucesso e redirecionamento
                 messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
-                messageEl.classList.add('positive-text'); // Usa a classe positiva para sucesso
+                messageEl.classList.add('positive-text'); 
                 messageEl.classList.remove('hidden-start');
                 
                 setTimeout(() => {
@@ -116,7 +169,7 @@
 
             } catch (error) {
                 console.error("Erro no cadastro:", error);
-                messageEl.textContent = 'Erro ao tentar cadastrar. Tente novamente.';
+                messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console e as regras do Firebase Storage.'}`;
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
             }

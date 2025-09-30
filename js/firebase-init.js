@@ -3,18 +3,16 @@
  * Configuração e inicialização do Firebase (usando a sintaxe de Namespace Global do v8)
  */
 
-// NOTA: Este arquivo depende dos SDKs do Firebase v8 (firebase-app.js, firebase-firestore.js)
+// NOTA: Este arquivo depende dos SDKs do Firebase v8 (firebase-app.js, firebase-firestore.js, firebase-storage.js)
 // serem carregados "antes" no seu HTML.
-// Não é necessário carregar firebase-auth.js, pois o login é manual via Firestore.
+// O 'firebase-storage.js' é CRÍTICO para o upload de fotos.
 
-// Se o objeto "firebase" não estiver definido (o que deve ser feito pela tag script no HTML),
-// este script pode falhar. Assumimos que as tags foram carregadas.
-
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "...", // Sua chave real
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
-    storageBucket: "familia-flores-2ed6a.appspot.com",
+    storageBucket: "familia-flores-2ed6a.appspot.com", // ESSENCIAL para o Storage
     messagingSenderId: "...",
     appId: "...",
     measurementId: "..." // analytics não está sendo usado
@@ -26,10 +24,8 @@ if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
 }
 
 // 2. Define as variáveis globais para acesso fácil
-// Acessamos a variável 'db' em todos os outros scripts
+// Acessamos 'db' e 'storage' em todos os outros scripts (index.html, cadastrar-usuario.html, etc.)
 const db = firebase.firestore();
+const storage = firebase.storage(); // <<< CRÍTICO: Inicialização do Storage para salvar as fotos
 
-// ----------------------------------------------------------------------------------
-// LINHA DE ERRO REMOVIDA/COMENTADA: Não precisamos do Auth para login manual no Firestore.
-// const auth = firebase.auth(); 
-// ----------------------------------------------------------------------------------
+// A linha 'const auth = firebase.auth();' foi omitida conforme sua estrutura de login manual.
