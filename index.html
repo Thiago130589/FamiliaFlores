@@ -87,25 +87,20 @@
     </div>
     
     <script>
-        // A variável 'db' é definida em js/firebase-init.js
         const firestore = db;
         const USERS_COLLECTION = 'users';
 
-        // LÓGICA DO MODAL (Usando toggleModal do script.js)
         function openProfileModal() {
             toggleModal('profile-modal', true);
         }
 
         function closeProfileModal(event) {
-            // Fecha apenas se o clique for no botão 'Fechar' ou no overlay
             if (!event || event.target.id === 'profile-modal' || event.target.tagName === 'BUTTON') {
                 toggleModal('profile-modal', false);
             }
         }
 
-        // LÓGICA DO DASHBOARD (Ajustada)
         async function loadDashboard() {
-            // userInfo agora tem fotoUrl e saldo graças à correção no login.html!
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
@@ -120,7 +115,10 @@
             
             // 1. CARREGA DADOS DO LOCALSTORAGE
             welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
-            profilePicElement.src = userInfo.fotoUrl || 'img/default-avatar.png'; // Usa a URL do localStorage
+            
+            // CRÍTICO: Tenta usar a fotoBase64 (do novo cadastro) ou a fotoUrl/foto antiga.
+            const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'img/default-avatar.png';
+            profilePicElement.src = fotoSource; 
             
             // 2. STATUS ADMIN
             if (userInfo.isAdmin) {
@@ -133,10 +131,9 @@
                 adminLink.classList.add('hidden-start');
             }
 
-            // 3. SALDO (Já deve vir do localStorage, mas podemos buscar a versão mais recente)
+            // 3. SALDO (Busca a versão mais recente no Firestore)
             let currentSaldo = userInfo.saldo || 0;
             
-            // Opcional: Busca a versão mais recente no Firestore, já que o saldo muda em tempo real
             try {
                 const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
                 if (userDoc.exists && typeof userDoc.data().saldo !== 'undefined') {

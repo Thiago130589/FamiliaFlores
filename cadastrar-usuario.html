@@ -9,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
@@ -68,7 +67,17 @@
     </div>
 
     <script>
-        // Agora 'db' e 'storage' são globais e acessíveis se firebase-init.js foi configurado
+        // Função para converter o arquivo de imagem para Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Agora 'db' é global e acessível
         const firestore = db;
         const USERS_COLLECTION = 'users';
         
@@ -86,7 +95,7 @@
             messageEl.classList.remove('error-message', 'positive-text');
             uploadStatusEl.textContent = '';
 
-            // 1. Validações Básicas
+            // 1. Validações
             if (!username || !sobrenome || !password || !confirmPassword) { 
                 messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
                 messageEl.classList.add('error-message');
@@ -94,27 +103,18 @@
                 return;
             }
 
-            if (password !== confirmPassword) {
-                messageEl.textContent = 'As senhas não coincidem.';
+            if (password !== confirmPassword || password.length < 6 || username.includes(' ')) {
+                // Mensagens detalhadas (mantidas por segurança)
+                if (password !== confirmPassword) messageEl.textContent = 'As senhas não coincidem.';
+                else if (password.length < 6) messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                else messageEl.textContent = 'O Nome de Usuário (Apelido) não pode conter espaços.';
+                
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
                 return;
             }
 
-            // Validação de Senha Simplificada (apenas 6 caracteres)
-            if (password.length < 6) {
-                messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
-                messageEl.classList.add('error-message');
-                messageEl.classList.remove('hidden-start');
-                return;
-            }
-            
-            if (username.includes(' ')) {
-                messageEl.textContent = 'O Nome de Usuário (Apelido) não pode conter espaços.';
-                messageEl.classList.add('error-message');
-                messageEl.classList.remove('hidden-start');
-                return;
-            }
+            let fotoBase64 = null;
 
             try {
                 // 2. Verifica se o usuário já existe
@@ -127,31 +127,22 @@
                     return;
                 }
 
-                let fotoUrl = null;
-
-                // 3. UPLOAD DA FOTO - CRÍTICO: Requer Firebase Storage e regras de segurança corretas.
-                if (fotoFile && typeof storage !== 'undefined') { 
-                    uploadStatusEl.textContent = 'Fazendo upload da foto... Aguarde...';
-                    
-                    const storageRef = storage.ref(`profile_pics/${username}/${fotoFile.name}`);
-                    const uploadTask = storageRef.put(fotoFile);
-
-                    // Await é onde ele pode travar se o Storage não responder
-                    await uploadTask;
-                    
-                    fotoUrl = await storageRef.getDownloadURL();
-                    uploadStatusEl.textContent = 'Upload da foto concluído!';
+                // 3. CONVERSÃO PARA BASE64 (Rápido e não depende do Storage)
+                if (fotoFile) { 
+                    uploadStatusEl.textContent = 'Processando foto...';
+                    fotoBase64 = await fileToBase64(fotoFile);
+                    uploadStatusEl.textContent = 'Foto processada!';
                 }
 
 
-                // 4. Cria o novo usuário no Firestore
+                // 4. Cria o novo usuário no Firestore (com a foto em Base64)
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
                     nome: username,
                     sobrenome: sobrenome, 
                     senha: password, 
                     saldo: 0, 
                     isAdmin: false, 
-                    fotoUrl: fotoUrl, 
+                    fotoBase64: fotoBase64, // AGORA SALVA COMO BASE64
                     dataCadastro: new Date().toISOString()
                 });
 
@@ -166,8 +157,8 @@
 
             } catch (error) {
                 console.error("Erro no cadastro:", error);
-                uploadStatusEl.textContent = ''; // Limpa a mensagem de upload
-                messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console e as regras do Firebase Storage.'}`;
+                uploadStatusEl.textContent = ''; 
+                messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console.'}`;
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
             }
