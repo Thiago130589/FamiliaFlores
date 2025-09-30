@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <script src="js/firebase-init.js"></script>
@@ -84,19 +85,21 @@
             </div>
         </div>
     </div>
+    
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // A variável 'db' é definida em js/firebase-init.js
+        const firestore = db;
         const USERS_COLLECTION = 'users';
 
-        // LÓGICA DO MODAL
+        // LÓGICA DO MODAL (Usando toggleModal do script.js)
         function openProfileModal() {
-            document.getElementById('profile-modal').classList.remove('hidden-start');
+            toggleModal('profile-modal', true);
         }
 
         function closeProfileModal(event) {
-            // Fecha apenas se o clique for no overlay (e não no conteúdo do modal)
-            if (!event || event.target.id === 'profile-modal') {
-                document.getElementById('profile-modal').classList.add('hidden-start');
+            // Fecha apenas se o clique for no botão 'Fechar' ou no overlay
+            if (!event || event.target.id === 'profile-modal' || event.target.tagName === 'BUTTON') {
+                toggleModal('profile-modal', false);
             }
         }
 
@@ -104,42 +107,49 @@
         async function loadDashboard() {
             const userInfo = getUsuarioLogado();
             
-            if (!userInfo || !userInfo.nome) {
-                // getUsuarioLogado() já redireciona se não houver login.
-                // Mas garantimos aqui por segurança.
-                window.location.href = 'login.html'; 
+            if (!userInfo || !userInfo.uid) {
+                // getUsuarioLogado() já redireciona se necessário.
                 return;
             }
 
             const welcomeMessageElement = document.getElementById('welcome-message');
             const adminLink = document.getElementById('admin-link');
-            const userRoleStatus = document.getElementById('user-role-status'); // Novo elemento
+            const userRoleStatus = document.getElementById('user-role-status'); 
+            const profilePicElement = document.getElementById('profile-pic');
+            
+            // Tenta buscar o documento usando o UID ou o nome/email, dependendo da sua estrutura
+            // Como você usou 'userInfo.nome' no localStorage, vamos usá-lo:
+            welcomeMessageElement.textContent = `Olá, ${userInfo.nome || userInfo.email}!`;
 
-            // 1. Saudação
-            welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
-
-            // 2. Exibe o status (Administrador / Membro)
-            if (userInfo.isAdmin) {
-                userRoleStatus.textContent = 'Administrador';
-                userRoleStatus.style.color = 'var(--danger-color)'; // Cor Admin
-                adminLink.classList.remove('hidden-start');
-                adminLink.href = 'gerenciar-tarefas.html'; // Corrigido o link para o arquivo correto
-            } else {
-                userRoleStatus.textContent = 'Membro';
-                userRoleStatus.style.color = 'var(--info-color)'; // Cor Membro
-                adminLink.classList.add('hidden-start');
-            }
 
             // 3. Carrega Saldo e Foto do Firestore
+            // Assumindo que a collection 'users' usa o 'nome' ou 'uid' como ID do documento
+            // Recomendo usar o UID, mas mantendo a lógica com 'nome' que você enviou:
             const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
 
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 
+                // 1. STATUS ADMIN
+                if (userData.isAdmin) {
+                    userRoleStatus.textContent = 'Administrador';
+                    userRoleStatus.style.color = 'var(--error-color)';
+                    adminLink.classList.remove('hidden-start');
+                } else {
+                    userRoleStatus.textContent = 'Membro';
+                    userRoleStatus.style.color = 'var(--info-color)';
+                    adminLink.classList.add('hidden-start');
+                }
+
+                // 2. FOTO DE PERFIL (CRÍTICO)
                 if (userData.fotoUrl) {
-                    document.getElementById('profile-pic').src = userData.fotoUrl;
+                    profilePicElement.src = userData.fotoUrl;
+                } else {
+                    // Mantém o avatar padrão, mas garante que não haja erro
+                    profilePicElement.src = "img/default-avatar.png";
                 }
                 
+                // 3. SALDO
                 const saldo = userData.saldo || 0;
                 const saldoElement = document.getElementById('current-saldo');
                 saldoElement.textContent = formatarMoeda(saldo);
@@ -147,8 +157,11 @@
                 // Aplica cor ao saldo
                 saldoElement.classList.remove('positive-text', 'negative-text');
                 saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+
             } else {
-                // Caso o doc não exista (o que não deve ocorrer após o login), exibe 0.
+                // Caso não encontre o documento no Firestore
+                userRoleStatus.textContent = 'Membro';
+                userRoleStatus.style.color = 'var(--info-color)';
                 document.getElementById('current-saldo').textContent = formatarMoeda(0);
             }
             

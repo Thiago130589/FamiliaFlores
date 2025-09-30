@@ -36,6 +36,7 @@ function getUsuarioLogado() {
  */
 function logout() {
     if (confirm("Tem certeza que deseja sair do sistema?")) {
+        // Você pode adicionar aqui firebase.auth().signOut() se estiver usando autenticação
         localStorage.removeItem('usuarioLogado');
         // Redireciona para o login após o logout
         window.location.href = 'login.html';
@@ -60,8 +61,6 @@ function formatarMoeda(valor) {
 
 /**
  * Função para alternar a visibilidade de modais no escopo global.
- * Esta função é importante pois garante que o modal pode ser aberto e fechado
- * a partir de qualquer script embutido ou elemento onclick.
  * @param {string} modalId O ID do elemento modal-overlay.
  * @param {boolean} show Se deve mostrar (true) ou esconder (false).
  */
@@ -77,20 +76,29 @@ function toggleModal(modalId, show) {
     }
 }
 
-// A função closeModal está definida nos arquivos HTML, mas para a padronização, 
-// podemos definir um wrapper global aqui.
-function closeModal(modalId) {
-    toggleModal(modalId, false);
+/**
+ * Wrapper global para abrir o modal de perfil (usado em index.html)
+ */
+function openProfileModal() {
+    toggleModal('profile-modal', true);
+}
+
+/**
+ * Wrapper global para fechar o modal (usado em index.html)
+ */
+function closeProfileModal() {
+    toggleModal('profile-modal', false);
 }
 
 
-// Opcional: Adiciona um listener para fechar modais ao clicar fora (no overlay)
+// Adiciona um listener para fechar modais ao clicar fora (no overlay)
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', (event) => {
             // Se o clique for exatamente no overlay (e não no modal-content dentro dele)
             if (event.target === overlay) {
-                closeModal(overlay.id);
+                // Chama o toggleModal para esconder
+                toggleModal(overlay.id, false);
             }
         });
     });

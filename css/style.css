@@ -84,7 +84,7 @@ body {
     flex-grow: 1; 
     
     /* Define uma largura máxima para o container, garantindo que o botão 'Sair' 
-       possa se posicionar bem à direita em telas grandes (desktop) */
+        possa se posicionar bem à direita em telas grandes (desktop) */
     max-width: 70%; 
 }
 
