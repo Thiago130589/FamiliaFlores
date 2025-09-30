@@ -34,9 +34,8 @@
     </div>
 
     <script>
-        // O firestore está sendo carregado no js/firebase-init.js. 
-        // Aqui, definimos uma variável local caso o db ainda não esteja pronto.
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // A variável 'db' é definida no js/firebase-init.js
+        const firestore = db;
         const USERS_COLLECTION = 'users';
 
         async function loginUser() {
@@ -54,7 +53,6 @@
             }
 
             try {
-                // Usa o nome digitado EXATAMENTE como está (ex: 'Thiago')
                 const userIdToFetch = usernameInput; 
                 
                 // Busca o documento do usuário pelo ID (nome de usuário)
@@ -67,26 +65,23 @@
                 }
 
                 const userData = userDoc.data();
-                
-                // Trata a possibilidade do campo ser 'password' ou 'senha'
                 const storedPassword = userData.password || userData.senha; 
 
-                // **ATENÇÃO: Sem hash, as senhas são comparadas em texto puro. Recomendado apenas para ambiente de testes/local.**
+                // Comparação de senha (em texto puro)
                 if (!storedPassword || storedPassword !== passwordInput) {
                     errorMessage.textContent = 'Senha incorreta.';
                     errorMessage.classList.remove('hidden-start');
                     return;
                 }
 
-                // Verifica se o campo 'isAdmin' existe e é verdadeiro (true) no Firestore
-                const isUserAdmin = (userData.isAdmin === true);
-
+                // LOGIN BEM-SUCEDIDO: Monta e Salva o objeto completo no localStorage
                 const usuarioLogado = {
                     nome: userIdToFetch,
-                    isAdmin: isUserAdmin, // Salva o status de administrador
+                    isAdmin: userData.isAdmin === true, // Garante que seja boolean
+                    fotoUrl: userData.fotoUrl || 'img/default-avatar.png', // CRÍTICO: Salva a URL da foto
+                    saldo: userData.saldo || 0 // Salva o saldo para evitar busca duplicada no Dashboard
                 };
 
-                // Salva o objeto completo com o status de Admin no localStorage
                 localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
 
                 window.location.href = 'index.html';

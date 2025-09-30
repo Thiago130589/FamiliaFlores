@@ -105,10 +105,10 @@
 
         // LÓGICA DO DASHBOARD (Ajustada)
         async function loadDashboard() {
+            // userInfo agora tem fotoUrl e saldo graças à correção no login.html!
             const userInfo = getUsuarioLogado();
             
-            if (!userInfo || !userInfo.uid) {
-                // getUsuarioLogado() já redireciona se necessário.
+            if (!userInfo || !userInfo.nome) {
                 return;
             }
 
@@ -116,55 +116,39 @@
             const adminLink = document.getElementById('admin-link');
             const userRoleStatus = document.getElementById('user-role-status'); 
             const profilePicElement = document.getElementById('profile-pic');
+            const saldoElement = document.getElementById('current-saldo');
             
-            // Tenta buscar o documento usando o UID ou o nome/email, dependendo da sua estrutura
-            // Como você usou 'userInfo.nome' no localStorage, vamos usá-lo:
-            welcomeMessageElement.textContent = `Olá, ${userInfo.nome || userInfo.email}!`;
-
-
-            // 3. Carrega Saldo e Foto do Firestore
-            // Assumindo que a collection 'users' usa o 'nome' ou 'uid' como ID do documento
-            // Recomendo usar o UID, mas mantendo a lógica com 'nome' que você enviou:
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
-
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                
-                // 1. STATUS ADMIN
-                if (userData.isAdmin) {
-                    userRoleStatus.textContent = 'Administrador';
-                    userRoleStatus.style.color = 'var(--error-color)';
-                    adminLink.classList.remove('hidden-start');
-                } else {
-                    userRoleStatus.textContent = 'Membro';
-                    userRoleStatus.style.color = 'var(--info-color)';
-                    adminLink.classList.add('hidden-start');
-                }
-
-                // 2. FOTO DE PERFIL (CRÍTICO)
-                if (userData.fotoUrl) {
-                    profilePicElement.src = userData.fotoUrl;
-                } else {
-                    // Mantém o avatar padrão, mas garante que não haja erro
-                    profilePicElement.src = "img/default-avatar.png";
-                }
-                
-                // 3. SALDO
-                const saldo = userData.saldo || 0;
-                const saldoElement = document.getElementById('current-saldo');
-                saldoElement.textContent = formatarMoeda(saldo);
-                
-                // Aplica cor ao saldo
-                saldoElement.classList.remove('positive-text', 'negative-text');
-                saldoElement.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
-
+            // 1. CARREGA DADOS DO LOCALSTORAGE
+            welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
+            profilePicElement.src = userInfo.fotoUrl || 'img/default-avatar.png'; // Usa a URL do localStorage
+            
+            // 2. STATUS ADMIN
+            if (userInfo.isAdmin) {
+                userRoleStatus.textContent = 'Administrador';
+                userRoleStatus.style.color = 'var(--error-color)';
+                adminLink.classList.remove('hidden-start');
             } else {
-                // Caso não encontre o documento no Firestore
                 userRoleStatus.textContent = 'Membro';
                 userRoleStatus.style.color = 'var(--info-color)';
-                document.getElementById('current-saldo').textContent = formatarMoeda(0);
+                adminLink.classList.add('hidden-start');
+            }
+
+            // 3. SALDO (Já deve vir do localStorage, mas podemos buscar a versão mais recente)
+            let currentSaldo = userInfo.saldo || 0;
+            
+            // Opcional: Busca a versão mais recente no Firestore, já que o saldo muda em tempo real
+            try {
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
+                if (userDoc.exists && typeof userDoc.data().saldo !== 'undefined') {
+                    currentSaldo = userDoc.data().saldo;
+                }
+            } catch (error) {
+                console.error("Erro ao buscar saldo atualizado:", error);
             }
             
+            saldoElement.textContent = formatarMoeda(currentSaldo);
+            saldoElement.classList.remove('positive-text', 'negative-text');
+            saldoElement.classList.add(currentSaldo >= 0 ? 'positive-text' : 'negative-text');
         }
 
         window.addEventListener('DOMContentLoaded', loadDashboard);

@@ -3,7 +3,7 @@
  * Funções utilitárias globais
  */
 
-// NOTA: Este arquivo usa o objeto 'firebase' e as variáveis globais 'db' (firestore) e 'auth' 
+// NOTA: Este arquivo usa o objeto 'firebase' e as variáveis globais 'db' (firestore) e 'storage'
 // definidas no js/firebase-init.js.
 
 /**
@@ -24,6 +24,12 @@ function getUsuarioLogado() {
 
     try {
         const userInfo = JSON.parse(usuarioLogadoJSON);
+        // Garante que o UID/nome de usuário está presente
+        if (!userInfo.nome) {
+            localStorage.removeItem('usuarioLogado'); // Limpa se estiver corrompido
+            window.location.href = 'login.html';
+            return null;
+        }
         return userInfo;
     } catch (e) {
         console.error("Erro ao fazer parse das informações do usuário:", e);

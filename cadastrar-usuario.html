@@ -74,7 +74,7 @@
         
         async function registerUser() {
             const username = document.getElementById('reg-username').value.trim();
-            const sobrenome = document.getElementById('reg-sobrenome').value.trim(); // ATUALIZADO
+            const sobrenome = document.getElementById('reg-sobrenome').value.trim(); 
             const password = document.getElementById('reg-password').value.trim();
             const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
             const fotoFile = document.getElementById('reg-foto-upload').files[0]; 
@@ -87,7 +87,7 @@
             uploadStatusEl.textContent = '';
 
             // 1. Validações Básicas
-            if (!username || !sobrenome || !password || !confirmPassword) { // ATUALIZADO
+            if (!username || !sobrenome || !password || !confirmPassword) { 
                 messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
@@ -129,13 +129,14 @@
 
                 let fotoUrl = null;
 
-                // 3. UPLOAD DA FOTO 
+                // 3. UPLOAD DA FOTO - CRÍTICO: Requer Firebase Storage e regras de segurança corretas.
                 if (fotoFile && typeof storage !== 'undefined') { 
                     uploadStatusEl.textContent = 'Fazendo upload da foto... Aguarde...';
                     
                     const storageRef = storage.ref(`profile_pics/${username}/${fotoFile.name}`);
                     const uploadTask = storageRef.put(fotoFile);
 
+                    // Await é onde ele pode travar se o Storage não responder
                     await uploadTask;
                     
                     fotoUrl = await storageRef.getDownloadURL();
@@ -144,10 +145,9 @@
 
 
                 // 4. Cria o novo usuário no Firestore
-                // ATENÇÃO: Senha Salva em Texto Puro! (Não é seguro)
                 await firestore.collection(USERS_COLLECTION).doc(username).set({
                     nome: username,
-                    sobrenome: sobrenome, // ATUALIZADO
+                    sobrenome: sobrenome, 
                     senha: password, 
                     saldo: 0, 
                     isAdmin: false, 
@@ -166,6 +166,7 @@
 
             } catch (error) {
                 console.error("Erro no cadastro:", error);
+                uploadStatusEl.textContent = ''; // Limpa a mensagem de upload
                 messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console e as regras do Firebase Storage.'}`;
                 messageEl.classList.add('error-message');
                 messageEl.classList.remove('hidden-start');
