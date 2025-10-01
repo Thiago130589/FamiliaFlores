@@ -14,44 +14,48 @@
     <script src="js/script.js"></script>
 
     <style>
-        /* Container principal do topo: Foto + Info + Botão Sair */
+        /* Container principal do topo: Perfil + Botão Sair */
         .header-actions {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start; /* Alinha o conteúdo ao topo */
+            justify-content: space-between; /* Espaça os elementos (Extrema Esquerda e Extrema Direita) */
+            align-items: flex-start; 
             margin-bottom: 15px;
         }
 
-        /* Container que agrupa Foto, Nome e Status */
+        /* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA */
         .profile-header-container {
-            flex-grow: 1; /* Permite que ele ocupe espaço */
-            display: flex; /* Novo Flex para a foto e as informações */
+            flex-grow: 1; /* Permite que o perfil e o texto ocupem a maior parte do espaço */
+            display: flex;
             align-items: center; /* Centraliza verticalmente a foto com o texto */
-            justify-content: flex-end; /* Empurra tudo para a direita inicialmente */
-            text-align: right;
+            justify-content: flex-start; /* Alinha o conteúdo à Esquerda */
+            text-align: left;
         }
 
-        /* Container das Mensagens (Olá, Status) */
+        /* Container das Mensagens (Olá, Status) - Fica à direita da foto */
         .profile-text-info {
             display: flex;
             flex-direction: column;
-            align-items: flex-end; /* Alinha o texto à direita */
-            margin-right: 15px; /* Espaço entre o texto e a foto */
-            order: 2; /* Garante que a info de texto fique na ordem correta no mobile */
+            align-items: flex-start; /* Alinha o texto à esquerda */
+            margin-left: 15px; /* Espaço entre a foto e o texto */
         }
         
-        /* Foto de perfil no Dashboard: MANTIDA SIMPLES */
+        /* Foto de perfil no Dashboard: AUMENTADA PARA 80px e na Esquerda */
         .profile-pic {
-            width: 70px;
-            height: 70px;
+            width: 80px; /* Aumentado */
+            height: 80px; /* Aumentado */
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid var(--primary-color);
-            flex-shrink: 0; /* Não encolhe */
-            order: 3; /* Move a foto para a extrema direita (último elemento do flex) */
+            flex-shrink: 0; 
+            order: 1; /* Foto no começo do Flex (Esquerda) */
+        }
+        
+        /* Ajuste do botão Sair (para ficar na extrema direita) */
+        #logout-button-container {
+             flex-shrink: 0; /* Não deve encolher */
         }
 
-        /* Ajustes no Modal de Perfil para a foto à direita */
+        /* --- Estilos do Modal (Mantidos para garantir a funcionalidade) --- */
         .modal-content .profile-header-container {
             justify-content: space-between;
             align-items: center;
@@ -61,23 +65,16 @@
             display: flex;
         }
         .modal-content .profile-text-info {
-            margin-right: 0;
+            margin-left: 0; /* No modal, o texto fica à esquerda e a foto à direita */
             align-items: flex-start;
             order: 1;
         }
         .modal-content .profile-pic {
             width: 80px; 
             height: 80px;
-            order: 3;
+            order: 3; /* No modal, a foto fica à direita do texto */
         }
-        
-        /* Ajuste do botão Sair (para ficar no canto superior) */
-        #logout-button-container {
-             /* Ocupa o espaço à esquerda */
-             flex-grow: 1; 
-             display: flex;
-             justify-content: flex-end;
-        }
+
     </style>
 </head>
 <body>
@@ -85,16 +82,16 @@
         
         <div class="header-actions">
             
-            <div id="logout-button-container">
-                <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
-            </div>
-            
             <div class="profile-header-container">
+                <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
                 <div class="profile-text-info">
                     <p id="welcome-message" class="info-message" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
                     <p id="user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
-                <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
+            </div>
+            
+            <div id="logout-button-container">
+                <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
             </div>
         </div>
         
@@ -178,6 +175,7 @@
             const userInfo = getUsuarioLogado();
             
             if (userInfo && userInfo.nome) {
+                // LÓGICA DA FOTO CORRETA: Tenta fotoBase64, depois fotoUrl, ou usa o default
                 const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'img/default-avatar.png';
                 
                 document.getElementById('modal-welcome-message').textContent = `Olá, ${userInfo.nome}!`;
@@ -222,7 +220,7 @@
             // 1. CARREGA DADOS DO LOCALSTORAGE (Dashboard principal)
             welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
             
-            // CRÍTICO: Tenta usar a fotoBase64 ou a fotoUrl/foto antiga.
+            // LÓGICA DA FOTO CORRETA: Tenta fotoBase64, depois fotoUrl, ou usa o default
             const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'img/default-avatar.png';
             profilePicElement.src = fotoSource; 
             
