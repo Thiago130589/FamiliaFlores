@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="css/style.css"> 
     
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+            <link rel="stylesheet" href="css/style.css"> 
+    
+            <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
@@ -21,7 +22,7 @@
         <div class="header-actions">
             
             <div class="profile-header-container">
-                <img id="profile-pic" class="profile-pic" 
+                                                <img id="profile-pic" class="profile-pic" 
                      src="assets/img/default-avatar.png" 
                      alt="Foto de Perfil"
                      onerror="this.onerror=null; console.error('Erro ao carregar foto de perfil (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
@@ -49,18 +50,18 @@
             </a>
         </div>
 
-        <div class="action-grid action-grid-two-cols">
-            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button">
-                Minhas Tarefas
-            </a>
-            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button">
-                Tarefas Disponíveis
-            </a>
-            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
-                Histórico de Tarefas Pagas
-            </a>
-        </div>
-        
+        <div class="centered-actions-group">
+            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button">
+                Minhas Tarefas
+            </a>
+            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button">
+                Tarefas Disponíveis
+            </a>
+            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
+                Histórico de Tarefas Pagas
+            </a>
+        </div>
+        
         <a id="admin-link" href="painel-admin.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
         </a>
@@ -81,7 +82,7 @@
                     <p id="modal-welcome-message" class="info-message" style="margin-top: 5px; text-align: left;">Carregando...</p>
                     <p id="modal-user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
-                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" 
+                                                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" 
                      src="assets/img/default-avatar.png" 
                      alt="Foto de Perfil"
                      onerror="this.onerror=null; console.error('Erro ao carregar foto do modal (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
@@ -111,6 +112,10 @@
     </div>
     
     <script>
+        // [ALERTA GÊMINI]: NUNCA ALTERAR SEM CONFIRMAÇÃO
+        // As variáveis e as funções 'openProfileModal' e 'loadDashboard' são CRÍTICAS.
+        // Elas contêm a lógica de BUSCA e EXIBIÇÃO da imagem e dos dados do Firebase.
+
         const firestore = db;
         const USERS_COLLECTION = 'users';
 
@@ -134,7 +139,7 @@
             const userInfo = getUsuarioLogado();
             
             if (userInfo && userInfo.nome) {
-                // LÓGICA DA FOTO CORRIGIDA: Usa 'userInfo.foto' (como está no Firestore) ou o default.
+                // LÓGICA CRÍTICA DA FOTO: Usa 'userInfo.foto' (URL do Firebase) ou o default.
                 const fotoSource = userInfo.foto || userInfo.fotoBase64 || userInfo.fotoUrl || 'assets/img/default-avatar.png';
                 
                 document.getElementById('modal-welcome-message').textContent = `Olá, ${userInfo.nome}!`;
@@ -179,7 +184,7 @@
             // 1. CARREGA DADOS DO LOCALSTORAGE (Dashboard principal)
             welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
             
-            // LÓGICA DA FOTO CORRIGIDA: Usa 'userInfo.foto' (como está no Firestore) ou o default.
+            // LÓGICA CRÍTICA DA FOTO: Usa 'userInfo.foto' (URL do Firebase) ou o default.
             const fotoSource = userInfo.foto || userInfo.fotoBase64 || userInfo.fotoUrl || 'assets/img/default-avatar.png';
             profilePicElement.src = fotoSource; 
             
