@@ -371,24 +371,6 @@ body {
     margin-bottom: 20px !important;
 }
 
-/* --- ESTILOS ANTIGOS DO GRID (MANTIDOS COMENTADOS PARA REFERÊNCIA) --- */
-/*
-.action-grid {
-    display: grid;
-    gap: 10px;
-    margin: 15px 0;
-}
-.action-grid-two-cols {
-    grid-template-columns: 1fr 1fr;
-}
-.action-grid-three-cols {
-    grid-template-columns: 1fr 1fr 1fr;
-}
-.action-grid-single-col {
-    grid-template-columns: 1fr;
-}
-*/
-
 /* --- NOVO GRUPO DE AÇÕES CENTRALIZADO (Minhas Tarefas, etc.) --- */
 .centered-actions-group {
     /* Centraliza o conteúdo (botões) na horizontal */
@@ -656,5 +638,106 @@ textarea {
 @media (min-width: 800px) {
     .large-box {
         margin-top: 50px;
+    }
+}
+
+/* =========================================================================
+ * 12. LISTA COMPACTA DE TAREFAS (TAREFAS DISPONÍVEIS)
+ * ========================================================================= */
+
+.tarefas-lista-compacta {
+    /* Garante que o container separe bem os itens */
+    padding-top: 5px;
+}
+
+.tarefa-item-compacta {
+    /* Define o layout de linha (flex) para alinhar itens e botão */
+    display: flex;
+    justify-content: space-between; /* Espaça o conteúdo e o botão */
+    align-items: center; /* Alinha verticalmente */
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid var(--success-color); /* Fica bonito para o disponível */
+    transition: transform 0.2s;
+}
+
+.tarefa-item-compacta:hover {
+    transform: translateY(-2px); /* Efeito de elevação sutil no hover */
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tarefa-details-inline {
+    /* Ocupa a maior parte do espaço disponível */
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espaço entre nome e valor */
+    flex-grow: 1; 
+    overflow: hidden; /* Garante que o texto não ultrapasse o limite antes do botão */
+}
+
+.tarefa-nome-compacta {
+    font-size: 1em;
+    font-weight: 600;
+    color: var(--primary-dark); /* Um pouco mais escuro que o texto padrão */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Ajustado para ser mais flexível em telas pequenas, ocupando o que sobrar */
+}
+
+.tarefa-valor-compacta {
+    font-size: 0.9em;
+    font-weight: 700;
+    color: var(--success-color); /* Verde forte */
+    flex-shrink: 0; /* Garante que o valor não encolha */
+}
+
+.btn-pegar-compacta {
+    /* Estilo para o botão "Pegar" pequeno */
+    padding: 5px 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: white;
+    background-color: var(--primary-color); /* Cor principal para o botão de ação */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 70px; /* Garante tamanho mínimo */
+    text-align: center;
+    flex-shrink: 0; /* Impede que o botão encolha */
+}
+
+.btn-pegar-compacta:hover {
+    background-color: var(--primary-dark); /* Cor mais escura no hover */
+}
+
+/* =========================================================================
+ * 13. RESPONSIVIDADE DA LISTA (Ajustes finos para telas menores)
+ * ========================================================================= */
+
+@media (max-width: 400px) {
+    .tarefa-item-compacta {
+        padding: 10px;
+    }
+    
+    .tarefa-details-inline {
+        /* Permite que o nome e o valor quebrem a linha em telas muito pequenas */
+        flex-direction: column; 
+        align-items: flex-start;
+        gap: 2px;
+        flex-grow: 1;
+    }
+    
+    .tarefa-nome-compacta {
+        font-size: 0.9em;
+        max-width: 100%; /* Ocupa a linha inteira disponível */
+    }
+    
+    .tarefa-valor-compacta {
+        font-size: 0.8em;
     }
 }

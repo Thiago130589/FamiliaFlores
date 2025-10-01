@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
 <body>
@@ -16,7 +16,7 @@
         <p class="info-message" style="text-align: center;">Pegue uma tarefa para começar a ganhar pontos (e dinheiro!).</p>
         <hr class="divider">
         
-        <div id="tarefas-lista" class="historico-lista">
+                <div id="tarefas-lista" class="tarefas-lista-compacta"> 
             <p class="empty-message">Carregando tarefas...</p>
         </div>
 
@@ -30,12 +30,8 @@
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        /**
-         * 1. Verifica Acesso e Redireciona se não estiver logado.
-         */
         function checkAccess() {
             const userInfo = getUsuarioLogado();
-            
             if (!userInfo || !userInfo.nome) {
                 window.location.href = 'login.html';
                 return false;
@@ -43,9 +39,6 @@
             return userInfo.nome;
         }
 
-        /**
-         * 2. Renderiza a lista de tarefas disponíveis no Firestore.
-         */
         async function renderTarefasDisponiveis() {
             const userName = checkAccess();
             if (!userName) return;
@@ -54,9 +47,8 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // Filtra por tarefas com status 'Disponivel'
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
-                    .where('status', '==', 'Disponivel') // CORRIGIDO AQUI (sem acento)
+                    .where('status', '==', 'Disponivel') 
                     .orderBy('valor', 'desc'); 
 
                 const snapshot = await query.get();
@@ -69,33 +61,16 @@
                     const t = doc.data();
                     const valor = parseFloat(t.valor || 0);
 
-                    // Botão de ação principal
-                    const buttonHtml = `
-                        <button class="btn-rounded btn-primary wide-button" 
-                                onclick="pegarTarefa('${taskId}', '${t.nome}')">
-                            Pegar Tarefa
-                        </button>
-                    `;
-                    
-                    // Estrutura do Card
+                    // NOVO LAYOUT DE LISTA COMPACTA
                     html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: var(--success-color);">
-                            <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
+                        <div class="tarefa-item-compacta">
+                            <div class="tarefa-details-inline">
+                                <span class="tarefa-nome-compacta">${t.nome}</span> 
+                                <span class="tarefa-valor-compacta positive-text">${formatarMoeda(valor)}</span>
                             </div>
-                            
-                            <div class="tarefa-status-line tarefa-info-status-success" style="margin-bottom: 10px;">
-                                <span>Status:</span>
-                                <span class="status-available">Disponível</span>
-                            </div>
-
-                            <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
-                                <div class="tarefa-info-admin">Descrição: ${t.descricao || 'N/A'}</div>
-                            </div>
-                            <div style="margin-top: 15px;">
-                                ${buttonHtml}
-                            </div>
+                                                        <button class="btn-pegar-compacta" onclick="pegarTarefa('${taskId}', '${t.nome}')">
+                                Pegar
+                            </button>
                         </div>
                     `;
                 });
@@ -104,15 +79,12 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas.</p>';
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console.</p>';
             }
         }
 
-        /**
-         * 3. Função para Pegar a Tarefa (Transação: move de Disponíveis para Atribuídas).
-         * Garante que dois usuários não peguem a mesma tarefa.
-         */
         async function pegarTarefa(taskId, taskName) {
+            // ... (A função 'pegarTarefa' permanece a mesma)
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
                 alert('Sua sessão expirou. Faça login novamente.');
@@ -138,13 +110,11 @@
                     
                     const taskData = taskDoc.data();
                     
-                    // 1. Deleta da lista de tarefas disponíveis
                     transaction.delete(availableRef);
                     
-                    // 2. Registra na lista de tarefas atribuídas
                     const assignedData = {
                         ...taskData,
-                        status: 'EmAndamento', // Novo status
+                        status: 'EmAndamento', 
                         atribuidaPara: userName,
                         dataAtribuicao: new Date().toISOString().split('T')[0] 
                     };
@@ -152,7 +122,7 @@
                 });
 
                 alert(`Tarefa "${taskName}" foi atribuída a você! Acesse "Minhas Tarefas" para começar.`);
-                renderTarefasDisponiveis(); // Recarrega a lista
+                renderTarefasDisponiveis(); 
                 
             } catch (error) {
                 console.error("Erro na transação de pegar tarefa:", error);
