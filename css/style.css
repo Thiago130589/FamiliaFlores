@@ -1,10 +1,10 @@
 ﻿/*
  * style.css
- * Tema visual: Fundo Azul, Caixas Brancas Arredondadas (Tema Família)
+ * Organização: Estilos por Seção Lógica (Global, Dashboard, Tarefas, Formulários, Responsividade)
  */
 
 /* =========================================================================
- * 1. VARIÁVEIS DE COR E BÁSICO
+ * 1. GERAIS E VARIÁVEIS (ROOT, BODY, RESET)
  * ========================================================================= */
 :root {
     /* Cores Principais */
@@ -46,7 +46,7 @@ body {
 }
 
 /* =========================================================================
- * 2. LAYOUTS E CAIXAS (ESTILOS CONSOLIDADOS DO PERFIL)
+ * 2. LAYOUTS GLOBAIS (CAIXAS BRANCAS E RESPONSIVIDADE BASE)
  * ========================================================================= */
 
 .center-box {
@@ -55,8 +55,9 @@ body {
     padding: 30px;
     box-shadow: 0 4px 12px var(--shadow-color);
     margin-top: 20px;
-    width: 95%; /* Responsivo no celular */
-    max-width: 450px;
+    width: 95%; 
+    /* Max-width para celular: maior largura para dar liberdade */
+    max-width: 380px; 
 }
 
 .large-box {
@@ -64,70 +65,24 @@ body {
     width: 95%;
 }
 
-/* --- ESTILOS DE PERFIL: ALINHAMENTO À ESQUERDA (DASHBOARD) --- */
-
-/* Container principal do topo: Perfil (Esquerda) + Botão Sair (Direita) */
-.header-actions {
-    display: flex;
-    justify-content: space-between; 
-    align-items: flex-start; 
-    margin-bottom: 15px;
-    flex-direction: row; /* Garante que o perfil venha antes do botão Sair */
-}
-
-/* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA */
-.profile-header-container {
-    flex-grow: 1; 
-    display: flex;
-    align-items: center; 
-    justify-content: flex-start; 
-    text-align: left;
-}
-
-/* Container das Mensagens (Olá, Status) - REDUZINDO O ESPAÇAMENTO */
-.profile-text-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start !important; /* Força o texto à Esquerda da foto */
-    margin-left: 10px; 
-    text-align: left !important; /* Garante que o texto fique alinhado à esquerda */
-}
-
-
-/* Ajuste do botão Sair (para ficar na extrema direita) */
-#logout-button-container {
-      flex-shrink: 0; 
-}
-
-/* --- ESTILOS DO MODAL DE PERFIL: INVERSÃO DA ORDEM E AJUSTE DE TAMANHO --- */
-
-.modal-profile-container {
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 20px;
-    display: flex;
-}
-.modal-profile-text {
-    margin-left: 0; 
-    align-items: flex-start !important;
-    order: 1;
+.divider {
+    border: none;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 15px 0;
 }
 
 /* =========================================================================
- * 3. TIPOGRAFIA E ESTILOS GERAIS
+ * 3. TIPOGRAFIA E UTILITÁRIOS
  * ========================================================================= */
 
 .main-title {
     font-size: 2em;
-    font-weight: bold; /* Letras em Negrito */
+    font-weight: bold; 
     color: var(--primary-color);
     text-align: center;
     margin-bottom: 10px;
 }
-
-/* Títulos com cores específicas (usados no Admin) */
 .main-title-success { color: var(--success-color); }
 .main-title-danger { color: var(--error-color); }
 .main-title-error { color: var(--error-color); }
@@ -158,140 +113,11 @@ body {
     font-weight: bold;
     text-align: center;
 }
-
-/* Necessário reverter o center-text para o contexto da mensagem, caso seja necessário */
 .center-text { text-align: center; } 
 
-/* =========================================================================
- * 4. FOTOS DE PERFIL (AVATAR) - CRÍTICO PARA O TEMA E DADOS
- * * CORREÇÃO: Removendo margem da foto do dashboard para puxar o elemento mais para a esquerda.
- * ========================================================================= */
-
-/* Novo wrapper para a foto do Dashboard, garante o alinhamento correto */
-.profile-pic-wrapper {
-    /* Define a ordem do elemento no Flexbox do .profile-header-container */
-    order: 2; 
-    /* REMOVIDO o margin-left para puxar a foto para a esquerda */
-    /* Adicionando margin-right: auto para garantir que o wrapper ocupe o espaço extra à direita */
-    margin-left: 0; /* Remove a margem que estava separando do texto */
-    margin-right: auto; /* Permite que a foto seja "empurrada" para a esquerda o máximo possível */
-}
-
-/* Novo wrapper para a foto no Modal */
-.modal-profile-pic-wrapper {
-    /* No modal, queremos que o texto fique na esquerda (order: 1) e a foto na direita (order: 3) */
-    order: 3;
-    /* Mantém a foto na extrema direita do modal */
-    margin-left: 0; 
-}
-
-
-/* [ALERTA GÊMINI]: NÃO ALTERAR SEM CONFIRMAÇÃO
- * Estas classes (profile-pic e modal-profile-pic) contêm as dimensões, 
- * bordas (var(--primary-color)), e o 'object-fit' que garantem que o avatar 
- * do usuário (vindo do Firebase Storage) seja exibido corretamente.
- * Alterar as dimensões ou 'object-fit' pode quebrar a visualização da foto.
- */
-
-.profile-pic {
-    /* Dimensões Padrão (Dashboard) */
-    width: 150px; 
-    height: 150px; 
-    
-    /* Configurações Visuais */
-    border-radius: 50%; 
-    object-fit: cover;
-    border: 3px solid var(--primary-color); 
-    
-    /* Configurações de Layout */
-    flex-shrink: 0; 
-    order: unset; 
-    margin-bottom: 0;
-}
-
-/* Tamanho Menor (Modal) */
-.modal-profile-pic {
-    width: 80px; 
-    height: 80px;
-    order: unset; 
-    margin-bottom: 0;
-}
-
-/* Adaptação Responsiva para avatares menores em listas, etc. */
-.profile-pic-small {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 10px;
-    flex-shrink: 0;
-}
 
 /* =========================================================================
- * 5. SALDO E PLACAR (INDEX.HTML)
- * ========================================================================= */
-
-.placar-box {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    text-align: center;
-    margin-bottom: 20px;
-}
-.placar-item {
-    padding: 10px;
-    border-radius: 10px;
-    flex: 1;
-    margin: 0 5px;
-}
-
-.placar-item h2 {
-    font-size: 1.1em;
-    color: var(--text-color);
-    margin-bottom: 5px;
-}
-
-.placar-item p {
-    font-size: 1.6em;
-    font-weight: bold;
-}
-
-/* Cores de Saldo */
-.saldo-negativo { color: var(--error-color); }
-.saldo-positivo { color: var(--success-color); }
-
-.negative-text { color: var(--error-color); }
-.positive-text { color: var(--success-color); }
-.status-bold { font-weight: bold; }
-
-/* =========================================================================
- * 6. RELÓGIO (DATA, HORA)
- * ========================================================================= */
-
-.clock-container {
-    text-align: center;
-    margin-bottom: 20px;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: #f7f7f7;
-    border: 1px solid #eee;
-}
-
-.clock-time {
-    font-size: 2.5em;
-    font-weight: bold;
-    color: var(--error-color); /* Relógio Vermelho */
-    line-height: 1;
-}
-
-.clock-date {
-    font-size: 1em;
-    color: var(--error-color); /* Data Vermelha */
-    margin-top: 5px;
-}
-
-/* =========================================================================
- * 7. BOTÕES E LINKS
+ * 4. BOTÕES E LINKS (Geral)
  * ========================================================================= */
 
 .btn-rounded {
@@ -307,7 +133,6 @@ body {
     display: inline-block;
 }
 
-/* Padrão: Botões Azuis */
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
@@ -315,38 +140,15 @@ body {
 .btn-primary:hover {
     background-color: var(--primary-dark);
 }
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-.btn-secondary:hover {
-    background-color: #5a6268;
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: white;
-}
-.btn-success:hover {
-    background-color: #1e7e34;
-}
-
-.btn-danger {
-    background-color: var(--error-color);
-    color: white;
-}
-.btn-danger:hover {
-    background-color: #bd2130;
-}
-
-.btn-info {
-    background-color: var(--info-color);
-    color: white;
-}
-.btn-info:hover {
-    background-color: #117a8b;
-}
+/* Outros Botões (Secondary, Success, Danger, Info) */
+.btn-secondary { background-color: #6c757d; color: white; }
+.btn-secondary:hover { background-color: #5a6268; }
+.btn-success { background-color: var(--success-color); color: white; }
+.btn-success:hover { background-color: #1e7e34; }
+.btn-danger { background-color: var(--error-color); color: white; }
+.btn-danger:hover { background-color: #bd2130; }
+.btn-info { background-color: var(--info-color); color: white; }
+.btn-info:hover { background-color: #117a8b; }
 
 .btn-secondary-text {
     background-color: transparent;
@@ -363,44 +165,22 @@ body {
     margin-top: 10px;
 }
 
-.button-spacing-top {
-    margin-top: 20px !important;
-}
-
-.button-spacing-bottom {
-    margin-bottom: 20px !important;
-}
-
-/* --- NOVO GRUPO DE AÇÕES CENTRALIZADO (Minhas Tarefas, etc.) --- */
+/* Grupo de Ações - Usado em Index, Login, Cadastro */
 .centered-actions-group {
-    /* Centraliza o conteúdo (botões) na horizontal */
     text-align: center; 
     margin: 15px 0;
 }
 
-/* Sobrescreve o 'wide-button' para o grupo centralizado, forçando uma largura máxima e centralização de bloco */
 .centered-actions-group .wide-button {
     width: 100%;
-    max-width: 300px; /* Limita o tamanho máximo para parecer centralizado */
-    margin: 10px auto; /* Centraliza o bloco do botão (necessário 'display: block' implícito ou explícito) */
-    display: block; /* Garante que 'margin: auto' funcione para centralização de bloco */
+    max-width: 300px; 
+    margin: 10px auto; 
+    display: block; 
 }
 
-.btn-icon {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    font-size: 1.2em;
-    line-height: 1;
-    margin-left: 10px;
-}
 
 /* =========================================================================
- * 8. FORMULÁRIOS
+ * 5. FORMULÁRIOS E INPUTS (LOGIN, CADASTRO, ADMIN)
  * ========================================================================= */
 
 form {
@@ -435,124 +215,175 @@ textarea {
 }
 
 /* =========================================================================
- * 9. LISTAS E CARDS (TAREFAS/HISTÓRICO)
+ * 6. ESPECÍFICO DO DASHBOARD (INDEX.HTML)
  * ========================================================================= */
 
-.historico-lista {
-    margin-top: 15px;
-    max-height: 400px; /* Limita a altura para scroll */
-    overflow-y: auto;
-    padding-right: 5px;
-}
+/* --- PERFIL E CABEÇALHO --- */
 
-/* Estilo para lista de transações (usado em Saldo, Multas, Atribuição) */
-.transaction-list {
-    list-style: none;
-}
-
-.transaction-item {
+.header-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 10px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    border-left: 5px solid #ccc;
-    transition: box-shadow 0.2s;
-}
-.transaction-item:hover {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 15px;
 }
 
-.transaction-details {
+.profile-header-container {
+    flex-grow: 1; 
+    display: flex;
+    align-items: center; 
+    justify-content: flex-start; 
+    text-align: left;
+}
+
+.profile-pic {
+    width: 150px; 
+    height: 150px; 
+    border-radius: 50%; 
+    object-fit: cover;
+    border: 3px solid var(--primary-color); 
+    flex-shrink: 0; 
+}
+
+.profile-pic-wrapper {
+    order: 2; 
+    margin-left: 0; 
+    margin-right: auto; 
+}
+
+.profile-text-info {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
+    align-items: flex-start !important; 
+    margin-left: 10px; 
+    text-align: left !important; 
 }
 
-.transaction-description {
-    font-weight: bold;
-    color: var(--text-color);
+/* --- PLACAR E SALDO --- */
+
+.placar-box {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
 }
-
-.transaction-date {
-    font-size: 0.85em;
-    color: #6c757d;
-}
-
-.transaction-amount {
-    font-weight: bold;
-    margin-left: 10px;
-}
-
-/* Bordas coloridas para Transaction Item */
-.card-border-success { border-left-color: var(--success-color); }
-.card-border-warning { border-left-color: var(--warning-color); }
-.card-border-error { border-left-color: var(--error-color); }
-.card-border-info { border-left-color: var(--info-color); }
-
-
-/* Tarefa Card (mais complexo, usado no Admin/Minhas Tarefas) */
-.tarefa-card {
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: var(--box-bg-color);
+.placar-item {
+    padding: 10px;
     border-radius: 10px;
-    border-left: 6px solid var(--primary-color);
-    box-shadow: 0 2px 4px var(--shadow-color);
+    flex: 1;
+    margin: 0 5px;
 }
 
-.tarefa-header-admin {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+.placar-item h2 {
+    font-size: 1.1em;
+    color: var(--text-color);
+    margin-bottom: 5px;
 }
-
-.tarefa-nome-admin {
-    font-size: 1.2em;
+.placar-item p {
+    font-size: 1.6em;
     font-weight: bold;
-    color: var(--primary-dark);
 }
 
-.tarefa-status-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.9em;
+/* Cores de Saldo/Placar */
+.saldo-negativo { color: var(--error-color); }
+.saldo-positivo { color: var(--success-color); }
+.negative-text { color: var(--error-color); }
+.positive-text { color: var(--success-color); }
+
+/* --- RELÓGIO --- */
+
+.clock-container {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f7f7f7;
+    border: 1px solid #eee;
+}
+.clock-time {
+    font-size: 2.5em;
     font-weight: bold;
-    margin-bottom: 10px;
+    color: var(--error-color); 
+    line-height: 1;
 }
-
-/* Cores de status */
-.tarefa-info-status-success { background-color: #d4edda; color: var(--success-color); }
-.tarefa-info-status-warning { background-color: #fff3cd; color: var(--warning-color); }
-.tarefa-info-status-danger { background-color: #f8d7da; color: var(--error-color); }
-.tarefa-info-status-info { background-color: #d1ecf1; color: var(--info-color); }
-
-.tarefa-details-admin {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 5px;
-    font-size: 0.9em;
-}
-
-.tarefa-info-admin {
-    color: #6c757d;
-}
-
-/* Responsividade para detalhes do Admin */
-@media (min-width: 600px) {
-    .tarefa-details-admin {
-        grid-template-columns: 1fr 1fr;
-    }
+.clock-date {
+    font-size: 1em;
+    color: var(--error-color); 
+    margin-top: 5px;
 }
 
 /* =========================================================================
- * 10. MODAIS (POPUPS)
+ * 7. ESPECÍFICO DE LISTAS DE TAREFAS (TAREFAS-DISPONIVEIS.HTML / MINHAS-TAREFAS.HTML)
+ * ========================================================================= */
+
+.tarefas-lista-compacta {
+    padding-top: 5px;
+}
+
+.tarefa-item-compacta {
+    /* Layout principal: Conteúdo (esquerda) | Botão (direita) */
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border-left: 5px solid var(--success-color); 
+    transition: transform 0.2s;
+}
+
+.tarefa-details-list {
+    /* Detalhes empilhados no celular */
+    display: flex;
+    flex-direction: column; 
+    flex-grow: 1; 
+    padding-right: 15px;
+}
+
+.tarefa-nome-compacta {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 5px;
+}
+
+.tarefa-meta-info {
+    display: flex;
+    flex-direction: column; /* Empilha no celular */
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.meta-item-prazo {
+    color: var(--error-color); 
+    font-weight: 600;
+}
+
+.tarefa-valor-compacta {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--success-color); 
+    flex-shrink: 0; 
+    margin-top: 5px; 
+}
+
+.btn-pegar-compacta {
+    /* CORREÇÃO: REDUÇÃO DE PADDING PARA FICAR MAIS RENDE À PALAVRA */
+    padding: 5px 12px;
+    font-size: 0.9em;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0; 
+    transition: background-color 0.2s;
+}
+
+/* =========================================================================
+ * 8. MODAIS (POPUPS) - MODAL DE PERFIL, ETC.
  * ========================================================================= */
 
 .modal-overlay {
@@ -591,12 +422,29 @@ textarea {
     text-align: center;
 }
 
-.modal-message {
-    font-size: 1.1em;
-    margin-bottom: 15px;
-    padding: 10px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
+/* Estilos de perfil dentro do modal */
+.modal-profile-container {
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+    display: flex;
+}
+.modal-profile-text {
+    margin-left: 0; 
+    align-items: flex-start !important;
+    order: 1;
+}
+.modal-profile-pic {
+    width: 80px; 
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.modal-profile-pic-wrapper {
+    order: 3;
+    margin-left: 0; 
 }
 
 .modal-actions {
@@ -604,132 +452,40 @@ textarea {
     gap: 10px;
     justify-content: flex-end;
 }
-
 .centered-actions {
     justify-content: center;
 }
 
+
 /* =========================================================================
- * 11. RESPONSIVIDADE (MOBILE FIRST)
+ * 9. RESPONSIVIDADE E AJUSTES DE TELA (Desktop/Tablet)
  * ========================================================================= */
 
-/* Para telas maiores que 600px */
+/* Ajustes para telas maiores que 600px (Tablet/Desktop) */
 @media (min-width: 600px) {
     body {
-        align-items: center;
+        align-items: center; /* Centraliza o conteúdo verticalmente no desktop */
     }
 
+    /* 9.1 Ajuste da caixa branca */
     .center-box {
+        max-width: 450px; /* Volta para o tamanho ideal de desktop/tablet */
         padding: 40px;
     }
-
-    .main-title {
-        font-size: 2.5em;
-    }
-
-    .placar-item p {
-        font-size: 2em;
-    }
-
-    /* Removemos o action-grid-three-cols e centralizamos no centered-actions-group */
-}
-
-/* Para telas maiores que 800px */
-@media (min-width: 800px) {
+    
     .large-box {
-        margin-top: 50px;
+        max-width: 800px;
     }
-}
 
-/* =========================================================================
- * 12. LISTA COMPACTA DE TAREFAS (TAREFAS DISPONÍVEIS)
- * ========================================================================= */
-
-.tarefas-lista-compacta {
-    padding-top: 5px;
-}
-
-.tarefa-item-compacta {
-    /* Layout principal: Conteúdo à esquerda, Botão à direita */
-    display: flex;
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border-left: 5px solid var(--success-color); 
-    transition: transform 0.2s;
-}
-
-.tarefa-item-compacta:hover {
-    transform: translateY(-2px); 
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
-
-.tarefa-details-list {
-    /* Ocupa a maior parte do espaço e organiza os detalhes */
-    display: flex;
-    flex-direction: column; /* Detalhes empilhados no celular (Mobile First) */
-    flex-grow: 1; 
-    padding-right: 15px;
-}
-
-.tarefa-nome-compacta {
-    font-size: 1.1em;
-    font-weight: 700;
-    color: var(--primary-dark);
-    margin-bottom: 5px;
-}
-
-.tarefa-meta-info {
-    display: flex;
-    flex-direction: column; /* Empilha no celular */
-    font-size: 0.85em;
-    color: #6c757d;
-    margin-bottom: 5px;
-}
-
-.meta-item-prazo {
-    color: var(--error-color); /* Destaca o prazo com cor de urgência */
-    font-weight: 600;
-}
-
-.tarefa-valor-compacta {
-    font-size: 1.2em;
-    font-weight: 700;
-    color: var(--success-color); 
-    flex-shrink: 0; 
-    margin-top: 5px; /* Separa visualmente do meta-info no celular */
-}
-
-/* Botão ajustado para usar a classe btn-success */
-.btn-pegar-compacta {
-    padding: 8px 15px;
-    font-size: 0.9em;
-    font-weight: bold;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    flex-shrink: 0; 
-    transition: background-color 0.2s;
-}
-
-/* =========================================================================
- * 13. RESPONSIVIDADE DA LISTA (Desktop/Tablet)
- * ========================================================================= */
-
-@media (min-width: 600px) {
+    /* 9.2 Ajuste de lista (Tarefas Disponíveis) */
     .tarefa-details-list {
-        flex-direction: row; /* Coloca os detalhes lado a lado no desktop */
+        flex-direction: row; /* Coloca os detalhes lado a lado */
         align-items: center;
-        /* Garante que os elementos dentro do detalhe ocupem o espaço corretamente */
     }
     
     .tarefa-nome-compacta {
         margin-bottom: 0;
-        width: 30%; /* Nome ocupa 30% */
+        width: 30%; /* Coluna 1: Nome */
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -739,17 +495,16 @@ textarea {
         flex-direction: row; /* Coloca Abertura e Prazo lado a lado */
         margin-bottom: 0;
         gap: 20px;
-        width: 45%; /* Infos de data ocupam 45% */
+        width: 45%; /* Coluna 2: Datas */
     }
     
     .tarefa-valor-compacta {
         margin-top: 0;
         text-align: right;
-        width: 20%; /* Valor ocupa 20% */
+        width: 20%; /* Coluna 3: Valor */
     }
     
     .btn-pegar-compacta {
-        /* Alinha verticalmente com o conteúdo do item */
         margin-left: 20px; 
     }
 }
