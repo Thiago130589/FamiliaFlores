@@ -1,120 +1,212 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Administradores</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Perfis</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title" style="color: var(--info-color);">Gerenciar Administradores</h1>
-        <p class="info-message" style="text-align: center;">Aqui você pode promover/rebaixar membros. Administradores têm acesso total ao sistema de gerenciamento.</p>
-        <hr class="divider">
-        
-        <div id="usuarios-lista" class="historico-lista">
-            <p class="empty-message">Carregando usuários...</p>
-        </div>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--info-color);">Gerenciar Perfis</h1>
+        <p class="info-message" style="text-align: center;">Aqui você pode promover/rebaixar membros. Administradores têm acesso total ao sistema de gerenciamento.</p>
+        <hr class="divider">
 
-        <a href="admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
-    </div>
+                <div class="button-group" style="margin-bottom: 20px; display: flex; justify-content: space-between; gap: 10px;">
+            <a href="cadastrar-usuario.html" class="btn-rounded btn-success">Criar Perfil</a>
+            <a href="editar-dados.html" class="btn-rounded btn-secondary">Editar Perfil</a>
+            <button class="btn-rounded btn-danger" id="btn-open-excluir-popup">Excluir Perfil</button>
+        </div>
 
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const USERS_COLLECTION = 'users';
+        <div id="usuarios-lista" class="historico-lista">
+            <p class="empty-message">Carregando usuários...</p>
+        </div>
 
-        // 1. Verifica se o usuário logado é Admin antes de carregar a página
-        function checkAdminAccess() {
-            const userInfo = getUsuarioLogado();
+        <a href="painel-admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Painel Admin</a>
 
-            if (!userInfo || !userInfo.isAdmin) {
-                alert("Acesso negado. Apenas administradores.");
-                window.location.href = 'index.html';
-                return false;
-            }
-            return userInfo.nome;
-        }
+                <div id="popup-excluir-usuario" class="modal-overlay" style="display:none;">
+            <div class="modal-content">
+                <h2 class="modal-title error-color">Excluir Perfil de Usuário</h2>
+                <p>Selecione o usuário que deseja excluir permanentemente:</p>
+                
+                <select id="select-usuario-excluir" class="input-field" style="width: 100%; margin: 10px 0;"></select>
+                
+                <p class="error-message small-text">Atenção: A exclusão é irreversível e remove todos os dados do usuário (saldo, tarefas, multas).</p>
 
-        // 2. Carregar e renderizar todos os usuários
-        async function renderUsuarios() {
-            const usuarioLogadoNome = checkAdminAccess();
-            if (!usuarioLogadoNome) return;
+                <div class="modal-actions centered-actions">
+                    <button class="btn-rounded btn-danger" id="btn-confirmar-exclusao">Confirmar Exclusão</button>
+                    <button class="btn-rounded btn-secondary" id="btn-cancelar-exclusao">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            const listaEl = document.getElementById('usuarios-lista');
-            listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const USERS_COLLECTION = 'users';
+        let todosOsUsuarios = []; // Armazena a lista completa de usuários
 
-            try {
-                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
-                let html = '<ul class="transaction-list">';
-                
-                usersSnapshot.forEach(doc => {
-                    const userName = doc.id;
-                    const userData = doc.data();
-                    const isUserAdmin = userData.isAdmin === true;
-                    
-                    // Não permite alterar o próprio status ou o status do usuário principal ('thiago')
-                    const canEdit = userName.toLowerCase() !== 'thiago' && userName !== usuarioLogadoNome;
+        // 1. Verifica se o usuário logado é Admin antes de carregar a página
+        function checkAdminAccess() {
+            // Funções utilitárias como getUsuarioLogado() são esperadas no script.js
+            const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null;
 
-                    const statusText = isUserAdmin ? 'Administrador' : 'Membro Comum';
-                    const statusClass = isUserAdmin ? 'positive-text' : 'negative-text';
-                    const buttonText = isUserAdmin ? 'Rebaixar' : 'Promover';
-                    const buttonClass = isUserAdmin ? 'btn-danger' : 'btn-success';
+            if (!userInfo || !userInfo.isAdmin) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return userInfo.nome;
+        }
 
-                    html += 
-                        `<li class="transaction-item">
-                            <div class="transaction-details">
-                                <span class="transaction-description">${userName}</span>
-                                <span class="transaction-date ${statusClass}">${statusText}</span>
-                            </div>
-                            ${canEdit ? 
-                                `<button class="btn-rounded ${buttonClass}" 
-                                        onclick="toggleAdminStatus('${userName}', ${isUserAdmin})">
-                                    ${buttonText}
-                                </button>`
-                                : `<span class="btn-rounded btn-secondary" style="opacity: 0.8; cursor: default;">Status Fixo</span>`}
-                        </li>`;
-                });
-                
-                html += '</ul>';
-                listaEl.innerHTML = html;
+        // 2. Carregar e renderizar todos os usuários
+        async function renderUsuarios() {
+            const usuarioLogadoNome = checkAdminAccess();
+            if (!usuarioLogadoNome) return;
 
-            } catch (error) {
-                console.error("Erro ao carregar usuários:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de usuários.</p>';
-            }
-        }
+            const listaEl = document.getElementById('usuarios-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
+            todosOsUsuarios = []; // Reseta a lista global
 
-        // 3. Função para Promover/Rebaixar
-        async function toggleAdminStatus(userName, isCurrentlyAdmin) {
-            const novoStatus = !isCurrentlyAdmin;
-            const acao = novoStatus ? 'Promover' : 'Rebaixar';
-            const novoStatusText = novoStatus ? 'Administrador' : 'Membro Comum';
+            try {
+                const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+                let html = '<ul class="transaction-list">';
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    const isUserAdmin = userData.isAdmin === true;
+                    
+                    todosOsUsuarios.push(userName); // Adiciona à lista global
+                    
+                    // Não permite alterar o próprio status ou o status do usuário principal ('thiago')
+                    const canEdit = userName.toLowerCase() !== 'thiago' && userName !== usuarioLogadoNome;
 
-            if (!confirm(`Tem certeza que deseja ${acao} o usuário ${userName} para ${novoStatusText}?`)) {
-                return;
-            }
+                    const statusText = isUserAdmin ? 'Administrador' : 'Membro Comum';
+                    const statusClass = isUserAdmin ? 'positive-text' : 'negative-text';
+                    const buttonText = isUserAdmin ? 'Rebaixar' : 'Promover';
+                    const buttonClass = isUserAdmin ? 'btn-danger' : 'btn-success';
 
-            try {
-                const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
-                
-                await userRef.update({
-                    isAdmin: novoStatus
-                });
+                    html += 
+                        `<li class="transaction-item">
+                            <div class="transaction-details">
+                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-date ${statusClass}">${statusText}</span>
+                            </div>
+                            ${canEdit ? 
+                                `<button class="btn-rounded ${buttonClass}" 
+                                        onclick="toggleAdminStatus('${userName}', ${isUserAdmin})">
+                                    ${buttonText}
+                                </button>`
+                                : `<span class="btn-rounded btn-secondary" style="opacity: 0.8; cursor: default;">Status Fixo</span>`}
+                        </li>`;
+                });
+                
+                html += '</ul>';
+                listaEl.innerHTML = html;
 
-                alert(`Usuário ${userName} foi ${acao.toLowerCase()} para ${novoStatusText} com sucesso!`);
-                renderUsuarios(); // Recarrega a lista
-                
-            } catch (error) {
-                console.error(`Erro ao ${acao.toLowerCase()} usuário:`, error);
-                alert(`Erro ao ${acao.toLowerCase()} usuário. Tente novamente.`);
-            }
-        }
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de usuários.</p>';
+            }
+        }
 
-        window.addEventListener('DOMContentLoaded', renderUsuarios);
-    </script>
+        // 3. Função para Promover/Rebaixar (mantida)
+        async function toggleAdminStatus(userName, isCurrentlyAdmin) {
+            const novoStatus = !isCurrentlyAdmin;
+            const acao = novoStatus ? 'Promover' : 'Rebaixar';
+            const novoStatusText = novoStatus ? 'Administrador' : 'Membro Comum';
+
+            if (!confirm(`Tem certeza que deseja ${acao} o usuário ${userName} para ${novoStatusText}?`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection(USERS_COLLECTION).doc(userName);
+                
+                await userRef.update({
+                    isAdmin: novoStatus
+                });
+
+                alert(`Usuário ${userName} foi ${acao.toLowerCase()} para ${novoStatusText} com sucesso!`);
+                renderUsuarios(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error(`Erro ao ${acao.toLowerCase()} usuário:`, error);
+                alert(`Erro ao ${acao.toLowerCase()} usuário. Tente novamente.`);
+            }
+        }
+
+
+        // 4. Lógica do Popup de Exclusão
+
+        // Preenche o dropdown com a lista de usuários
+        function preencherSelectExclusao() {
+            const select = document.getElementById('select-usuario-excluir');
+            select.innerHTML = '<option value="">-- Selecione um Usuário --</option>';
+
+            const usuarioLogadoNome = checkAdminAccess();
+            
+            todosOsUsuarios.forEach(user => {
+                // Previne que o administrador logado e o usuário 'thiago' possam ser excluídos
+                if (user !== usuarioLogadoNome && user.toLowerCase() !== 'thiago') {
+                    const option = document.createElement('option');
+                    option.value = user;
+                    option.textContent = user;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        // Abre o Popup
+        document.getElementById('btn-open-excluir-popup').onclick = () => {
+            if (todosOsUsuarios.length <= 2) { // Considera 'thiago' e o próprio admin
+                alert("Não há usuários elegíveis para exclusão no momento.");
+                return;
+            }
+            preencherSelectExclusao();
+            document.getElementById('popup-excluir-usuario').style.display = 'flex';
+        };
+
+        // Confirma a Exclusão
+        document.getElementById('btn-confirmar-exclusao').onclick = async () => {
+            const userToDelete = document.getElementById('select-usuario-excluir').value;
+
+            if (!userToDelete) {
+                alert("Por favor, selecione um usuário para excluir.");
+                return;
+            }
+
+            if (!confirm(`Tem certeza absoluta que deseja excluir PERMANENTEMENTE o perfil de ${userToDelete}? Esta ação é irreversível.`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection(USERS_COLLECTION).doc(userToDelete);
+                await userRef.delete();
+
+                alert(`Usuário ${userToDelete} excluído com sucesso!`);
+                
+                // Fecha o popup e recarrega a lista
+                document.getElementById('popup-excluir-usuario').style.display = 'none';
+                renderUsuarios(); 
+                
+            } catch (error) {
+                console.error("Erro ao excluir usuário:", error);
+                alert(`Erro ao excluir usuário ${userToDelete}. Tente novamente.`);
+            }
+        };
+
+        // Cancela a Exclusão
+        document.getElementById('btn-cancelar-exclusao').onclick = () => {
+            document.getElementById('popup-excluir-usuario').style.display = 'none';
+        };
+
+        window.addEventListener('DOMContentLoaded', renderUsuarios);
+    </script>
 </body>
 </html>
