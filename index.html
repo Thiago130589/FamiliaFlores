@@ -49,14 +49,14 @@
             </a>
         </div>
 
-        <div class="action-grid action-grid-two-cols">
-            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button">
+        <div class="action-grid action-grid-single-col centered-grid">
+            <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button" style="max-width: 300px; margin: auto;">
                 Minhas Tarefas
             </a>
-            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button">
+            <a href="tarefas-disponiveis.html" class="btn-rounded btn-success wide-button" style="max-width: 300px; margin: auto;">
                 Tarefas Disponíveis
             </a>
-            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button">
+            <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button" style="max-width: 300px; margin: auto;">
                 Histórico de Tarefas Pagas
             </a>
         </div>
@@ -166,55 +166,4 @@
 
             const userInfo = getUsuarioLogado();
             
-            if (!userInfo || !userInfo.nome) {
-                return;
-            }
-
-            const welcomeMessageElement = document.getElementById('welcome-message');
-            const adminLink = document.getElementById('admin-link');
-            const userRoleStatus = document.getElementById('user-role-status'); 
-            const profilePicElement = document.getElementById('profile-pic');
-            const saldoElement = document.getElementById('current-saldo');
-            
-            // 1. CARREGA DADOS DO LOCALSTORAGE (Dashboard principal)
-            welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
-            
-            // LÓGICA DA FOTO CORRIGIDA: Usa 'userInfo.foto' (como está no Firestore) ou o default.
-            const fotoSource = userInfo.foto || userInfo.fotoBase64 || userInfo.fotoUrl || 'assets/img/default-avatar.png';
-            profilePicElement.src = fotoSource; 
-            
-            // 2. STATUS ADMIN
-            if (userInfo.isAdmin) {
-                userRoleStatus.textContent = 'Administrador';
-                userRoleStatus.style.color = 'var(--error-color)';
-                adminLink.classList.remove('hidden-start');
-            } else {
-                userRoleStatus.textContent = 'Membro';
-                userRoleStatus.style.color = 'var(--info-color)';
-                adminLink.classList.add('hidden-start');
-            }
-
-            // 3. SALDO (Busca a versão mais recente no Firestore)
-            let currentSaldo = userInfo.saldo || 0;
-            
-            try {
-                // Busca no Firestore para garantir o saldo mais atualizado
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userInfo.nome).get();
-                if (userDoc.exists && typeof userDoc.data().saldo !== 'undefined') {
-                    currentSaldo = userDoc.data().saldo;
-                }
-            } catch (error) {
-                console.error("Erro ao buscar saldo atualizado:", error);
-            }
-            
-            // Formata e exibe o saldo (Assumindo que formatarMoeda está em script.js)
-            saldoElement.textContent = formatarMoeda(currentSaldo);
-            saldoElement.classList.remove('positive-text', 'negative-text');
-            saldoElement.classList.add(currentSaldo >= 0 ? 'positive-text' : 'negative-text');
-        }
-
-        // Inicia o carregamento ao terminar o DOM
-        window.addEventListener('DOMContentLoaded', loadDashboard);
-    </script>
-</body>
-</html>
+            if
