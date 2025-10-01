@@ -26,10 +26,12 @@
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Garante que as variáveis de contexto do Firebase e coleções estão disponíveis
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
+        // Garante acesso e redirecionamento de login (função de js/script.js)
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
@@ -61,14 +63,22 @@
                     const t = doc.data();
                     const valor = parseFloat(t.valor || 0);
 
-                    // NOVO LAYOUT DE LISTA COMPACTA
+                    const dataLimite = t.dataLimite || 'N/A';
+                    const horaLimite = t.horaLimite || 'N/A';
+                    const dataCriacao = t.dataCriacao || 'N/A';
+                    
+                    // NOVO LAYOUT DE LISTA COMPACTA COM MAIS DETALHES
                     html += `
                         <div class="tarefa-item-compacta">
-                            <div class="tarefa-details-inline">
+                            <div class="tarefa-details-list">
                                 <span class="tarefa-nome-compacta">${t.nome}</span> 
-                                <span class="tarefa-valor-compacta positive-text">${formatarMoeda(valor)}</span>
+                                <div class="tarefa-meta-info">
+                                    <span class="meta-item">Abertura: ${dataCriacao}</span>
+                                    <span class="meta-item-prazo">Prazo: ${dataLimite} ${horaLimite}</span>
+                                </div>
+                                <span class="tarefa-valor-compacta">${formatarMoeda(valor)}</span>
                             </div>
-                                                        <button class="btn-pegar-compacta" onclick="pegarTarefa('${taskId}', '${t.nome}')">
+                            <button class="btn-pegar-compacta btn-success" onclick="pegarTarefa('${taskId}', '${t.nome}')">
                                 Pegar
                             </button>
                         </div>
@@ -84,7 +94,6 @@
         }
 
         async function pegarTarefa(taskId, taskName) {
-            // ... (A função 'pegarTarefa' permanece a mesma)
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
                 alert('Sua sessão expirou. Faça login novamente.');

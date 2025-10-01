@@ -646,98 +646,110 @@ textarea {
  * ========================================================================= */
 
 .tarefas-lista-compacta {
-    /* Garante que o container separe bem os itens */
     padding-top: 5px;
 }
 
 .tarefa-item-compacta {
-    /* Define o layout de linha (flex) para alinhar itens e botão */
+    /* Layout principal: Conteúdo à esquerda, Botão à direita */
     display: flex;
-    justify-content: space-between; /* Espaça o conteúdo e o botão */
-    align-items: center; /* Alinha verticalmente */
+    justify-content: space-between; 
+    align-items: center; 
     padding: 12px 15px;
     margin-bottom: 8px;
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border-left: 5px solid var(--success-color); /* Fica bonito para o disponível */
+    border-left: 5px solid var(--success-color); 
     transition: transform 0.2s;
 }
 
 .tarefa-item-compacta:hover {
-    transform: translateY(-2px); /* Efeito de elevação sutil no hover */
+    transform: translateY(-2px); 
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-.tarefa-details-inline {
-    /* Ocupa a maior parte do espaço disponível */
+.tarefa-details-list {
+    /* Ocupa a maior parte do espaço e organiza os detalhes */
     display: flex;
-    align-items: center;
-    gap: 15px; /* Espaço entre nome e valor */
+    flex-direction: column; /* Detalhes empilhados no celular (Mobile First) */
     flex-grow: 1; 
-    overflow: hidden; /* Garante que o texto não ultrapasse o limite antes do botão */
+    padding-right: 15px;
 }
 
 .tarefa-nome-compacta {
-    font-size: 1em;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 5px;
+}
+
+.tarefa-meta-info {
+    display: flex;
+    flex-direction: column; /* Empilha no celular */
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.meta-item-prazo {
+    color: var(--error-color); /* Destaca o prazo com cor de urgência */
     font-weight: 600;
-    color: var(--primary-dark); /* Um pouco mais escuro que o texto padrão */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /* Ajustado para ser mais flexível em telas pequenas, ocupando o que sobrar */
 }
 
 .tarefa-valor-compacta {
-    font-size: 0.9em;
+    font-size: 1.2em;
     font-weight: 700;
-    color: var(--success-color); /* Verde forte */
-    flex-shrink: 0; /* Garante que o valor não encolha */
+    color: var(--success-color); 
+    flex-shrink: 0; 
+    margin-top: 5px; /* Separa visualmente do meta-info no celular */
 }
 
+/* Botão ajustado para usar a classe btn-success */
 .btn-pegar-compacta {
-    /* Estilo para o botão "Pegar" pequeno */
-    padding: 5px 12px;
-    font-size: 0.8em;
+    padding: 8px 15px;
+    font-size: 0.9em;
     font-weight: bold;
-    color: white;
-    background-color: var(--primary-color); /* Cor principal para o botão de ação */
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    flex-shrink: 0; 
     transition: background-color 0.2s;
-    min-width: 70px; /* Garante tamanho mínimo */
-    text-align: center;
-    flex-shrink: 0; /* Impede que o botão encolha */
-}
-
-.btn-pegar-compacta:hover {
-    background-color: var(--primary-dark); /* Cor mais escura no hover */
 }
 
 /* =========================================================================
- * 13. RESPONSIVIDADE DA LISTA (Ajustes finos para telas menores)
+ * 13. RESPONSIVIDADE DA LISTA (Desktop/Tablet)
  * ========================================================================= */
 
-@media (max-width: 400px) {
-    .tarefa-item-compacta {
-        padding: 10px;
-    }
-    
-    .tarefa-details-inline {
-        /* Permite que o nome e o valor quebrem a linha em telas muito pequenas */
-        flex-direction: column; 
-        align-items: flex-start;
-        gap: 2px;
-        flex-grow: 1;
+@media (min-width: 600px) {
+    .tarefa-details-list {
+        flex-direction: row; /* Coloca os detalhes lado a lado no desktop */
+        align-items: center;
+        /* Garante que os elementos dentro do detalhe ocupem o espaço corretamente */
     }
     
     .tarefa-nome-compacta {
-        font-size: 0.9em;
-        max-width: 100%; /* Ocupa a linha inteira disponível */
+        margin-bottom: 0;
+        width: 30%; /* Nome ocupa 30% */
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    
+    .tarefa-meta-info {
+        flex-direction: row; /* Coloca Abertura e Prazo lado a lado */
+        margin-bottom: 0;
+        gap: 20px;
+        width: 45%; /* Infos de data ocupam 45% */
     }
     
     .tarefa-valor-compacta {
-        font-size: 0.8em;
+        margin-top: 0;
+        text-align: right;
+        width: 20%; /* Valor ocupa 20% */
+    }
+    
+    .btn-pegar-compacta {
+        /* Alinha verticalmente com o conteúdo do item */
+        margin-left: 20px; 
     }
 }
