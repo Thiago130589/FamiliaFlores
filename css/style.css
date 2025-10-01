@@ -470,7 +470,7 @@ textarea {
     /* 9.1 Ajuste da caixa branca */
     .center-box {
         max-width: 450px; /* Volta para o tamanho ideal de desktop/tablet */
-        padding: 40px;
+        padding: 60px;
     }
     
     .large-box {
@@ -505,6 +505,6 @@ textarea {
     }
     
     .btn-pegar-compacta {
-        margin-left: 20px; 
+        margin-left: 5px; 
     }
 }
