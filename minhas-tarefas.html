@@ -12,7 +12,7 @@
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title" style="color: var(--info-color);">Minhas Tarefas (Em Andamento)</h1>
+        <h1 class="main-title" style="color: var(--info-color);">Minhas Tarefas (Abertas)</h1>
         <p class="info-message" style="text-align: center;">Tarefas atribuídas a você. Marque como concluída para receber o pagamento.</p>
         <hr class="divider">
         
@@ -29,7 +29,7 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // FUNÇÃO DE UTILIDADE PARA NORMALIZAR TEXTO (para acentos e caixa alta)
+        // FUNÇÃO DE UTILIDADE PARA NORMALIZAR TEXTO (mantida por segurança, embora não usada no filtro)
         function normalizeText(text) {
             if (!text) return '';
             // Converte para string, remove acentos, e coloca em minúsculas
@@ -48,7 +48,7 @@
             return userInfo.nome;
         }
 
-        // 2. Renderiza a lista de tarefas atribuídas ao usuário (status 'EmAndamento')
+        // 2. Renderiza a lista de tarefas atribuídas ao usuário (status 'm' = minhas)
         async function renderMinhasTarefas() {
             const userName = checkAccess();
             if (!userName) return;
@@ -57,11 +57,10 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // FILTRO PRINCIPAL: Atribuída ao usuário logado E status 'EmAndamento'
-                // O status 'EmAndamento' é o padrão que deve ser usado para filtragem do Firestore
+                // FILTRO PRINCIPAL: Atribuída ao usuário logado E status 'm' (minhas/em andamento)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('atribuidaPara', '==', userName)
-                    .where('status', '==', 'EmAndamento') 
+                    .where('status', '==', 'm') // CORREÇÃO: Utiliza o novo código 'm'
                     .orderBy('dataAtribuicao', 'asc');
 
                 const snapshot = await query.get();
@@ -73,9 +72,6 @@
                     const taskId = doc.id;
                     const t = doc.data();
                     const valor = parseFloat(t.valor || 0);
-
-                    // A função normalizeText pode ser usada para exibição ou comparação interna
-                    // Mas o filtro do Firestore já faz o trabalho de buscar o status exato 'EmAndamento'
 
                     // Botão de ação principal
                     const buttonHtml = `
@@ -94,8 +90,7 @@
                             
                             <div class="tarefa-status-line tarefa-info-status-info" style="margin-bottom: 10px;">
                                 <span>Status:</span>
-                                <span class="status-in-progress">Em Andamento</span>
-                            </div>
+                                <span class="status-in-progress">Em Andamento</span> </div>
 
                             <div class="tarefa-details-admin">
                                 <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
@@ -108,7 +103,7 @@
                     `;
                 });
 
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você não tem tarefas em andamento. Que tal pegar uma nova?</p>';
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você não tem tarefas abertas. Que tal pegar uma nova?</p>';
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas:", error);
@@ -116,9 +111,9 @@
             }
         }
 
-        // 3. Função para Marcar a Tarefa como Concluída (muda o status para PendenteAprovacao)
+        // 3. Função para Marcar a Tarefa como Concluída (muda o status para 'p' = Pendente)
         async function markAsConcluida(taskId, taskName) {
-            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação do administrador.`)) {
+            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação/pagamento do administrador.`)) {
                 return;
             }
 
@@ -126,11 +121,11 @@
                 const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
                 await taskRef.update({
-                    status: 'PendenteAprovacao',
+                    status: 'p', // CORREÇÃO: Utiliza o código simplificado 'p' (Pendente)
                     dataConclusao: new Date().toISOString().split('T')[0]
                 });
 
-                alert(`Tarefa "${taskName}" marcada como concluída e enviada para aprovação!`);
+                alert(`Tarefa "${taskName}" marcada como concluída e enviada para aprovação/pagamento!`);
                 renderMinhasTarefas(); // Recarrega a lista
                 
             } catch (error) {

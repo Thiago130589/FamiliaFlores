@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
+    <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box">
@@ -66,7 +67,11 @@
             }
 
             try {
-                let query = firestore.collection('tarefasConcluidas').orderBy('dataPagamento', 'desc'); // Adiciona ordenação
+                let query = firestore.collection('tarefasConcluidas'); 
+                
+                // Filtro (OPCIONAL, mas adicionado para garantir que apenas tarefas pagas sejam mostradas)
+                query = query.where('status', '==', 'c'); // CORREÇÃO: Adiciona filtro de status 'c'
+                query = query.orderBy('dataPagamento', 'desc'); // Adiciona ordenação
 
                 // Filtra apenas as tarefas do usuário, se não for Admin
                 if (!isAdmin) {
@@ -86,9 +91,6 @@
                 snapshot.forEach(doc => {
                     const tarefa = doc.data();
                     
-                    // Checagem extra de segurança para membros (removida, pois o filtro do firestore é mais confiável)
-                    // if (!isAdmin && tarefa.atribuidaPara !== userName) return; 
-                    
                     const elemento = document.createElement('div');
                     elemento.className = 'tarefa-card-concluida'; // Classe para estilização
                     
@@ -96,6 +98,8 @@
                     const dataPagamento = tarefa.dataPagamento 
                         ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') 
                         : 'N/A';
+                    
+                    const valorFormatado = typeof formatarMoeda === 'function' ? formatarMoeda(tarefa.valor || 0) : `R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')}`; // Usa formatarMoeda ou fallback
                     
                     // Informação extra para o Admin
                     let infoAdmin = '';
@@ -106,7 +110,7 @@
                     elemento.innerHTML = `
                         <div class="tarefa-details-concluida">
                             <span class="tarefa-nome">${tarefa.nome}</span>
-                            <span class="tarefa-info">${infoAdmin}R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')} | Paga em: ${dataPagamento}</span>
+                            <span class="tarefa-info">${infoAdmin}${valorFormatado} | Paga em: ${dataPagamento}</span> 
                         </div>
                         <span style="color: #4CAF50; font-weight: bold; font-size: 1.1rem;">PAGO</span>
                     `;

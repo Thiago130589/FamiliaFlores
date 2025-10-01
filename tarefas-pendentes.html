@@ -12,7 +12,7 @@
 </head>
 <body>
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Pendentes de Pagamento</h1>
+        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Concluídas (Prontas para Pagamento)</h1>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         
         <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
@@ -50,7 +50,7 @@
     }
 
     /**
-     * Função para exibir a lista de tarefas pendentes.
+     * Função para exibir a lista de tarefas concluídas (prontas para pagamento).
      */
     async function renderTarefasPendentes() {
         const lista = document.getElementById('tarefas-pendentes-lista');
@@ -68,7 +68,7 @@
 
         try {
             let query = firestore.collection('tarefasAtribuidas')
-                                .where('status', '==', 'PendentePagamento'); 
+                                 .where('status', '==', 'p'); // CORREÇÃO: Busca por status 'p' (Pendentes de Pagamento)
             
             // Lógica de VISIBILIDADE: Se NÃO for Admin, filtra pela sua tarefa
             if (!isAdmin) {
@@ -96,7 +96,7 @@
             });
 
             if (tarefas.length === 0) {
-                lista.innerHTML = `<p class="empty-message">Não há tarefas pendentes de pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
+                lista.innerHTML = `<p class="empty-message">Não há tarefas prontas para pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
                 return;
             }
             
@@ -129,9 +129,9 @@
                     infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} ${isFullDateTime ? `às ${horaConclusao}` : ''}</span>`;
                     infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(t.valor)}</span>`;
                     
-                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAMENTO</button>`;
+                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAR</button>`;
                 } else {
-                    infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando aprovação de pagamento.</span>`;
+                    infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando pagamento do administrador.</span>`;
                     infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
                 }
 
@@ -169,7 +169,7 @@
     /**
      * Ação de PAGAMENTO (Exclusiva do Admin):
      * 1. Atualiza o saldo do usuário.
-     * 2. Move a tarefa para tarefasConcluidas.
+     * 2. Move a tarefa para tarefasConcluidas (com status 'c').
      * 3. Deleta a tarefa de tarefasAtribuidas.
      */
     async function pagarTarefa(tarefaId, usuarioNome, valor) {
@@ -202,7 +202,7 @@
                 // Prepara a tarefa para a coleção de concluídas
                 const tarefaConcluidaData = {
                     ...tarefaData,
-                    status: 'Concluída',
+                    status: 'c', // CORREÇÃO: Status para indicar Concluída/Paga
                     dataPagamento: new Date().toISOString().split('T')[0] // Data de hoje
                 };
 
