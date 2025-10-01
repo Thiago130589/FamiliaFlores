@@ -95,7 +95,14 @@
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const TAREFAS_COLLECTION = 'tarefasAtribuidas';
+        
+        // COLEÇÕES DEFINIDAS:
+        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; // Nova coleção para tarefas criadas
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; // Coleção principal para tarefas em andamento/aprovadas
+        
+        // A variável TAREFAS_COLLECTION será usada como fallback para os selects e métodos de update (EmAndamento/Pendente/Aprovada)
+        const TAREFAS_COLLECTION = TAREFAS_ATRIBUIDAS_COLLECTION;
+        
         let userList = []; 
         let allTasksList = []; // Para o modal de exclusão
         let currentFilter = 'Pendente'; // Filtro inicial
@@ -155,12 +162,12 @@
         }
 
         async function openAtribuirTarefaModal() {
-            // 1. Carregar tarefas disponíveis para o select
+            // 1. Carregar tarefas disponíveis para o select - Lê da coleção de DISPONÍVEIS
             const selectTarefa = document.getElementById('select-tarefa-disponivel');
             selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                const query = firestore.collection(TAREFAS_COLLECTION)
+                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION) // COLEÇÃO CORRETA
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
                 const snapshot = await query.get();
@@ -198,26 +205,42 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // Carrega todas as tarefas ativas e pagas
-                const query = firestore.collection(TAREFAS_COLLECTION)
-                    .where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada'])
+                // Busca tarefas ativas (Disponível, EmAndamento, Pendente, Aprovada) - DE AMBAS AS COLEÇÕES
+                const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataCriacao', 'desc');
                     
+                const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
+                    .where('status', '==', 'Disponível')
+                    .orderBy('dataCriacao', 'desc');
+                    
+                // Limita tarefas pagas para performance
                 const queryPagas = firestore.collection('tarefasConcluidas')
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
-                    .limit(20); // Limita tarefas pagas para performance
+                    .limit(20); 
 
-                const [snapshotAtivas, snapshotPagas] = await Promise.all([query.get(), queryPagas.get()]);
+                const [snapshotAtribuidas, snapshotDisponiveis, snapshotPagas] = await Promise.all([
+                    queryAtribuidas.get(), 
+                    queryDisponiveis.get(), 
+                    queryPagas.get()
+                ]);
                 
                 allTasksList = [];
                 let optionsHtml = '<option value="">Selecione a Tarefa para Excluir</option>';
                 
-                // Adiciona Ativas
-                snapshotAtivas.forEach(doc => {
+                // Adiciona Atribuídas
+                snapshotAtribuidas.forEach(doc => {
                     const t = doc.data();
-                    allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_COLLECTION });
-                    optionsHtml += `<option value="${doc.id}|${TAREFAS_COLLECTION}">${t.nome} (Status: ${t.status})</option>`;
+                    allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_ATRIBUIDAS_COLLECTION });
+                    optionsHtml += `<option value="${doc.id}|${TAREFAS_ATRIBUIDAS_COLLECTION}">${t.nome} (Status: ${t.status} - Atribuída)</option>`;
+                });
+                
+                // Adiciona Disponíveis
+                snapshotDisponiveis.forEach(doc => {
+                    const t = doc.data();
+                    allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_DISPONIVEIS_COLLECTION });
+                    optionsHtml += `<option value="${doc.id}|${TAREFAS_DISPONIVEIS_COLLECTION}">${t.nome} (Status: ${t.status} - Disponível)</option>`;
                 });
 
                 // Adiciona Pagas
@@ -257,7 +280,8 @@
             }
 
             try {
-                await firestore.collection(TAREFAS_COLLECTION).add({
+                // CORREÇÃO AQUI: Salva na coleção TAREFAS_DISPONIVEIS_COLLECTION
+                await firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).add({
                     nome: nome,
                     valor: valor,
                     dataPrazo: dataPrazo, 
@@ -290,17 +314,36 @@
                 return;
             }
             
-            const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
-            
-            if (!confirm(`Confirmar atribuição da tarefa a ${selectedUser}? O status será alterado para "EmAndamento" e aparecerá para o usuário.`)) {
+            // A tarefa está na coleção de disponíveis, mas será movida para a de atribuídas.
+            const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
+            const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc();
+
+            if (!confirm(`Confirmar atribuição da tarefa a ${selectedUser}? A tarefa será MOVIDA para a lista "EmAndamento" do usuário.`)) {
                 return;
             }
 
             try {
-                await taskRef.update({
-                    status: 'EmAndamento', // Status para o usuário
-                    atribuidaPara: selectedUser,
-                    dataAtribuicao: new Date().toISOString().split('T')[0]
+                // Usamos uma Transação para garantir que a tarefa não seja duplicada.
+                await firestore.runTransaction(async (transaction) => {
+                    const taskDoc = await transaction.get(availableRef);
+                    
+                    if (!taskDoc.exists) {
+                        throw new Error("Tarefa não encontrada na lista de disponíveis.");
+                    }
+
+                    const taskData = taskDoc.data();
+                    
+                    // 1. Exclui da lista de disponíveis
+                    transaction.delete(availableRef);
+
+                    // 2. Cria na lista de atribuídas com os dados do usuário
+                    const assignedData = {
+                        ...taskData,
+                        status: 'EmAndamento', 
+                        atribuidaPara: selectedUser,
+                        dataAtribuicao: new Date().toISOString().split('T')[0]
+                    };
+                    transaction.set(assignedRef, assignedData);
                 });
 
                 toggleModal('atribuir-tarefa-modal', false);
@@ -309,7 +352,7 @@
                 showGerenciamentoSection();
             } catch (error) {
                 console.error("Erro ao atribuir tarefa:", error);
-                alert("Erro ao atribuir tarefa. Tente novamente.");
+                alert(`Erro ao atribuir tarefa: ${error.message || 'Tente novamente.'}`);
             }
         });
 
@@ -357,7 +400,7 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
             
             try {
-                const query = firestore.collection(TAREFAS_COLLECTION)
+                const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'asc');
 
@@ -415,7 +458,7 @@
             }
 
             try {
-                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
+                const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
                 await taskRef.update({
                     status: 'Aprovada', 
@@ -435,7 +478,7 @@
             }
 
             try {
-                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
+                const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
                 await taskRef.update({
                     status: 'EmAndamento', 
@@ -458,28 +501,47 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
 
             try {
-                let query = firestore.collection(TAREFAS_COLLECTION).orderBy('dataCriacao', 'desc');
+                // CORREÇÃO AQUI: Busca ATRIBUIDAS (EmAndamento, Pendente, Aprovada)
+                let queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
+                    .orderBy('dataCriacao', 'desc');
 
-                // O filtro agora é sempre 'all' ou o status específico se vier de outra função
-                if (statusFilter === 'all' || statusFilter === 'Gerenciamento') {
-                    // Busca tarefas ativas (Disponível, EmAndamento, Pendente, Aprovada)
-                    query = query.where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada']); 
-                } else {
-                    // Mantém o filtro se for chamado com um status específico (embora os botões tenham sido removidos)
-                    query = query.where('status', '==', statusFilter);
-                }
+                // Busca DISPONÍVEIS
+                let queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
+                    .where('status', '==', 'Disponível')
+                    .orderBy('dataCriacao', 'desc');
+                
+                const [snapshotAtribuidas, snapshotDisponiveis] = await Promise.all([queryAtribuidas.get(), queryDisponiveis.get()]);
 
-                const snapshot = await query.get();
+                let tasks = [];
+                snapshotAtribuidas.forEach(doc => tasks.push(doc.data()));
+                snapshotDisponiveis.forEach(doc => tasks.push(doc.data()));
+                
+                // Ordena tudo por data de criação (para misturar)
+                tasks.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+
                 let html = '';
-                let foundTasks = false;
+                let foundTasks = tasks.length > 0;
 
-                snapshot.forEach(doc => {
-                    foundTasks = true;
-                    const taskId = doc.id;
-                    const t = doc.data();
+                tasks.forEach(t => {
                     const valor = parseFloat(t.valor || 0);
 
-                    const statusColor = t.status === 'Disponível' ? '#4CAF50' : t.status === 'EmAndamento' ? '#2196F3' : t.status === 'Pendente' ? '#FF9800' : '#8BC34A'; // Verde claro para Aprovada
+                    let statusColor = '#9E9E9E'; // Cinza
+                    switch(t.status) {
+                        case 'Disponível':
+                            statusColor = '#4CAF50'; // Verde
+                            break;
+                        case 'EmAndamento':
+                            statusColor = '#2196F3'; // Azul
+                            break;
+                        case 'Pendente':
+                            statusColor = '#FF9800'; // Laranja
+                            break;
+                        case 'Aprovada':
+                            statusColor = '#8BC34A'; // Verde claro
+                            break;
+                    }
+
                     const atribuido = t.atribuidaPara ? `Atribuída a: ${t.atribuidaPara}` : 'Não Atribuída';
                     
                     html += `
