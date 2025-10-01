@@ -43,6 +43,14 @@
                 <input type="number" id="idade" class="input-rounded" placeholder="Idade" min="1">
             </div>
 
+                        <h3 class="section-title" style="margin-top: 20px;">Permissão</h3>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="is-admin-checkbox">
+                <label for="is-admin-checkbox">Tornar Administrador</label>
+            </div>
+            <p class="small-text info-message" id="admin-info-message">Administradores têm acesso total ao sistema de gerenciamento.</p>
+
+
                         <h3 class="section-title" style="margin-top: 20px;">Alterar Senha</h3>
             <div class="form-group">
                 <label for="new-password">Nova Senha</label>
@@ -59,14 +67,14 @@
                 
                 <button class="btn-rounded btn-secondary" id="btn-remover-foto" onclick="removePhotoUrl()" type="button">Remover Foto</button>
             </div>
-            <p class="small-text info-message">Para alterar a foto, você precisará usar o campo de upload em outro lugar ou atualizar a URL diretamente no banco de dados.</p>
+            <p class="small-text info-message">A foto será removida apenas ao clicar em "Salvar Alterações".</p>
 
             <button onclick="saveProfileChanges()" class="btn-rounded btn-primary wide-button" style="margin-top: 30px;">
                 Salvar Alterações
             </button>
         </div>
         
-        <a href="painel-admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">Voltar ao Painel Admin</a>
+        <a href="gerenciar-perfis.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">Voltar para Gerenciar Perfis</a>
 
         <p id="message-area" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
     </div>
@@ -75,6 +83,7 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
         let selectedUserDocId = null; // Armazena o ID do usuário selecionado (nome de usuário)
+        let usuarioLogadoNome = ''; // Armazena o nome do admin logado
 
         // 1. Garante que apenas administradores acessem
         function checkAdminAccess() {
@@ -85,6 +94,7 @@
                 window.location.href = 'index.html';
                 return false;
             }
+            usuarioLogadoNome = userInfo.nome;
             return true;
         }
 
@@ -109,7 +119,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar lista de usuários:", error);
-                selectEl.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+                document.getElementById('select-usuario').innerHTML = '<option value="">Erro ao carregar usuários</option>';
             }
         }
 
@@ -117,6 +127,9 @@
         async function loadUserData(userName) {
             const formEl = document.getElementById('form-edicao');
             const messageEl = document.getElementById('message-area');
+            const adminCheckbox = document.getElementById('is-admin-checkbox');
+            const adminInfoMessage = document.getElementById('admin-info-message');
+
             selectedUserDocId = null;
 
             messageEl.classList.add('hidden-start');
@@ -142,6 +155,19 @@
                 document.getElementById('nome-completo').value = userData.nomeCompleto || '';
                 document.getElementById('idade').value = userData.idade || '';
                 
+                // Controle de Admin
+                const isFixedAdmin = userName.toLowerCase() === 'thiago' || userName === usuarioLogadoNome;
+                adminCheckbox.checked = userData.isAdmin === true;
+                adminCheckbox.disabled = isFixedAdmin; // Desabilita edição para o próprio admin ou 'thiago'
+                
+                if (isFixedAdmin) {
+                    adminInfoMessage.textContent = 'O status de Administrador deste perfil (você ou super-admin) não pode ser alterado.';
+                    adminInfoMessage.style.color = 'var(--warning-color)';
+                } else {
+                    adminInfoMessage.textContent = 'Administradores têm acesso total ao sistema de gerenciamento.';
+                    adminInfoMessage.style.color = 'var(--info-color)';
+                }
+
                 // Limpa os campos de senha
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
@@ -166,7 +192,6 @@
 
             if (confirm("Tem certeza que deseja remover a foto de perfil?")) {
                 document.getElementById('user-photo-display').src = 'img/user.svg';
-                // A remoção efetiva no banco ocorre apenas ao clicar em Salvar Alterações
                 alert("Foto removida localmente. Clique em 'Salvar Alterações' para confirmar a mudança.");
             }
         }
@@ -202,12 +227,24 @@
                 return;
             }
             
+            // Confirmação antes de salvar no banco
+            if (!confirm(`Tem certeza que deseja salvar as alterações para o perfil ${selectedUserDocId}?`)) {
+                return;
+            }
+
             // Cria o objeto de atualização
             let updateData = {};
             
             // Nome Completo e Idade
             updateData.nomeCompleto = document.getElementById('nome-completo').value.trim();
             updateData.idade = parseInt(document.getElementById('idade').value) || 0;
+
+            // Administrador
+            const adminCheckbox = document.getElementById('is-admin-checkbox');
+            // Só atualiza se o checkbox não estiver desabilitado (ou seja, se não for o próprio admin ou 'thiago')
+            if (!adminCheckbox.disabled) {
+                updateData.isAdmin = adminCheckbox.checked;
+            }
 
             // Senha
             if (newPassword) {
@@ -217,11 +254,10 @@
             // Foto
             const currentPhotoSrc = document.getElementById('user-photo-display').src;
             
-            // Verifica se a imagem é a padrão (removida)
+            // Verifica se a imagem exibida é a padrão (removida)
             if (currentPhotoSrc.endsWith('img/user.svg')) {
-                updateData.photoURL = firebase.firestore.FieldValue.delete(); // Remove o campo
-            } else {
-                // Se você implementasse upload, a nova URL viria daqui
+                // Adiciona a instrução de remoção de campo do Firestore
+                updateData.photoURL = firebase.firestore.FieldValue.delete();
             }
 
 
@@ -234,6 +270,7 @@
                 
                 // Recarrega os dados do usuário para refletir as mudanças (exceto a senha)
                 loadUserData(selectedUserDocId); 
+                document.getElementById('select-usuario').value = selectedUserDocId; // Garante que o select fique no item correto
 
             } catch (error) {
                 console.error("Erro ao salvar alterações:", error);
