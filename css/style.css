@@ -164,7 +164,27 @@ body {
 
 /* =========================================================================
  * 4. FOTOS DE PERFIL (AVATAR) - CRÍTICO PARA O TEMA E DADOS
+ * * CORREÇÃO: Removendo margem da foto do dashboard para puxar o elemento mais para a esquerda.
  * ========================================================================= */
+
+/* Novo wrapper para a foto do Dashboard, garante o alinhamento correto */
+.profile-pic-wrapper {
+    /* Define a ordem do elemento no Flexbox do .profile-header-container */
+    order: 2; 
+    /* REMOVIDO o margin-left para puxar a foto para a esquerda */
+    /* Adicionando margin-right: auto para garantir que o wrapper ocupe o espaço extra à direita */
+    margin-left: 0; /* Remove a margem que estava separando do texto */
+    margin-right: auto; /* Permite que a foto seja "empurrada" para a esquerda o máximo possível */
+}
+
+/* Novo wrapper para a foto no Modal */
+.modal-profile-pic-wrapper {
+    /* No modal, queremos que o texto fique na esquerda (order: 1) e a foto na direita (order: 3) */
+    order: 3;
+    /* Mantém a foto na extrema direita do modal */
+    margin-left: 0; 
+}
+
 
 /* [ALERTA GÊMINI]: NÃO ALTERAR SEM CONFIRMAÇÃO
  * Estas classes (profile-pic e modal-profile-pic) contêm as dimensões, 
@@ -185,7 +205,7 @@ body {
     
     /* Configurações de Layout */
     flex-shrink: 0; 
-    order: 1; 
+    order: unset; 
     margin-bottom: 0;
 }
 
@@ -193,7 +213,7 @@ body {
 .modal-profile-pic {
     width: 80px; 
     height: 80px;
-    order: 3; 
+    order: unset; 
     margin-bottom: 0;
 }
 

@@ -21,15 +21,17 @@
         
         <div class="header-actions">
             
-            <div class="profile-header-container">
-                                                <img id="profile-pic" class="profile-pic" 
-                     src="assets/img/default-avatar.png" 
-                     alt="Foto de Perfil"
-                     onerror="this.onerror=null; console.error('Erro ao carregar foto de perfil (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
+                        <div class="profile-header-container">
                 <div class="profile-text-info">
                     <p id="welcome-message" class="info-message" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
                     <p id="user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
+                <div class="profile-pic-wrapper">
+                    <img id="profile-pic" class="profile-pic" 
+                         src="assets/img/default-avatar.png" 
+                         alt="Foto de Perfil"
+                         onerror="this.onerror=null; console.error('Erro ao carregar foto de perfil (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
+                </div>
             </div>
             
             <div id="logout-button-container">
@@ -77,15 +79,17 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 class="modal-title">Configurações do Perfil</h2>
             
-            <div class="profile-header-container modal-profile-container">
+                        <div class="profile-header-container modal-profile-container">
                 <div class="profile-text-info modal-profile-text">
                     <p id="modal-welcome-message" class="info-message" style="margin-top: 5px; text-align: left;">Carregando...</p>
                     <p id="modal-user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
-                                                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" 
-                     src="assets/img/default-avatar.png" 
-                     alt="Foto de Perfil"
-                     onerror="this.onerror=null; console.error('Erro ao carregar foto do modal (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
+                <div class="profile-pic-wrapper modal-profile-pic-wrapper">
+                    <img id="modal-profile-pic" class="profile-pic modal-profile-pic" 
+                         src="assets/img/default-avatar.png" 
+                         alt="Foto de Perfil"
+                         onerror="this.onerror=null; console.error('Erro ao carregar foto do modal (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
+                </div>
             </div>
 
             <p class="info-message center-text" style="margin-bottom: 20px;">Selecione qual informação deseja atualizar.</p>
