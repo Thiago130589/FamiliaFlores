@@ -94,6 +94,7 @@
                 window.location.href = 'index.html';
                 return false;
             }
+            // Garantindo que o nome de usuário esteja armazenado para uso posterior
             usuarioLogadoNome = userInfo.nome;
             return true;
         }
@@ -119,6 +120,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar lista de usuários:", error);
+                // Mensagem corrigida para refletir uma possível falha de conexão/Firebase
                 document.getElementById('select-usuario').innerHTML = '<option value="">Erro ao carregar usuários</option>';
             }
         }
