@@ -2,40 +2,123 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Tarefas Pendentes</title>
+    <title>Gerenciar Aprovação de Tarefas</title>
     <link rel="stylesheet" href="style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
     <script src="js/script.js"></script>
+    <style>
+        /* Estilos básicos para o modal (popup) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            text-align: center;
+        }
+        .modal-button-group button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .tarefa-card-aprovacao {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f7f7f7;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 5px solid var(--warning-color); /* Laranja para "Pendente" */
+        }
+        .tarefa-info-left {
+            text-align: left;
+            flex-grow: 1;
+        }
+    </style>
 </head>
 <body>
+    
+    <div id="acoes-modal" class="modal-overlay hidden-start" onclick="toggleModal('acoes-modal', false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="toggleModal('acoes-modal', false)">&times;</span>
+            <h3 id="modal-tarefa-nome">Ações da Tarefa</h3>
+            <p id="modal-tarefa-usuario" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;"></p>
+            <div class="modal-button-group">
+                <button class="btn-rounded btn-success" id="btn-efetuar-pagamento">Efetuar Pagamento</button>
+                <button class="btn-rounded btn-danger" id="btn-rejeitar-pagamento">Rejeitar Pagamento</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Aprovadas (Prontas para Pagamento)</h1>
+        <h1 style="margin: 0; color: var(--warning-color); font-size: 2.2rem;">Aprovação de Tarefas (Pendentes)</h1>
+        <p style="color: #888; text-align: center; margin-top: 5px;">Aqui você gerencia todas as tarefas aguardando aprovação para pagamento.</p>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         
         <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
             <p style="color: #888; text-align: center;">Carregando tarefas...</p>
         </div>
 
-        <button class="btn-rounded" onclick="window.location.href='index.html'" style="width: 200px; max-width: 90vw; margin: 32px auto 0 auto; display: block;">Voltar ao perfil</button>
+        <button class="btn-rounded btn-secondary-text wide-button" onclick="window.location.href='gerenciar-tarefas.html'" style="margin: 32px auto 0 auto; display: block;">
+            Voltar ao Gerenciamento
+        </button>
     </div>
 
     <script>
     const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+    const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
     let usuarioAtual = null;
     let isAdmin = false;
 
-    // Função para obter o nome do usuário E verificar se é Admin
+    // Função para mostrar/esconder o modal (assumindo que já existe em script.js)
+    function toggleModal(id, show) {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.classList.toggle('hidden-start', !show);
+        }
+    }
+    
+    // Função para obter o nome do usuário E verificar se é Admin (assumindo que existe em script.js)
     function getUsuarioInfo() {
         // Assume que getUsuarioLogado() é robusto e retorna { nome, isAdmin }
         const userInfo = getUsuarioLogado(); 
         if (!userInfo) return { nome: null, isAdmin: false };
-        
-        // Simplesmente retornar o objeto, assumindo que as flags estão corretas
         return userInfo;
     }
+
+    // Função para abrir o modal de ações
+    function openAcoesModal(tarefaId, tarefaNome, usuario, valor) {
+        document.getElementById('modal-tarefa-nome').textContent = tarefaNome;
+        document.getElementById('modal-tarefa-usuario').textContent = `Usuário: ${usuario} | Valor: ${formatarMoeda(valor)}`;
+        
+        // Configurar botões com os dados corretos
+        document.getElementById('btn-efetuar-pagamento').onclick = () => {
+            pagarTarefa(tarefaId, usuario, valor);
+            toggleModal('acoes-modal', false);
+        };
+        document.getElementById('btn-rejeitar-pagamento').onclick = () => {
+            rejeitarTarefa(tarefaId, usuario);
+            toggleModal('acoes-modal', false);
+        };
+        
+        toggleModal('acoes-modal', true);
+    }
+
 
     async function renderTarefasPendentes() {
         const lista = document.getElementById('tarefas-pendentes-lista');
@@ -43,85 +126,60 @@
         usuarioAtual = userInfo.nome;
         isAdmin = userInfo.isAdmin;
 
-        if (!usuarioAtual) {
-            lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado.</p>';
-            return;
+        // Redireciona se não for Admin (apenas por segurança)
+        if (!isAdmin) {
+             alert("Acesso negado. Esta página é exclusiva para administradores.");
+             window.location.href = 'index.html'; 
+             return;
         }
         
         lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>';
 
-
         try {
-            // CORREÇÃO: Busca por status "Aprovada"
-            let query = firestore.collection('tarefasAtribuidas')
-                                 .where('status', '==', 'Aprovada'); 
-            
-            // Lógica de VISIBILIDADE: Se NÃO for Admin, filtra pela sua tarefa
-            if (!isAdmin) {
-                query = query.where('atribuidaPara', '==', usuarioAtual);
-            }
+            // CORREÇÃO: Busca por status "Pendente" de TODAS as tarefas
+            let query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                                 .where('status', '==', 'Pendente')
+                                 .orderBy('dataConclusao', 'asc'); // Ordena pela data de conclusão
             
             const snapshot = await query.get();
             let tarefas = [];
             
             snapshot.forEach(doc => {
-                const tarefa = doc.data();
-                
-                // Filtro de segurança 
-                if (!isAdmin && tarefa.atribuidaPara !== usuarioAtual) {
-                    return; 
-                }
-
-                tarefas.push({ id: doc.id, ...tarefa });
+                tarefas.push({ id: doc.id, ...doc.data() });
             });
 
             if (tarefas.length === 0) {
-                lista.innerHTML = `<p class="empty-message">Não há tarefas prontas para pagamento ${isAdmin ? 'de nenhum usuário.' : 'para você.'}</p>`;
+                lista.innerHTML = `<p class="empty-message">🎉 Nenhuma tarefa pendente de aprovação! 🎉</p>`;
                 return;
             }
             
             lista.innerHTML = tarefas.map((t) => {
-                const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
+                // Datas de Abertura (Criação)
+                const dataCriacao = t.dataCriacao || 'N/A'; 
+                
+                // Datas de Fechamento (Conclusão - quando o usuário clicou em 'Concluir')
                 const dataConclusao = t.dataConclusao || 'N/A';
                 
-                let infoAdicional = '';
-                let botaoAcao = '';
-
-                if (isAdmin) {
-                    infoAdicional = `<br><span style="color: #1976d2; font-size: 0.9rem; font-weight: bold;">Usuário: ${t.atribuidaPara}</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
-                    infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(t.valor)}</span>`;
-                    
-                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAR E ARQUIVAR</button>`;
-                } else {
-                    infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando pagamento do administrador.</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Valor: ${formatarMoeda(t.valor)}</span>`;
-                }
+                const valor = parseFloat(t.valor || 0);
 
                 return `
-                    <div class="tarefa-card-pendente">
-                        <div>
-                            <span style="color: #1976d2; font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                    <div class="tarefa-card-aprovacao">
+                        <div class="tarefa-info-left">
+                            <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
                             <br>
-                            <span style="color: #888; font-size: 0.9rem;">Prazo: ${dataFormatada} | Horário: ${t.inicio} - ${t.fim}</span>
-                            ${infoAdicional}
+                            <span style="color: #1976d2; font-size: 0.95rem; font-weight: bold;">Usuário: ${t.atribuidaPara || 'N/A'}</span>
+                            <br>
+                            <span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(valor)}</span>
+                            <br>
+                            <span style="color: #888; font-size: 0.85rem;">Abertura: ${dataCriacao} | Conclusão: ${dataConclusao}</span>
                         </div>
-                        ${botaoAcao}
+                        <button class="btn-rounded btn-admin-tab" 
+                                onclick="openAcoesModal('${t.id}', '${t.nome.replace(/'/g, "\\'")}', '${t.atribuidaPara.replace(/'/g, "\\'")}', ${valor})">
+                            Ações
+                        </button>
                     </div>
                 `;
             }).join('');
-            
-            // Adiciona evento aos botões "Pagamento" (apenas se for admin)
-            if (isAdmin) {
-                document.querySelectorAll('.btn-pagar-tarefa').forEach(btn => {
-                    btn.onclick = function() {
-                        const id = this.getAttribute('data-id');
-                        const valor = parseFloat(this.getAttribute('data-valor'));
-                        const usuario = this.getAttribute('data-usuario');
-                        pagarTarefa(id, usuario, valor);
-                    };
-                });
-            }
 
         } catch (error) {
             console.error("Erro ao carregar tarefas pendentes:", error);
@@ -130,8 +188,8 @@
     }
 
     /**
-     * Ação de PAGAMENTO (Exclusiva do Admin): 
-     * Muda status para "Paga", atualiza saldo e move/deleta.
+     * Ação de PAGAMENTO (Admin): 
+     * Move tarefa da coleção 'tarefasAtribuidas' (Status: Pendente) para 'tarefasConcluidas' (Status: Paga), e atualiza o saldo do usuário.
      */
     async function pagarTarefa(tarefaId, usuarioNome, valor) {
         if (!confirm(`Confirmar pagamento de ${formatarMoeda(valor)} para ${usuarioNome}? A tarefa será FINALIZADA e ARQUIVADA (status "Paga").`)) {
@@ -139,7 +197,7 @@
         }
 
         try {
-            const tarefaRef = firestore.collection('tarefasAtribuidas').doc(tarefaId);
+            const tarefaRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(tarefaId);
             const userRef = firestore.collection('users').doc(usuarioNome); 
             
             await firestore.runTransaction(async (transaction) => {
@@ -152,25 +210,25 @@
                 const tarefaData = docTarefa.data();
                 const userData = docUser.data();
                 
-                // Atualiza o saldo
+                // 1. Atualiza o saldo
                 const novoSaldo = (userData.saldo || 0) + valor;
                 transaction.update(userRef, { saldo: novoSaldo });
                 
-                // Prepara a tarefa para a coleção de concluídas
+                // 2. Prepara a tarefa para a coleção de concluídas
                 const tarefaConcluidaData = {
                     ...tarefaData,
                     status: 'Paga', // NOVO STATUS: "Paga"
                     dataPagamento: new Date().toISOString().split('T')[0] 
                 };
 
-                // Cria a tarefa na coleção de concluídas
+                // 3. Cria a tarefa na coleção de concluídas
                 transaction.set(firestore.collection('tarefasConcluidas').doc(), tarefaConcluidaData);
                 
-                // Deleta a tarefa da lista de atribuidas
+                // 4. Deleta a tarefa da lista de atribuidas
                 transaction.delete(tarefaRef);
             });
 
-            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso!`);
+            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
             renderTarefasPendentes(); 
             
         } catch (error) {
@@ -178,6 +236,33 @@
             alert(`Erro ao processar o pagamento: ${error.message || 'Tente novamente.'}`);
         }
     }
+
+    /**
+     * Ação de REJEITAR (Admin):
+     * Reverte o status da tarefa para 'EmAndamento' e a envia de volta para o usuário corrigir/refazer.
+     */
+    async function rejeitarTarefa(tarefaId, usuarioNome) {
+        if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? O status será revertido para "EmAndamento".`)) {
+            return;
+        }
+
+        try {
+            const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(tarefaId);
+            
+            await taskRef.update({
+                status: 'EmAndamento', 
+                // Remove a data de conclusão para que o usuário possa concluí-la novamente
+                dataConclusao: firebase.firestore.FieldValue.delete() 
+            });
+
+            alert(`Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`);
+            renderTarefasPendentes(); 
+        } catch (error) {
+            console.error("Erro ao rejeitar tarefa:", error);
+            alert("Erro ao rejeitar tarefa. Tente novamente.");
+        }
+    }
+
 
     window.addEventListener('DOMContentLoaded', renderTarefasPendentes);
     </script>
