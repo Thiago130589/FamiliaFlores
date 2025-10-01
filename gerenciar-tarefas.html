@@ -1,503 +1,508 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Gerenciar Tarefas</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> </head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Gerenciar Tarefas</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
+</head>
 <body>
-    
-    <div id="criar-tarefa-modal" class="modal-overlay hidden-start">
-        <div class="modal-content">
-            <span class="close-btn" onclick="toggleModal('criar-tarefa-modal', false)">&times;</span>
-            <h2>Criar Nova Tarefa</h2>
-            <form id="form-criar-tarefa" class="admin-form">
-                <input type="text" id="nova-tarefa-nome" placeholder="Nome da Tarefa" required>
-                <input type="date" id="nova-tarefa-data" placeholder="Data Prazo" required>
-                <input type="time" id="nova-tarefa-horario" placeholder="Horário Prazo" required>
-                <textarea id="nova-tarefa-descricao" placeholder="Descrição da Tarefa" rows="3" required></textarea>
-                <input type="number" id="nova-tarefa-valor" placeholder="Valor (R$)" step="0.01" required>
-                <button type="submit" class="btn-rounded btn-success">Adicionar Tarefa</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="atribuir-tarefa-modal" class="modal-overlay hidden-start">
-        <div class="modal-content">
-            <span class="close-btn" onclick="toggleModal('atribuir-tarefa-modal', false)">&times;</span>
-            <h2>Atribuir Tarefa Disponível</h2>
-            <p class="info-message">Selecione uma tarefa e um usuário para atribuir (Status: EmAndamento).</p>
-            <form id="form-atribuir-tarefa">
-                <select id="select-tarefa-disponivel" required style="width: 100%; margin-bottom: 10px;"></select>
-                <select id="select-usuario-atribuicao" required style="width: 100%; margin-bottom: 15px;"></select>
-                <button type="submit" class="btn-rounded btn-primary">Atribuir Tarefa</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="excluir-tarefa-modal" class="modal-overlay hidden-start">
-        <div class="modal-content">
-            <span class="close-btn" onclick="toggleModal('excluir-tarefa-modal', false)">&times;</span>
-            <h2>Excluir Tarefa (Qualquer Status)</h2>
-            <p class="info-message-danger">A exclusão é permanente.</p>
-            <form id="form-excluir-tarefa">
-                <select id="select-tarefa-excluir" required style="width: 100%; margin-bottom: 15px;"></select>
-                <button type="submit" class="btn-rounded btn-danger">Excluir Permanentemente</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="center-box large-box">
-        <h1 class="main-title" style="color: var(--danger-color);">Painel Administrativo</h1>
-        <hr class="divider">
-
-        <div id="admin-alerts" style="margin-bottom: 20px;"></div>
-
-        <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px;">
-            <button class="btn-rounded btn-success" onclick="openCriarTarefaModal()">Criar Tarefa</button>
-            <button class="btn-rounded btn-primary" onclick="openAtribuirTarefaModal()">Atribuir Tarefa</button>
-            <button class="btn-rounded btn-danger" onclick="openExcluirTarefaModal()">Excluir Tarefa</button>
-        </div>
-        
-        <hr class="divider">
-        
-        <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
-            <button class="btn-rounded btn-admin-tab" onclick="showAprovacaoSection()">Aprovação (Pendentes)</button>
-            <button class="btn-rounded btn-admin-tab" onclick="showGerenciamentoSection()">Gerenciamento</button>
-        </div>
-        
-        <hr class="divider">
-
-        <div id="aprovacao-section" class="admin-section" style="display: block;">
-            <h2>Tarefas Pendentes de Aprovação</h2>
-            <p class="info-message">Tarefas concluídas pelos usuários, aguardando aprovação (Status: Pendente).</p>
-            <div id="tarefas-pendentes-aprovacao-lista" class="historico-lista">
-                <p class="empty-message">Carregando...</p>
-            </div>
-        </div>
-
-        <div id="gerenciamento-section" class="admin-section" style="display: none;">
-            <h2>Gerenciar Atribuições e Disponibilidade</h2>
-            <div style="margin-bottom: 15px;">
-                <button class="btn-rounded btn-secondary-text" onclick="loadGerenciamentoTarefas('Disponível')">Ver Disponíveis</button>
-                <button class="btn-rounded btn-secondary-text" onclick="loadGerenciamentoTarefas('EmAndamento')">Ver Em Andamento</button>
-                <button class="btn-rounded btn-secondary-text" onclick="loadGerenciamentoTarefas('all')">Ver Todas Ativas</button>
-            </div>
-            <div id="tarefas-gerenciamento-lista" class="historico-lista">
-                <p class="empty-message">Carregando...</p>
-            </div>
-        </div>
-        
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
-            Voltar ao Dashboard
-        </a>
-    </div>
-
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const TAREFAS_COLLECTION = 'tarefasAtribuidas';
-        let userList = []; 
-        let allTasksList = []; // Para o modal de exclusão
-        let currentFilter = 'Pendente'; // Filtro inicial
-
-        // --- 1. Funções de Controle de UI (Substituindo showSection) ---
-        function showAprovacaoSection() {
-            document.getElementById('aprovacao-section').style.display = 'block';
-            document.getElementById('gerenciamento-section').style.display = 'none';
-            loadTarefasPendentes();
-        }
-
-        function showGerenciamentoSection() {
-            document.getElementById('aprovacao-section').style.display = 'none';
-            document.getElementById('gerenciamento-section').style.display = 'block';
-            loadGerenciamentoTarefas('all');
-        }
-
-        function checkAdminAccess() {
-            const userInfo = getUsuarioLogado();
-            if (!userInfo || !userInfo.isAdmin) {
-                window.location.href = 'index.html'; 
-                return false;
-            }
-            return userInfo.nome;
-        }
-
-        // Carrega usuários e tarefas ao iniciar
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!checkAdminAccess()) return;
-            loadUsersForAssignment(); 
-            loadTarefasPendentes(); // Inicia na seção de aprovação
-        });
-        
-        // --- 2. Funções de Modais ---
-
-        async function loadUsersForAssignment() {
-            try {
-                const snapshot = await firestore.collection('users').get();
-                userList = snapshot.docs.map(doc => doc.data()); 
-            } catch(e) {
-                console.error("Erro ao carregar usuários:", e);
-            }
-        }
-        
-        function openCriarTarefaModal() {
-            toggleModal('criar-tarefa-modal', true);
-        }
-
-        async function openAtribuirTarefaModal() {
-            // 1. Carregar tarefas disponíveis para o select
-            const selectTarefa = document.getElementById('select-tarefa-disponivel');
-            selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
-
-            try {
-                const query = firestore.collection(TAREFAS_COLLECTION)
-                    .where('status', '==', 'Disponível')
-                    .orderBy('dataCriacao', 'desc');
-                const snapshot = await query.get();
-                
-                let optionsHtml = '<option value="">Selecione a Tarefa</option>';
-                snapshot.forEach(doc => {
-                    const t = doc.data();
-                    optionsHtml += `<option value="${doc.id}">${t.nome} (R$${t.valor})</option>`;
-                });
-
-                selectTarefa.innerHTML = optionsHtml;
-            } catch (error) {
-                selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
-                console.error("Erro ao carregar tarefas disponíveis:", error);
-            }
-
-
-            // 2. Carregar lista de usuários para o select
-            const selectUsuario = document.getElementById('select-usuario-atribuicao');
-            let userOptions = '<option value="">Selecione o Usuário</option>';
-            userList.forEach(user => {
-                userOptions += `<option value="${user.nome}">${user.nome}</option>`;
-            });
-            selectUsuario.innerHTML = userOptions;
-
-            toggleModal('atribuir-tarefa-modal', true);
-        }
-
-        async function openExcluirTarefaModal() {
-            const selectExcluir = document.getElementById('select-tarefa-excluir');
-            selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
-
-            try {
-                // Carrega todas as tarefas ativas e pagas
-                const query = firestore.collection(TAREFAS_COLLECTION)
-                    .where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada'])
-                    .orderBy('dataCriacao', 'desc');
-                    
-                const queryPagas = firestore.collection('tarefasConcluidas')
-                    .where('status', '==', 'Paga')
-                    .orderBy('dataPagamento', 'desc')
-                    .limit(20); // Limita tarefas pagas para performance
-
-                const [snapshotAtivas, snapshotPagas] = await Promise.all([query.get(), queryPagas.get()]);
-                
-                allTasksList = [];
-                let optionsHtml = '<option value="">Selecione a Tarefa para Excluir</option>';
-                
-                // Adiciona Ativas
-                snapshotAtivas.forEach(doc => {
-                    const t = doc.data();
-                    allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_COLLECTION });
-                    optionsHtml += `<option value="${doc.id}|${TAREFAS_COLLECTION}">${t.nome} (Status: ${t.status})</option>`;
-                });
-
-                // Adiciona Pagas
-                snapshotPagas.forEach(doc => {
-                    const t = doc.data();
-                    const collectionName = 'tarefasConcluidas';
-                    allTasksList.push({ id: doc.id, ...t, collection: collectionName });
-                    optionsHtml += `<option value="${doc.id}|${collectionName}">${t.nome} (Status: ${t.status} - Histórico)</option>`;
-                });
-
-
-                selectExcluir.innerHTML = optionsHtml;
-            } catch (error) {
-                selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
-                console.error("Erro ao carregar todas as tarefas:", error);
-            }
-
-            toggleModal('excluir-tarefa-modal', true);
-        }
-
-        // --- 3. Funções de Submissão de Forms (Modais) ---
-
-        // A. CRIAR TAREFA
-        document.getElementById('form-criar-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const nome = document.getElementById('nova-tarefa-nome').value;
-            const valor = parseFloat(document.getElementById('nova-tarefa-valor').value);
-            const dataPrazo = document.getElementById('nova-tarefa-data').value;
-            const horarioPrazo = document.getElementById('nova-tarefa-horario').value;
-            const descricao = document.getElementById('nova-tarefa-descricao').value;
-            const userName = checkAdminAccess();
-
-            if (isNaN(valor) || valor <= 0) {
-                alert("Por favor, insira um valor válido.");
-                return;
-            }
-
-            try {
-                await firestore.collection(TAREFAS_COLLECTION).add({
-                    nome: nome,
-                    valor: valor,
-                    dataPrazo: dataPrazo, 
-                    horarioPrazo: horarioPrazo,
-                    descricao: descricao,
-                    status: 'Disponível', // Status inicial
-                    criadaPor: userName,
-                    dataCriacao: new Date().toISOString().split('T')[0]
-                });
-
-                toggleModal('criar-tarefa-modal', false);
-                alert(`Tarefa "${nome}" criada com sucesso! (Status: Disponível)`);
-                this.reset();
-                showGerenciamentoSection(); // Redireciona para o gerenciamento
-            } catch (error) {
-                console.error("Erro ao criar tarefa:", error);
-                alert("Erro ao criar tarefa. Tente novamente.");
-            }
-        });
-
-        // B. ATRIBUIR TAREFA
-        document.getElementById('form-atribuir-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const taskId = document.getElementById('select-tarefa-disponivel').value;
-            const selectedUser = document.getElementById('select-usuario-atribuicao').value;
-            
-            if (!taskId || !selectedUser) {
-                alert("Selecione uma tarefa e um usuário válidos.");
-                return;
-            }
-            
-            const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
-            
-            if (!confirm(`Confirmar atribuição da tarefa a ${selectedUser}? O status será alterado para "EmAndamento" e aparecerá para o usuário.`)) {
-                return;
-            }
-
-            try {
-                await taskRef.update({
-                    status: 'EmAndamento', // Status para o usuário
-                    atribuidaPara: selectedUser,
-                    dataAtribuicao: new Date().toISOString().split('T')[0]
-                });
-
-                toggleModal('atribuir-tarefa-modal', false);
-                alert(`Tarefa atribuída com sucesso a ${selectedUser}! (Status: EmAndamento)`);
-                this.reset();
-                showGerenciamentoSection();
-            } catch (error) {
-                console.error("Erro ao atribuir tarefa:", error);
-                alert("Erro ao atribuir tarefa. Tente novamente.");
-            }
-        });
-
-        // C. EXCLUIR TAREFA
-        document.getElementById('form-excluir-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const selectedValue = document.getElementById('select-tarefa-excluir').value;
-            if (!selectedValue) {
-                alert("Selecione uma tarefa para excluir.");
-                return;
-            }
-
-            const [taskId, collectionName] = selectedValue.split('|');
-            const task = allTasksList.find(t => t.id === taskId && t.collection === collectionName);
-
-            if (!task) {
-                alert("Erro ao encontrar detalhes da tarefa.");
-                return;
-            }
-
-            if (!confirm(`ATENÇÃO! Tem certeza que deseja EXCLUIR permanentemente a tarefa "${task.nome}" (Status: ${task.status})? Esta ação não pode ser desfeita.`)) {
-                return;
-            }
-
-            try {
-                await firestore.collection(collectionName).doc(taskId).delete();
-                
-                toggleModal('excluir-tarefa-modal', false);
-                alert(`Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`);
-                this.reset();
-                showGerenciamentoSection(); // Recarrega a lista de gerenciamento
-            } catch (error) {
-                console.error("Erro ao excluir tarefa:", error);
-                alert("Erro ao excluir tarefa. Tente novamente.");
-            }
-        });
-
-
-        // --- 4. Funções de Carregamento de Lista (Continuação do código anterior) ---
-
-        // Aprovação (Status "Pendente" -> "Aprovada")
-        async function loadTarefasPendentes() {
-             // ... [Mantenha a função loadTarefasPendentes inalterada do código anterior] ...
-            const listaEl = document.getElementById('tarefas-pendentes-aprovacao-lista');
-            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
-            
-            try {
-                const query = firestore.collection(TAREFAS_COLLECTION)
-                    .where('status', '==', 'Pendente') 
-                    .orderBy('dataConclusao', 'asc');
-
-                const snapshot = await query.get();
-                let html = '';
-                let foundTasks = false;
-
-                snapshot.forEach(doc => {
-                    foundTasks = true;
-                    const taskId = doc.id;
-                    const t = doc.data();
-                    const valor = parseFloat(t.valor || 0);
-
-                    html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: var(--danger-color);">
-                            <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
-                            </div>
-                            
-                            <div class="tarefa-status-line tarefa-info-status-danger">
-                                <span>Status:</span>
-                                <span class="status-pending">${t.status}</span>
-                            </div>
-
-                            <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Usuário: <span style="font-weight: bold; color: #1976d2;">${t.atribuidaPara || 'N/A'}</span></div>
-                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
-                                <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
-                            </div>
-                            <div style="margin-top: 15px; display: flex; gap: 10px;">
-                                <button class="btn-rounded btn-success" 
-                                        onclick="aprovarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
-                                    APROVAR (Status "Aprovada")
-                                </button>
-                                <button class="btn-rounded btn-danger-outline" 
-                                        onclick="rejeitarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
-                                    Rejeitar
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa pendente de aprovação.</p>';
-
-            } catch (error) {
-                console.error("Erro ao carregar tarefas pendentes:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes.</p>';
-            }
-        }
-        
-        async function aprovarTarefa(taskId, usuarioNome) {
-            if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? O status será alterado para "Aprovada".`)) {
-                return;
-            }
-
-            try {
-                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
-                
-                await taskRef.update({
-                    status: 'Aprovada', 
-                });
-
-                alert(`Tarefa aprovada e pronta para pagamento para ${usuarioNome} (status "Aprovada").`);
-                loadTarefasPendentes(); 
-            } catch (error) {
-                console.error("Erro ao aprovar tarefa:", error);
-                alert(`Erro ao aprovar a tarefa: ${error.message || 'Tente novamente.'}`);
-            }
-        }
-
-        async function rejeitarTarefa(taskId, usuarioNome) {
-            if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? O status será revertido para "EmAndamento".`)) {
-                return;
-            }
-
-            try {
-                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
-                
-                await taskRef.update({
-                    status: 'EmAndamento', 
-                    dataConclusao: firebase.firestore.FieldValue.delete() 
-                });
-
-                alert(`Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`);
-                loadTarefasPendentes(); 
-            } catch (error) {
-                console.error("Erro ao rejeitar tarefa:", error);
-                alert("Erro ao rejeitar tarefa. Tente novamente.");
-            }
-        }
-
-
-        // Gerenciamento (Visualização de Status)
-        async function loadGerenciamentoTarefas(statusFilter) {
-            currentFilter = statusFilter;
-            const listaEl = document.getElementById('tarefas-gerenciamento-lista');
-            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
-
-            try {
-                let query = firestore.collection(TAREFAS_COLLECTION).orderBy('dataCriacao', 'desc');
-
-                if (statusFilter === 'Disponível') {
-                    query = query.where('status', '==', 'Disponível');
-                } else if (statusFilter === 'EmAndamento') {
-                    query = query.where('status', '==', 'EmAndamento');
-                } else if (statusFilter === 'all') {
-                    // Busca tarefas ativas (Disponível, EmAndamento, Pendente, Aprovada)
-                    query = query.where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada']); 
-                }
-
-                const snapshot = await query.get();
-                let html = '';
-                let foundTasks = false;
-
-                snapshot.forEach(doc => {
-                    foundTasks = true;
-                    const taskId = doc.id;
-                    const t = doc.data();
-                    const valor = parseFloat(t.valor || 0);
-
-                    const statusColor = t.status === 'Disponível' ? '#4CAF50' : t.status === 'EmAndamento' ? '#2196F3' : '#FF9800';
-                    const atribuido = t.atribuidaPara ? `Atribuída a: ${t.atribuidaPara}` : 'Não Atribuída';
-                    
-                    html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: ${statusColor};">
-                            <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
-                                <div class="tarefa-status-line" style="color: ${statusColor}; font-weight: bold;">(${t.status})</div>
-                            </div>
-                            
-                            <div class="tarefa-details-admin" style="margin-bottom: 10px;">
-                                <div class="tarefa-info-admin">Valor: ${formatarMoeda(valor)}</div>
-                                <div class="tarefa-info-admin">${atribuido}</div>
-                            </div>
-                            <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-                                <p style="font-size: 0.9em; color: #666;">Criada: ${t.dataCriacao || 'N/A'} | Prazo: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</p>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa encontrada para este filtro.</p>';
-
-            } catch (error) {
-                console.error("Erro ao carregar tarefas abertas:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas.</p>';
-            }
-        }
-    </script>
+    
+        <div id="criar-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('criar-tarefa-modal', false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="toggleModal('criar-tarefa-modal', false)">&times;</span>
+            <h2>Criar Nova Tarefa</h2>
+            <form id="form-criar-tarefa" class="admin-form">
+                <input type="text" id="nova-tarefa-nome" placeholder="Nome da Tarefa" required>
+                <input type="date" id="nova-tarefa-data" placeholder="Data Prazo" required>
+                <input type="time" id="nova-tarefa-horario" placeholder="Horário Prazo" required>
+                <textarea id="nova-tarefa-descricao" placeholder="Descrição da Tarefa" rows="3" required></textarea>
+                <input type="number" id="nova-tarefa-valor" placeholder="Valor (R$)" step="0.01" required>
+                <button type="submit" class="btn-rounded btn-success">Adicionar Tarefa</button>
+            </form>
+        </div>
+    </div>
+
+        <div id="atribuir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('atribuir-tarefa-modal', false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="toggleModal('atribuir-tarefa-modal', false)">&times;</span>
+            <h2>Atribuir Tarefa Disponível</h2>
+            <p class="info-message">Selecione uma tarefa e um usuário para atribuir (Status: EmAndamento).</p>
+            <form id="form-atribuir-tarefa">
+                <select id="select-tarefa-disponivel" required style="width: 100%; margin-bottom: 10px;"></select>
+                <select id="select-usuario-atribuicao" required style="width: 100%; margin-bottom: 15px;"></select>
+                <button type="submit" class="btn-rounded btn-primary">Atribuir Tarefa</button>
+            </form>
+        </div>
+    </div>
+
+        <div id="excluir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('excluir-tarefa-modal', false)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="toggleModal('excluir-tarefa-modal', false)">&times;</span>
+            <h2>Excluir Tarefa (Qualquer Status)</h2>
+            <p class="info-message-danger">A exclusão é permanente.</p>
+            <form id="form-excluir-tarefa">
+                <select id="select-tarefa-excluir" required style="width: 100%; margin-bottom: 15px;"></select>
+                <button type="submit" class="btn-rounded btn-danger">Excluir Permanentemente</button>
+            </form>
+        </div>
+    </div>
+
+        <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--danger-color);">Painel Administrativo</h1>
+        <hr class="divider">
+
+        <div id="admin-alerts" style="margin-bottom: 20px;"></div>
+
+        <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px;">
+            <button class="btn-rounded btn-success" onclick="openCriarTarefaModal()">Criar Tarefa</button>
+            <button class="btn-rounded btn-primary" onclick="openAtribuirTarefaModal()">Atribuir Tarefa</button>
+            <button class="btn-rounded btn-danger" onclick="openExcluirTarefaModal()">Excluir Tarefa</button>
+        </div>
+        
+        <hr class="divider">
+        
+        <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+            <button class="btn-rounded btn-admin-tab" onclick="showAprovacaoSection()">Aprovação (Pendentes)</button>
+            <button class="btn-rounded btn-admin-tab" onclick="showGerenciamentoSection()">Gerenciamento</button>
+        </div>
+        
+        <hr class="divider">
+
+                <div id="aprovacao-section" class="admin-section" style="display: block;">
+            <h2>Tarefas Pendentes de Aprovação</h2>
+            <p class="info-message">Tarefas concluídas pelos usuários, aguardando aprovação (Status: Pendente).</p>
+            <div id="tarefas-pendentes-aprovacao-lista" class="historico-lista">
+                <p class="empty-message">Carregando...</p>
+            </div>
+        </div>
+
+                <div id="gerenciamento-section" class="admin-section" style="display: none;">
+            <h2>Gerenciamento de Tarefas Ativas</h2>
+                        <div id="tarefas-gerenciamento-lista" class="historico-lista">
+                <p class="empty-message">Carregando todas as tarefas ativas...</p>
+            </div>
+        </div>
+        
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            Voltar ao Dashboard
+        </a>
+    </div>
+
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const TAREFAS_COLLECTION = 'tarefasAtribuidas';
+        let userList = []; 
+        let allTasksList = []; // Para o modal de exclusão
+        let currentFilter = 'Pendente'; // Filtro inicial
+
+        // Funções de utilidade (Assumindo que estão em script.js ou definidas globalmente)
+        function toggleModal(id, show) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.toggle('hidden-start', !show);
+            }
+        }
+        // Assumindo formatarMoeda e getUsuarioLogado estão em script.js
+
+        // --- 1. Funções de Controle de UI ---
+        function showAprovacaoSection() {
+            document.getElementById('aprovacao-section').style.display = 'block';
+            document.getElementById('gerenciamento-section').style.display = 'none';
+            loadTarefasPendentes();
+        }
+
+        function showGerenciamentoSection() {
+            document.getElementById('aprovacao-section').style.display = 'none';
+            document.getElementById('gerenciamento-section').style.display = 'block';
+            // Chamada padrão para ver todas as ativas, conforme solicitado a simplificação
+            loadGerenciamentoTarefas('all'); 
+        }
+
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !userInfo.isAdmin) {
+                window.location.href = 'index.html'; 
+                return false;
+            }
+            return userInfo.nome;
+        }
+
+        // Carrega usuários e tarefas ao iniciar
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!checkAdminAccess()) return;
+            loadUsersForAssignment(); 
+            loadTarefasPendentes(); // Inicia na seção de aprovação
+        });
+        
+        // --- 2. Funções de Modais ---
+
+        async function loadUsersForAssignment() {
+            try {
+                const snapshot = await firestore.collection('users').get();
+                userList = snapshot.docs.map(doc => doc.data()); 
+            } catch(e) {
+                console.error("Erro ao carregar usuários:", e);
+            }
+        }
+        
+        function openCriarTarefaModal() {
+            toggleModal('criar-tarefa-modal', true);
+        }
+
+        async function openAtribuirTarefaModal() {
+            // 1. Carregar tarefas disponíveis para o select
+            const selectTarefa = document.getElementById('select-tarefa-disponivel');
+            selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
+
+            try {
+                const query = firestore.collection(TAREFAS_COLLECTION)
+                    .where('status', '==', 'Disponível')
+                    .orderBy('dataCriacao', 'desc');
+                const snapshot = await query.get();
+                
+                let optionsHtml = '<option value="">Selecione a Tarefa</option>';
+                snapshot.forEach(doc => {
+                    const t = doc.data();
+                    optionsHtml += `<option value="${doc.id}">${t.nome} (R$${t.valor})</option>`;
+                });
+
+                selectTarefa.innerHTML = optionsHtml;
+            } catch (error) {
+                selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
+                console.error("Erro ao carregar tarefas disponíveis:", error);
+            }
+
+
+            // 2. Carregar lista de usuários para o select
+            const selectUsuario = document.getElementById('select-usuario-atribuicao');
+            let userOptions = '<option value="">Selecione o Usuário</option>';
+            userList.forEach(user => {
+                userOptions += `<option value="${user.nome}">${user.nome}</option>`;
+            });
+            selectUsuario.innerHTML = userOptions;
+
+            toggleModal('atribuir-tarefa-modal', true);
+        }
+
+        async function openExcluirTarefaModal() {
+            const selectExcluir = document.getElementById('select-tarefa-excluir');
+            selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
+
+            try {
+                // Carrega todas as tarefas ativas e pagas
+                const query = firestore.collection(TAREFAS_COLLECTION)
+                    .where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada'])
+                    .orderBy('dataCriacao', 'desc');
+                    
+                const queryPagas = firestore.collection('tarefasConcluidas')
+                    .where('status', '==', 'Paga')
+                    .orderBy('dataPagamento', 'desc')
+                    .limit(20); // Limita tarefas pagas para performance
+
+                const [snapshotAtivas, snapshotPagas] = await Promise.all([query.get(), queryPagas.get()]);
+                
+                allTasksList = [];
+                let optionsHtml = '<option value="">Selecione a Tarefa para Excluir</option>';
+                
+                // Adiciona Ativas
+                snapshotAtivas.forEach(doc => {
+                    const t = doc.data();
+                    allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_COLLECTION });
+                    optionsHtml += `<option value="${doc.id}|${TAREFAS_COLLECTION}">${t.nome} (Status: ${t.status})</option>`;
+                });
+
+                // Adiciona Pagas
+                snapshotPagas.forEach(doc => {
+                    const t = doc.data();
+                    const collectionName = 'tarefasConcluidas';
+                    allTasksList.push({ id: doc.id, ...t, collection: collectionName });
+                    optionsHtml += `<option value="${doc.id}|${collectionName}">${t.nome} (Status: ${t.status} - Histórico)</option>`;
+                });
+
+
+                selectExcluir.innerHTML = optionsHtml;
+            } catch (error) {
+                selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
+                console.error("Erro ao carregar todas as tarefas:", error);
+            }
+
+            toggleModal('excluir-tarefa-modal', true);
+        }
+
+        // --- 3. Funções de Submissão de Forms (Modais) ---
+
+        // A. CRIAR TAREFA
+        document.getElementById('form-criar-tarefa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nova-tarefa-nome').value;
+            const valor = parseFloat(document.getElementById('nova-tarefa-valor').value);
+            const dataPrazo = document.getElementById('nova-tarefa-data').value;
+            const horarioPrazo = document.getElementById('nova-tarefa-horario').value;
+            const descricao = document.getElementById('nova-tarefa-descricao').value;
+            const userName = checkAdminAccess();
+
+            if (isNaN(valor) || valor <= 0) {
+                alert("Por favor, insira um valor válido.");
+                return;
+            }
+
+            try {
+                await firestore.collection(TAREFAS_COLLECTION).add({
+                    nome: nome,
+                    valor: valor,
+                    dataPrazo: dataPrazo, 
+                    horarioPrazo: horarioPrazo,
+                    descricao: descricao,
+                    status: 'Disponível', // Status inicial
+                    criadaPor: userName,
+                    dataCriacao: new Date().toISOString().split('T')[0]
+                });
+
+                toggleModal('criar-tarefa-modal', false);
+                alert(`Tarefa "${nome}" criada com sucesso! (Status: Disponível)`);
+                this.reset();
+                showGerenciamentoSection(); // Redireciona para o gerenciamento
+            } catch (error) {
+                console.error("Erro ao criar tarefa:", error);
+                alert("Erro ao criar tarefa. Tente novamente.");
+            }
+        });
+
+        // B. ATRIBUIR TAREFA
+        document.getElementById('form-atribuir-tarefa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const taskId = document.getElementById('select-tarefa-disponivel').value;
+            const selectedUser = document.getElementById('select-usuario-atribuicao').value;
+            
+            if (!taskId || !selectedUser) {
+                alert("Selecione uma tarefa e um usuário válidos.");
+                return;
+            }
+            
+            const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
+            
+            if (!confirm(`Confirmar atribuição da tarefa a ${selectedUser}? O status será alterado para "EmAndamento" e aparecerá para o usuário.`)) {
+                return;
+            }
+
+            try {
+                await taskRef.update({
+                    status: 'EmAndamento', // Status para o usuário
+                    atribuidaPara: selectedUser,
+                    dataAtribuicao: new Date().toISOString().split('T')[0]
+                });
+
+                toggleModal('atribuir-tarefa-modal', false);
+                alert(`Tarefa atribuída com sucesso a ${selectedUser}! (Status: EmAndamento)`);
+                this.reset();
+                showGerenciamentoSection();
+            } catch (error) {
+                console.error("Erro ao atribuir tarefa:", error);
+                alert("Erro ao atribuir tarefa. Tente novamente.");
+            }
+        });
+
+        // C. EXCLUIR TAREFA
+        document.getElementById('form-excluir-tarefa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const selectedValue = document.getElementById('select-tarefa-excluir').value;
+            if (!selectedValue) {
+                alert("Selecione uma tarefa para excluir.");
+                return;
+            }
+
+            const [taskId, collectionName] = selectedValue.split('|');
+            const task = allTasksList.find(t => t.id === taskId && t.collection === collectionName);
+
+            if (!task) {
+                alert("Erro ao encontrar detalhes da tarefa.");
+                return;
+            }
+
+            if (!confirm(`ATENÇÃO! Tem certeza que deseja EXCLUIR permanentemente a tarefa "${task.nome}" (Status: ${task.status})? Esta ação não pode ser desfeita.`)) {
+                return;
+            }
+
+            try {
+                await firestore.collection(collectionName).doc(taskId).delete();
+                
+                toggleModal('excluir-tarefa-modal', false);
+                alert(`Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`);
+                this.reset();
+                showGerenciamentoSection(); // Recarrega a lista de gerenciamento
+            } catch (error) {
+                console.error("Erro ao excluir tarefa:", error);
+                alert("Erro ao excluir tarefa. Tente novamente.");
+            }
+        });
+
+
+        // --- 4. Funções de Carregamento de Lista ---
+
+        // Aprovação (Status "Pendente" -> "Aprovada")
+        async function loadTarefasPendentes() {
+            const listaEl = document.getElementById('tarefas-pendentes-aprovacao-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
+            
+            try {
+                const query = firestore.collection(TAREFAS_COLLECTION)
+                    .where('status', '==', 'Pendente') 
+                    .orderBy('dataConclusao', 'asc');
+
+                const snapshot = await query.get();
+                let html = '';
+                let foundTasks = false;
+
+                snapshot.forEach(doc => {
+                    foundTasks = true;
+                    const taskId = doc.id;
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
+
+                    html += `
+                        <div class="tarefa-card admin-card" style="border-left-color: var(--danger-color);">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
+                            </div>
+                            
+                            <div class="tarefa-status-line tarefa-info-status-danger">
+                                <span>Status:</span>
+                                <span class="status-pending">${t.status}</span>
+                            </div>
+
+                            <div class="tarefa-details-admin">
+                                <div class="tarefa-info-admin">Usuário: <span style="font-weight: bold; color: #1976d2;">${t.atribuidaPara || 'N/A'}</span></div>
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
+                                <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                <button class="btn-rounded btn-success" 
+                                        onclick="aprovarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
+                                    APROVAR (Status "Aprovada")
+                                </button>
+                                <button class="btn-rounded btn-danger-outline" 
+                                        onclick="rejeitarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
+                                    Rejeitar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa pendente de aprovação.</p>';
+
+            } catch (error) {
+                console.error("Erro ao carregar tarefas pendentes:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes.</p>';
+            }
+        }
+        
+        async function aprovarTarefa(taskId, usuarioNome) {
+            if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? O status será alterado para "Aprovada".`)) {
+                return;
+            }
+
+            try {
+                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
+                
+                await taskRef.update({
+                    status: 'Aprovada', 
+                });
+
+                alert(`Tarefa aprovada e pronta para pagamento para ${usuarioNome} (status "Aprovada").`);
+                loadTarefasPendentes(); 
+            } catch (error) {
+                console.error("Erro ao aprovar tarefa:", error);
+                alert(`Erro ao aprovar a tarefa: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+        async function rejeitarTarefa(taskId, usuarioNome) {
+            if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? O status será revertido para "EmAndamento".`)) {
+                return;
+            }
+
+            try {
+                const taskRef = firestore.collection(TAREFAS_COLLECTION).doc(taskId);
+                
+                await taskRef.update({
+                    status: 'EmAndamento', 
+                    dataConclusao: firebase.firestore.FieldValue.delete() 
+                });
+
+                alert(`Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`);
+                loadTarefasPendentes(); 
+            } catch (error) {
+                console.error("Erro ao rejeitar tarefa:", error);
+                alert("Erro ao rejeitar tarefa. Tente novamente.");
+            }
+        }
+
+
+        // Gerenciamento (Visualização de Status - Simplificada)
+        async function loadGerenciamentoTarefas(statusFilter) {
+            currentFilter = statusFilter;
+            const listaEl = document.getElementById('tarefas-gerenciamento-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
+
+            try {
+                let query = firestore.collection(TAREFAS_COLLECTION).orderBy('dataCriacao', 'desc');
+
+                // O filtro agora é sempre 'all' ou o status específico se vier de outra função
+                if (statusFilter === 'all' || statusFilter === 'Gerenciamento') {
+                    // Busca tarefas ativas (Disponível, EmAndamento, Pendente, Aprovada)
+                    query = query.where('status', 'in', ['Disponível', 'EmAndamento', 'Pendente', 'Aprovada']); 
+                } else {
+                    // Mantém o filtro se for chamado com um status específico (embora os botões tenham sido removidos)
+                    query = query.where('status', '==', statusFilter);
+                }
+
+                const snapshot = await query.get();
+                let html = '';
+                let foundTasks = false;
+
+                snapshot.forEach(doc => {
+                    foundTasks = true;
+                    const taskId = doc.id;
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
+
+                    const statusColor = t.status === 'Disponível' ? '#4CAF50' : t.status === 'EmAndamento' ? '#2196F3' : t.status === 'Pendente' ? '#FF9800' : '#8BC34A'; // Verde claro para Aprovada
+                    const atribuido = t.atribuidaPara ? `Atribuída a: ${t.atribuidaPara}` : 'Não Atribuída';
+                    
+                    html += `
+                        <div class="tarefa-card admin-card" style="border-left-color: ${statusColor};">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
+                                <div class="tarefa-status-line" style="color: ${statusColor}; font-weight: bold;">(${t.status})</div>
+                            </div>
+                            
+                            <div class="tarefa-details-admin" style="margin-bottom: 10px;">
+                                <div class="tarefa-info-admin">Valor: ${formatarMoeda(valor)}</div>
+                                <div class="tarefa-info-admin">${atribuido}</div>
+                            </div>
+                            <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                                <p style="font-size: 0.9em; color: #666;">Criada: ${t.dataCriacao || 'N/A'} | Prazo: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa encontrada para gerenciamento.</p>';
+
+            } catch (error) {
+                console.error("Erro ao carregar tarefas abertas:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas.</p>';
+            }
+        }
+    </script>
 </body>
 </html>
