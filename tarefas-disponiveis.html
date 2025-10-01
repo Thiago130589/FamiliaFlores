@@ -8,6 +8,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
@@ -27,12 +28,17 @@
     </div>
 
     <script>
-        // Garante que as variáveis de contexto do Firebase e coleções estão disponíveis
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // Garante acesso e redirecionamento de login (função de js/script.js)
+        // Função de utilidade para limpar acentos e espaços, facilitando a comparação
+        function normalizeStatus(status) {
+            if (!status) return '';
+            // Remove acentos e caracteres especiais, converte para minúsculas e remove espaços extras
+            return status.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+        }
+
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
@@ -50,9 +56,8 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // Esta consulta agora funcionará, pois o índice foi criado
+                // Para manter a performance e usar o índice, ainda tentamos filtrar por 'Disponivel'
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
-                    .where('status', '==', 'Disponivel') 
                     .orderBy('valor', 'desc'); 
 
                 const snapshot = await query.get();
@@ -60,9 +65,15 @@
                 let foundTasks = false;
 
                 snapshot.forEach(doc => {
+                    const t = doc.data();
+                    
+                    // AQUI ESTÁ A CORREÇÃO: Filtramos no JS após a leitura, aceitando variações
+                    if (normalizeStatus(t.status) !== 'disponivel') {
+                        return; // Pula tarefas que não são de fato "disponível"
+                    }
+                    
                     foundTasks = true;
                     const taskId = doc.id;
-                    const t = doc.data();
                     const valor = parseFloat(t.valor || 0);
 
                     const dataLimite = t.dataLimite || 'N/A';
@@ -91,7 +102,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console ou a conexão com o Firebase.</p>'; 
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console ou o status dos dados no Firestore.</p>'; 
             }
         }
 
@@ -112,7 +123,6 @@
                 const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
                 const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); 
 
-                // Transação para garantir que a tarefa não seja pega por dois usuários
                 await firestore.runTransaction(async (transaction) => {
                     const taskDoc = await transaction.get(availableRef);
 
@@ -122,21 +132,20 @@
                     
                     const taskData = taskDoc.data();
                     
-                    // 1. Deleta da lista de Disponíveis
                     transaction.delete(availableRef);
                     
-                    // 2. Cria na lista de Atribuídas (Minhas Tarefas)
                     const assignedData = {
                         ...taskData,
-                        status: 'EmAndamento', // NOVO STATUS
-                        atribuidaPara: userName, // Atribui ao usuário logado
+                        // NOVO PADRÃO: Sempre escrever o status com a mesma string sem acento
+                        status: 'EmAndamento', 
+                        atribuidaPara: userName,
                         dataAtribuicao: new Date().toISOString().split('T')[0] 
                     };
                     transaction.set(assignedRef, assignedData);
                 });
 
                 alert(`Tarefa "${taskName}" foi atribuída a você! Acesse "Minhas Tarefas" para começar.`);
-                renderTarefasDisponiveis(); // Recarrega a lista de disponíveis
+                renderTarefasDisponiveis(); 
                 
             } catch (error) {
                 console.error("Erro na transação de pegar tarefa:", error);

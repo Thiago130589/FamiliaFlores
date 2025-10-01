@@ -1,133 +1,133 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Tarefas em Andamento</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Tarefas em Andamento</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title" style="color: var(--info-color);">Minhas Tarefas (Em Andamento)</h1>
-        <p class="info-message" style="text-align: center;">Tarefas atribuídas a você. Marque como concluída para receber o pagamento.</p>
-        <hr class="divider">
-        
-        <div id="tarefas-lista" class="historico-lista">
-            <p class="empty-message">Carregando tarefas...</p>
-        </div>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--info-color);">Minhas Tarefas (Em Andamento)</h1>
+        <p class="info-message" style="text-align: center;">Tarefas atribuídas a você. Marque como concluída para receber o pagamento.</p>
+        <hr class="divider">
+        
+        <div id="tarefas-lista" class="historico-lista">
+            <p class="empty-message">Carregando tarefas...</p>
+        </div>
 
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
-            Voltar ao Dashboard
-        </a>
-    </div>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            Voltar ao Dashboard
+        </a>
+    </div>
 
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
+    <script>
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // 1. Verifica Acesso
-        function checkAccess() {
-            const userInfo = getUsuarioLogado();
-            
-            if (!userInfo || !userInfo.nome) {
-                window.location.href = 'login.html';
-                return false;
-            }
-            return userInfo.nome;
-        }
+        // 1. Verifica Acesso
+        function checkAccess() {
+            const userInfo = getUsuarioLogado();
+            
+            if (!userInfo || !userInfo.nome) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return userInfo.nome;
+        }
 
-        // 2. Renderiza a lista de tarefas atribuídas ao usuário (status 'EmAndamento')
-        async function renderMinhasTarefas() {
-            const userName = checkAccess();
-            if (!userName) return;
+        // 2. Renderiza a lista de tarefas atribuídas ao usuário (status 'EmAndamento')
+        async function renderMinhasTarefas() {
+            const userName = checkAccess();
+            if (!userName) return;
 
-            const listaEl = document.getElementById('tarefas-lista');
-            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
-            
-            try {
-                // FILTRO PRINCIPAL: Atribuída ao usuário logado E status 'EmAndamento'
-                const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                    .where('atribuidaPara', '==', userName)
-                    .where('status', '==', 'EmAndamento')
-                    .orderBy('dataAtribuicao', 'asc');
+            const listaEl = document.getElementById('tarefas-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
+            
+            try {
+                // FILTRO PRINCIPAL: Atribuída ao usuário logado E status 'EmAndamento'
+                const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    .where('atribuidaPara', '==', userName)
+                    .where('status', '==', 'EmAndamento') // <--- FOCO NO STATUS 'EmAndamento'
+                    .orderBy('dataAtribuicao', 'asc');
 
-                const snapshot = await query.get();
-                let html = '';
-                let foundTasks = false;
+                const snapshot = await query.get();
+                let html = '';
+                let foundTasks = false;
 
-                snapshot.forEach(doc => {
-                    foundTasks = true;
-                    const taskId = doc.id;
-                    const t = doc.data();
-                    const valor = parseFloat(t.valor || 0);
+                snapshot.forEach(doc => {
+                    foundTasks = true;
+                    const taskId = doc.id;
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
 
-                    // Botão de ação principal
-                    const buttonHtml = `
-                        <button class="btn-rounded btn-success wide-button" 
-                                onclick="markAsConcluida('${taskId}', '${t.nome}')">
-                            Marcar como Concluída
-                        </button>
-                    `;
-                    
-                    // Estrutura do Card (usa as classes de Admin/Tarefas)
-                    html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: var(--info-color);">
-                            <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
-                            </div>
-                            
-                            <div class="tarefa-status-line tarefa-info-status-info" style="margin-bottom: 10px;">
-                                <span>Status:</span>
-                                <span class="status-in-progress">Em Andamento</span>
-                            </div>
+                    // Botão de ação principal
+                    const buttonHtml = `
+                        <button class="btn-rounded btn-success wide-button" 
+                                onclick="markAsConcluida('${taskId}', '${t.nome}')">
+                            Marcar como Concluída
+                        </button>
+                    `;
+                    
+                    // Estrutura do Card (usa as classes de Admin/Tarefas)
+                    html += `
+                        <div class="tarefa-card admin-card" style="border-left-color: var(--info-color);">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
+                            </div>
+                            
+                            <div class="tarefa-status-line tarefa-info-status-info" style="margin-bottom: 10px;">
+                                <span>Status:</span>
+                                <span class="status-in-progress">Em Andamento</span>
+                            </div>
 
-                            <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
-                                <div class="tarefa-info-admin">Atribuída em: ${t.dataAtribuicao || 'N/A'}</div>
-                            </div>
-                            <div style="margin-top: 15px;">
-                                ${buttonHtml}
-                            </div>
-                        </div>
-                    `;
-                });
+                            <div class="tarefa-details-admin">
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
+                                <div class="tarefa-info-admin">Atribuída em: ${t.dataAtribuicao || 'N/A'}</div>
+                            </div>
+                            <div style="margin-top: 15px;">
+                                ${buttonHtml}
+                            </div>
+                        </div>
+                    `;
+                });
 
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você não tem tarefas em andamento. Que tal pegar uma nova?</p>';
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você não tem tarefas em andamento. Que tal pegar uma nova?</p>';
 
-            } catch (error) {
-                console.error("Erro ao carregar tarefas:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar suas tarefas.</p>';
-            }
-        }
+            } catch (error) {
+                console.error("Erro ao carregar tarefas:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar suas tarefas.</p>';
+            }
+        }
 
-        // 3. Função para Marcar a Tarefa como Concluída (muda o status para PendenteAprovacao)
-        async function markAsConcluida(taskId, taskName) {
-            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação do administrador.`)) {
-                return;
-            }
+        // 3. Função para Marcar a Tarefa como Concluída (muda o status para PendenteAprovacao)
+        async function markAsConcluida(taskId, taskName) {
+            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação do administrador.`)) {
+                return;
+            }
 
-            try {
-                const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
-                
-                await taskRef.update({
-                    status: 'PendenteAprovacao',
-                    dataConclusao: new Date().toISOString().split('T')[0]
-                });
+            try {
+                const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+                
+                await taskRef.update({
+                    status: 'PendenteAprovacao',
+                    dataConclusao: new Date().toISOString().split('T')[0]
+                });
 
-                alert(`Tarefa "${taskName}" marcada como concluída e enviada para aprovação!`);
-                renderMinhasTarefas(); // Recarrega a lista
-                
-            } catch (error) {
-                console.error("Erro ao marcar tarefa como concluída:", error);
-                alert(`Erro ao atualizar a tarefa. Tente novamente.`);
-            }
-        }
+                alert(`Tarefa "${taskName}" marcada como concluída e enviada para aprovação!`);
+                renderMinhasTarefas(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro ao marcar tarefa como concluída:", error);
+                alert(`Erro ao atualizar a tarefa. Tente novamente.`);
+            }
+        }
 
-        window.addEventListener('DOMContentLoaded', renderMinhasTarefas);
-    </script>
+        window.addEventListener('DOMContentLoaded', renderMinhasTarefas);
+    </script>
 </body>
 </html>
