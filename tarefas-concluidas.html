@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
-    <script src="js/script.js"></script> 
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box">
@@ -23,34 +23,19 @@
     </div>
     
     <script>
-        // Utiliza a variável global 'db' definida em firebase-init.js
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
         function voltarAoPerfil() {
             window.location.href = 'index.html';
         }
 
-        // Função para obter o nome do usuário E verificar se é Admin
         function getUsuarioInfo() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                // Se não estiver logado, redireciona
+            const userInfo = getUsuarioLogado();
+            if (!userInfo) {
                 window.location.href = 'login.html'; 
                 return { nome: null, isAdmin: false };
             }
-            try {
-                const obj = JSON.parse(storedValue);
-                if (obj && obj.nome) {
-                    // Admin é 'thiago' OU tem a flag 'isAdmin: true'
-                    const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'thiago');
-                    return { nome: String(obj.nome).trim(), isAdmin: isUserAdmin };
-                }
-            } catch (e) {
-                // Redireciona em caso de erro de parsing
-                window.location.href = 'login.html';
-                return { nome: null, isAdmin: false };
-            }
-            return { nome: null, isAdmin: false };
+            return userInfo;
         }
 
         async function loadTarefasConcluidas() {
@@ -62,26 +47,24 @@
             const isAdmin = userInfo.isAdmin;
             
             if (!userName) {
-                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado. Faça login novamente.</p>';
+                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado.</p>';
                 return;
             }
 
             try {
-                let query = firestore.collection('tarefasConcluidas'); 
-                
-                // Filtro (OPCIONAL, mas adicionado para garantir que apenas tarefas pagas sejam mostradas)
-                query = query.where('status', '==', 'c'); // CORREÇÃO: Adiciona filtro de status 'c'
-                query = query.orderBy('dataPagamento', 'desc'); // Adiciona ordenação
+                let query = firestore.collection('tarefasConcluidas').orderBy('dataPagamento', 'desc');
+
+                // CORREÇÃO: Filtra pelo status final "Paga"
+                query = query.where('status', '==', 'Paga');
 
                 // Filtra apenas as tarefas do usuário, se não for Admin
                 if (!isAdmin) {
-                    // O filtro só funciona se 'atribuidaPara' for uma string com o nome
                     query = query.where('atribuidaPara', '==', userName);
                 }
                 
                 const snapshot = await query.get();
                 
-                lista.innerHTML = ''; // Limpa a mensagem de carregamento
+                lista.innerHTML = ''; 
 
                 if (snapshot.empty) {
                     lista.innerHTML = `<p class="empty-message">Não há tarefas concluídas e pagas ${isAdmin ? 'no sistema' : 'no seu histórico'}.</p>`;
@@ -92,16 +75,14 @@
                     const tarefa = doc.data();
                     
                     const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-concluida'; // Classe para estilização
+                    elemento.className = 'tarefa-card-concluida'; 
                     
-                    // Formata a data de pagamento
                     const dataPagamento = tarefa.dataPagamento 
                         ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') 
                         : 'N/A';
                     
-                    const valorFormatado = typeof formatarMoeda === 'function' ? formatarMoeda(tarefa.valor || 0) : `R$ ${parseFloat(tarefa.valor || 0).toFixed(2).replace('.', ',')}`; // Usa formatarMoeda ou fallback
+                    const valorFormatado = formatarMoeda(tarefa.valor || 0);
                     
-                    // Informação extra para o Admin
                     let infoAdmin = '';
                     if(isAdmin) {
                         infoAdmin = `<span style="font-weight: bold; color: #1976d2;">Usuário: ${tarefa.atribuidaPara}</span> | `;
@@ -119,8 +100,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas concluídas:", error);
-                // Nota: O Admin pode precisar de um índice composto para este filtro no Firebase Console se for usar em produção.
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas. ${!isAdmin ? 'Tente novamente.' : 'O administrador pode precisar criar um índice para o filtro.'}</p>`;
+                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas.</p>`;
             }
         }
 

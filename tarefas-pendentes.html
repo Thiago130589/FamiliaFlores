@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Tarefas Pendentes</title>
+    <title>Tarefas Prontas para Pagamento</title>
     <link rel="stylesheet" href="style.css"> 
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -12,7 +12,7 @@
 </head>
 <body>
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
-        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Concluídas (Prontas para Pagamento)</h1>
+        <h1 style="margin: 0; color: #d32f2f; font-size: 2.2rem;">Tarefas Aprovadas (Prontas para Pagamento)</h1>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         
         <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
@@ -29,29 +29,14 @@
 
     // Função para obter o nome do usuário E verificar se é Admin
     function getUsuarioInfo() {
-        const storedValue = localStorage.getItem('usuarioLogado');
-        if (!storedValue) return { nome: null, isAdmin: false };
+        // Assume que getUsuarioLogado() é robusto e retorna { nome, isAdmin }
+        const userInfo = getUsuarioLogado(); 
+        if (!userInfo) return { nome: null, isAdmin: false };
         
-        try {
-            const obj = JSON.parse(storedValue);
-            if (obj && obj.nome) {
-                // Admin é 'thiago' OU tem a flag 'isAdmin: true'
-                const isUserAdmin = (obj.isAdmin === true) || (String(obj.nome).toLowerCase() === 'thiago');
-                return { 
-                    // Retorna o nome limpo
-                    nome: String(obj.nome).trim(), 
-                    isAdmin: isUserAdmin 
-                };
-            }
-        } catch (e) {
-            console.error("Erro ao analisar JSON do usuário:", e);
-        }
-        return { nome: null, isAdmin: false };
+        // Simplesmente retornar o objeto, assumindo que as flags estão corretas
+        return userInfo;
     }
 
-    /**
-     * Função para exibir a lista de tarefas concluídas (prontas para pagamento).
-     */
     async function renderTarefasPendentes() {
         const lista = document.getElementById('tarefas-pendentes-lista');
         const userInfo = getUsuarioInfo();
@@ -59,7 +44,7 @@
         isAdmin = userInfo.isAdmin;
 
         if (!usuarioAtual) {
-            lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado. Faça login novamente.</p>';
+            lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado.</p>';
             return;
         }
         
@@ -67,8 +52,9 @@
 
 
         try {
+            // CORREÇÃO: Busca por status "Aprovada"
             let query = firestore.collection('tarefasAtribuidas')
-                                 .where('status', '==', 'p'); // CORREÇÃO: Busca por status 'p' (Pendentes de Pagamento)
+                                 .where('status', '==', 'Aprovada'); 
             
             // Lógica de VISIBILIDADE: Se NÃO for Admin, filtra pela sua tarefa
             if (!isAdmin) {
@@ -81,18 +67,12 @@
             snapshot.forEach(doc => {
                 const tarefa = doc.data();
                 
-                // Trata tarefas onde 'atribuidaPara' ainda é um objeto (legado)
-                let nomeAtribuido = tarefa.atribuidaPara;
-                if (typeof tarefa.atribuidaPara === 'object' && tarefa.atribuidaPara !== null && tarefa.atribuidaPara.nome) {
-                    nomeAtribuido = tarefa.atribuidaPara.nome;
-                }
-                
-                // Filtro de segurança (caso o filtro do Firestore falhe em casos legados)
-                if (!isAdmin && nomeAtribuido !== usuarioAtual) {
+                // Filtro de segurança 
+                if (!isAdmin && tarefa.atribuidaPara !== usuarioAtual) {
                     return; 
                 }
 
-                tarefas.push({ id: doc.id, ...tarefa, atribuidaPara: nomeAtribuido });
+                tarefas.push({ id: doc.id, ...tarefa });
             });
 
             if (tarefas.length === 0) {
@@ -100,39 +80,22 @@
                 return;
             }
             
-            // RENDERIZAÇÃO
             lista.innerHTML = tarefas.map((t) => {
                 const dataFormatada = t.data ? new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
-                
-                let dataConclusao = 'N/A';
-                let horaConclusao = '';
-                let isFullDateTime = false;
-
-                if (t.dataConclusao) {
-                    const dataObj = new Date(t.dataConclusao); 
-                    if (!isNaN(dataObj) && t.dataConclusao.includes('T')) {
-                        isFullDateTime = true;
-                        dataConclusao = dataObj.toLocaleDateString('pt-BR');
-                        horaConclusao = dataObj.toLocaleTimeString('pt-BR').substring(0, 5);
-                    } else if (!isNaN(dataObj)) {
-                        dataConclusao = dataObj.toLocaleDateString('pt-BR');
-                    } else {
-                        dataConclusao = t.dataConclusao; 
-                    }
-                }
+                const dataConclusao = t.dataConclusao || 'N/A';
                 
                 let infoAdicional = '';
                 let botaoAcao = '';
 
                 if (isAdmin) {
                     infoAdicional = `<br><span style="color: #1976d2; font-size: 0.9rem; font-weight: bold;">Usuário: ${t.atribuidaPara}</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao} ${isFullDateTime ? `às ${horaConclusao}` : ''}</span>`;
+                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
                     infoAdicional += `<br><span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(t.valor)}</span>`;
                     
-                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAR</button>`;
+                    botaoAcao = `<button class="btn-rounded btn-pagar-tarefa" data-id="${t.id}" data-valor="${t.valor || 0}" data-usuario="${t.atribuidaPara}">PAGAR E ARQUIVAR</button>`;
                 } else {
                     infoAdicional = `<br><span style="color: #888; font-size: 0.9rem;">Aguardando pagamento do administrador.</span>`;
-                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Concluída em: ${dataConclusao}</span>`;
+                    infoAdicional += `<br><span style="color: #888; font-size: 0.9rem;">Valor: ${formatarMoeda(t.valor)}</span>`;
                 }
 
                 return `
@@ -167,13 +130,11 @@
     }
 
     /**
-     * Ação de PAGAMENTO (Exclusiva do Admin):
-     * 1. Atualiza o saldo do usuário.
-     * 2. Move a tarefa para tarefasConcluidas (com status 'c').
-     * 3. Deleta a tarefa de tarefasAtribuidas.
+     * Ação de PAGAMENTO (Exclusiva do Admin): 
+     * Muda status para "Paga", atualiza saldo e move/deleta.
      */
     async function pagarTarefa(tarefaId, usuarioNome, valor) {
-        if (!confirm(`Confirmar pagamento de ${formatarMoeda(valor)} para ${usuarioNome}? A tarefa será FINALIZADA.`)) {
+        if (!confirm(`Confirmar pagamento de ${formatarMoeda(valor)} para ${usuarioNome}? A tarefa será FINALIZADA e ARQUIVADA (status "Paga").`)) {
             return;
         }
 
@@ -185,12 +146,8 @@
                 const docTarefa = await transaction.get(tarefaRef);
                 const docUser = await transaction.get(userRef);
 
-                if (!docTarefa.exists) {
-                    throw new Error("Tarefa não encontrada ou já foi processada!");
-                }
-                if (!docUser.exists) {
-                    throw new Error(`Usuário ${usuarioNome} não encontrado para atualizar o saldo.`);
-                }
+                if (!docTarefa.exists) throw new Error("Tarefa não encontrada!");
+                if (!docUser.exists) throw new Error(`Usuário ${usuarioNome} não encontrado para atualizar o saldo.`);
                 
                 const tarefaData = docTarefa.data();
                 const userData = docUser.data();
@@ -202,8 +159,8 @@
                 // Prepara a tarefa para a coleção de concluídas
                 const tarefaConcluidaData = {
                     ...tarefaData,
-                    status: 'c', // CORREÇÃO: Status para indicar Concluída/Paga
-                    dataPagamento: new Date().toISOString().split('T')[0] // Data de hoje
+                    status: 'Paga', // NOVO STATUS: "Paga"
+                    dataPagamento: new Date().toISOString().split('T')[0] 
                 };
 
                 // Cria a tarefa na coleção de concluídas
@@ -213,8 +170,8 @@
                 transaction.delete(tarefaRef);
             });
 
-            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
-            renderTarefasPendentes(); // Recarrega a lista
+            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso!`);
+            renderTarefasPendentes(); 
             
         } catch (error) {
             console.error("Erro na transação de pagamento:", error);
