@@ -1,70 +1,70 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Gerenciamento de Tarefas</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
-    <div class="center-box large-box">
-        <h1 class="main-title main-title-danger">Painel do Administrador</h1>
-        <p class="info-message center-text"></p>
-        
-        <hr class="divider">
+    <div class="center-box large-box">
+        <h1 class="main-title main-title-danger">Painel do Administrador</h1>
+        <p class="info-message center-text"></p>
+        
+        <hr class="divider">
 
-        <div class="action-grid action-grid-single-col button-spacing-top">
-            
-            <a href="gerenciar-tarefas.html" class="btn-rounded btn-success wide-button">
-                Gerenciar Tarefas
-            </a>
-            
-            <a href="gerenciar-tarefas.html?action=assign" class="btn-rounded btn-primary wide-button">
-                Multas
-            </a>
-            
-            <a href="gerenciar-tarefas.html?action=approve" class="btn-rounded btn-warning wide-button">
-                Aprovar Tarefas (Pendentes)
-            </a>
+        <div class="action-grid action-grid-single-col button-spacing-top">
+            
+            <a href="gerenciar-tarefas.html" class="btn-rounded btn-success wide-button">
+                Gerenciar Tarefas
+            </a>
+            
+            <a href="multas.html" class="btn-rounded btn-primary wide-button">
+                **Multas**
+            </a>
+            
+            <a href="gerenciar-tarefas.html?action=approve" class="btn-rounded btn-warning wide-button">
+                Aprovar Tarefas (Pendentes)
+            </a>
 
-            <a href="gerenciar-tarefas.html?action=delete" class="btn-rounded btn-danger wide-button">
-                Excluir Tarefa
-            </a>
-            
-        </div>
-        
-        <hr class="divider">
+            <a href="gerenciar-tarefas.html?action=delete" class="btn-rounded btn-danger wide-button">
+                Excluir Tarefa
+            </a>
+            
+        </div>
+        
+        <hr class="divider">
 
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">
-            ← Voltar ao Dashboard
-        </a>
-    </div>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">
+            ← Voltar ao Dashboard
+        </a>
+    </div>
 
-    <script>
-        /**
-         * Verifica se o usuário tem permissão de administrador ao carregar a página.
-         */
-        function checkAdminAccess() {
-            if (typeof getUsuarioLogado !== 'function') {
-                 console.error("Erro: Funções de login (js/script.js) não carregadas.");
-                 window.location.href = 'index.html';
-                 return;
-            }
+    <script>
+        /**
+         * Verifica se o usuário tem permissão de administrador ao carregar a página.
+         */
+        function checkAdminAccess() {
+            if (typeof getUsuarioLogado !== 'function') {
+                 console.error("Erro: Funções de login (js/script.js) não carregadas.");
+                 window.location.href = 'index.html';
+                 return;
+            }
 
-            const userInfo = getUsuarioLogado();
-            
-            if (!userInfo || !userInfo.isAdmin) {
-                if (userInfo) {
-                   alert("Acesso negado. Apenas administradores podem acessar este painel.");
-                   window.location.href = 'index.html';
-                }
-            }
-        }
+            const userInfo = getUsuarioLogado();
+            
+            if (!userInfo || !userInfo.isAdmin) {
+                if (userInfo) {
+                   alert("Acesso negado. Apenas administradores podem acessar este painel.");
+                   window.location.href = 'index.html';
+                }
+            }
+        }
 
-        window.addEventListener('DOMContentLoaded', checkAdminAccess);
-    </script>
+        window.addEventListener('DOMContentLoaded', checkAdminAccess);
+    </script>
 </body>
 </html>
