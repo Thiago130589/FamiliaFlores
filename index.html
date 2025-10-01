@@ -19,8 +19,8 @@
             <div class="profile-header-container">
                 <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
                 
-                <p id="welcome-message" class="info-message center-text" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
-                <p id="user-role-status" class="status-badge center-text" style="margin-top: 5px; font-weight: bold;"></p>
+                <p id="welcome-message" class="info-message" style="font-size: 1.1em; margin-top: 10px; text-align: right;">Carregando...</p>
+                <p id="user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold; text-align: right;"></p>
             </div>
             
             <button class="btn-icon btn-danger btn-rounded" onclick="logout()" title="Sair">&#x2715;</button>
@@ -33,8 +33,11 @@
                 <span class="tarefa-nome-admin">Seu Saldo Atual:</span>
                 <span class="positive-text" id="current-saldo">R$ 0,00</span>
             </div>
-            <p class="info-message">Atualizado em tempo real.</p>
-        </div>
+            <p class="info-message" style="margin-bottom: 10px;">Atualizado em tempo real.</p>
+            <a href="minha-carteira.html" class="btn-rounded btn-success wide-button" style="padding: 8px 15px; width: auto; font-size: 0.85em; margin-top: 5px;">
+                <span style="font-size: 1.1em; margin-right: 5px;">💰</span> Ver Carteira
+            </a>
+            </div>
 
         <div class="action-grid action-grid-two-cols">
             <a href="minhas-tarefas.html" class="btn-rounded btn-info wide-button">
@@ -101,6 +104,9 @@
         }
 
         async function loadDashboard() {
+            // Garante que o usuário esteja logado antes de carregar o Dashboard
+            checkLoginStatus(); 
+
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
