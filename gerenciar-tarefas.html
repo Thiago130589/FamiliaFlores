@@ -67,7 +67,7 @@
         <hr class="divider">
         
         <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
-            <button class="btn-rounded btn-admin-tab" onclick="showAprovacaoSection()">Aprovação (Pendentes)</button>
+                        <button class="btn-rounded btn-admin-tab" **onclick="window.location.href='tarefas-pagamento.html'"**>Aprovação (Pendentes)</button>
             <button class="btn-rounded btn-admin-tab" onclick="showGerenciamentoSection()">Gerenciamento</button>
         </div>
         
@@ -117,7 +117,14 @@
         // Assumindo formatarMoeda e getUsuarioLogado estão em script.js
 
         // --- 1. Funções de Controle de UI ---
+        
+        // ATENÇÃO: showAprovacaoSection() e loadTarefasPendentes() permanecem, mas agora 
+        // esta seção é exibida apenas se o usuário clicar no botão "Gerenciamento" primeiro 
+        // e depois tentar voltar a essa seção internamente (o que não deve ocorrer).
+        
         function showAprovacaoSection() {
+            // Esta função não será mais chamada pelo botão de cima, 
+            // mas é mantida por segurança/consistência interna.
             document.getElementById('aprovacao-section').style.display = 'block';
             document.getElementById('gerenciamento-section').style.display = 'none';
             loadTarefasPendentes();
