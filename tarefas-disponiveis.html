@@ -18,6 +18,8 @@
         <p class="info-message" style="text-align: center;">Pegue uma tarefa para começar a ganhar pontos (e dinheiro!).</p>
         <hr class="divider">
         
+        <div id="tarefas-alerts"></div>
+
         <div id="tarefas-lista" class="tarefas-lista-compacta"> 
             <p class="empty-message">Carregando tarefas...</p>
         </div>
@@ -32,17 +34,13 @@
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // Função de utilidade para limpar acentos e espaços, facilitando a comparação
-        function normalizeStatus(status) {
-            if (!status) return '';
-            // Remove acentos e caracteres especiais, converte para minúsculas e remove espaços extras
-            return status.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-        }
+        // Melhorar o filtro com uma função de checagem mais direta
+        const STATUS_DISPONIVEL = 'Disponivel'; // Use um padrão sem acento/ç
 
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
-                window.location.href = 'login.html';
+                // Não precisa redirecionar aqui, pois getUsuarioLogado já faz isso
                 return false;
             }
             return userInfo.nome;
@@ -56,8 +54,10 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // Para manter a performance e usar o índice, ainda tentamos filtrar por 'Disponivel'
+                // CORREÇÃO/MELHORIA: Usar o filtro de status diretamente no Firestore
+                // Isso requer que o campo 'status' seja consistentemente escrito como 'Disponivel'
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
+                    .where('status', '==', STATUS_DISPONIVEL) 
                     .orderBy('valor', 'desc'); 
 
                 const snapshot = await query.get();
@@ -65,14 +65,8 @@
                 let foundTasks = false;
 
                 snapshot.forEach(doc => {
-                    const t = doc.data();
-                    
-                    // AQUI ESTÁ A CORREÇÃO: Filtramos no JS após a leitura, aceitando variações
-                    if (normalizeStatus(t.status) !== 'disponivel') {
-                        return; // Pula tarefas que não são de fato "disponível"
-                    }
-                    
                     foundTasks = true;
+                    const t = doc.data();
                     const taskId = doc.id;
                     const valor = parseFloat(t.valor || 0);
 
@@ -102,7 +96,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console ou o status dos dados no Firestore.</p>'; 
+                exibirAlertaGlobal('tarefas-alerts', `Erro ao carregar tarefas: ${error.message}`, 'danger');
             }
         }
 
@@ -110,7 +104,6 @@
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
                 alert('Sua sessão expirou. Faça login novamente.');
-                window.location.href = 'login.html';
                 return;
             }
             const userName = userInfo.nome;
@@ -121,6 +114,7 @@
 
             try {
                 const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
+                // Gera um novo ID para a tarefa na coleção de atribuídas
                 const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); 
 
                 await firestore.runTransaction(async (transaction) => {
@@ -130,13 +124,20 @@
                         throw new Error("Tarefa não encontrada (pode ter sido pega por outro usuário).");
                     }
                     
+                    // CORREÇÃO/MELHORIA: Checar o status da tarefa DENTRO da transação
+                    if (taskDoc.data().status !== STATUS_DISPONIVEL) {
+                        throw new Error("Esta tarefa não está mais disponível.");
+                    }
+                    
                     const taskData = taskDoc.data();
                     
+                    // 1. Exclui da lista de disponíveis
                     transaction.delete(availableRef);
                     
+                    // 2. Cria na lista de atribuídas
                     const assignedData = {
                         ...taskData,
-                        // NOVO PADRÃO: Sempre escrever o status com a mesma string sem acento
+                        // NOVO PADRÃO: Passa para EmAndamento
                         status: 'EmAndamento', 
                         atribuidaPara: userName,
                         dataAtribuicao: new Date().toISOString().split('T')[0] 
@@ -144,12 +145,12 @@
                     transaction.set(assignedRef, assignedData);
                 });
 
-                alert(`Tarefa "${taskName}" foi atribuída a você! Acesse "Minhas Tarefas" para começar.`);
+                exibirAlertaGlobal('tarefas-alerts', `Tarefa "${taskName}" foi atribuída a você! Acesse "Minhas Tarefas" para começar.`, 'success');
                 renderTarefasDisponiveis(); 
                 
             } catch (error) {
                 console.error("Erro na transação de pegar tarefa:", error);
-                alert(`Erro ao pegar a tarefa: ${error.message || 'Ocorreu um erro desconhecido. Verifique o console para mais detalhes.'}`);
+                exibirAlertaGlobal('tarefas-alerts', `Erro ao pegar a tarefa: ${error.message || 'Ocorreu um erro desconhecido.'}`, 'danger');
             }
         }
 
