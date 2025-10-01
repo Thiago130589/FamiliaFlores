@@ -8,7 +8,8 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
+        <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
@@ -23,7 +24,7 @@
 
         <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">Voltar ao Dashboard</a>
 
-        <div id="popup-remover-multa" class="modal-overlay" style="display:none;">
+                <div id="popup-remover-multa" class="modal-overlay hidden-start">
             <div class="modal-content">
                 <h2 class="modal-title error-color">Confirmar Remoção</h2>
                 <div id="confirmacao-msg" class="modal-message"></div>
@@ -40,35 +41,27 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const USERS_COLLECTION = 'users';
 
-        let multaParaRemover = null; // Objeto da multa a ser removida
+        let multaParaRemover = null; // Objeto da multa a ser removida (referência exata)
         let usuarioDaMulta = null;  // Nome do usuário que recebeu a multa
 
-        // Obtém o nome e status Admin do usuário logado
-        function getUsuarioInfo() {
-            const storedValue = localStorage.getItem('usuarioLogado');
-            if (!storedValue) {
-                window.location.href = 'login.html';
-                return null;
+        // Função de controle de acesso Admin (refatorada para usar getUsuarioLogado do script.js)
+        function checkAdminAccess() {
+            const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : null;
+
+            if (!userInfo) return false; // Redirecionado pelo getUsuarioLogado
+
+            // Acesso negado se não for admin
+            if (!userInfo.isAdmin && userInfo.nome.toLowerCase() !== 'thiago') {
+                alert("Acesso negado. Apenas administradores podem gerenciar multas.");
+                window.location.href = 'index.html';
+                return false;
             }
-            try {
-                const obj = JSON.parse(storedValue);
-                // Apenas Administradores podem acessar esta página
-                if (!obj.isAdmin && obj.nome.toLowerCase() !== 'thiago') {
-                    alert("Acesso negado. Apenas administradores podem gerenciar multas.");
-                    window.location.href = 'index.html';
-                    return null;
-                }
-                return obj;
-            } catch (e) {
-                window.location.href = 'login.html';
-                return null;
-            }
+            return true;
         }
 
         // Função para carregar e renderizar todas as multas de todos os usuários
         async function renderMultas() {
-            const userInfo = getUsuarioInfo();
-            if (!userInfo) return;
+            if (!checkAdminAccess()) return;
 
             const listaEl = document.getElementById('multas-lista');
             listaEl.innerHTML = '<p class="empty-message">Buscando multas aplicadas...</p>';
@@ -83,16 +76,21 @@
                     const multas = userData.multas || [];
 
                     multas.forEach(multa => {
-                        // A multa original no array do Firestore
-                        const multaOriginal = { ...multa };
+                        // Isso garante que o objeto da multa a ser removido (multaReferencia)
+                        // não contenha a data como objeto Date (o Firestore não conseguiria remover)
+                        const multaOriginal = { 
+                            motivo: multa.motivo, 
+                            valor: multa.valor, 
+                            data: multa.data // Deve ser string/Timestamp do Firestore
+                        };
                         
-                        // Objeto para exibição e referência
+                        // Cria um objeto auxiliar para exibição e ordenação (usando objeto Date)
                         todasMultas.push({
                             usuario: userName,
                             motivo: multa.motivo,
                             valor: parseFloat(multa.valor || 0),
-                            data: new Date(multa.data),
-                            // Isso é crucial para remover exatamente a multa correta do array
+                            // Converte a data (que pode ser string ISO ou objeto Timestamp)
+                            data: multa.data instanceof firebase.firestore.Timestamp ? multa.data.toDate() : new Date(multa.data),
                             multaReferencia: multaOriginal 
                         });
                     });
@@ -108,7 +106,8 @@
 
                 let html = '<ul class="transaction-list">';
                 todasMultas.forEach((multa, index) => {
-                    const valorAbsoluto = Math.abs(multa.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    // Usando a função global para formatar a moeda
+                    const valorAbsoluto = typeof formatarMoeda === 'function' ? formatarMoeda(Math.abs(multa.valor)) : Math.abs(multa.valor).toFixed(2);
                     const dataFormatada = multa.data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
                     html += 
@@ -126,7 +125,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar multas:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de multas.</p>';
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de multas. Verifique a conexão com o Firebase e suas regras de segurança.</p>';
             }
         }
 
@@ -137,10 +136,17 @@
 
             multaParaRemover = multaData.multaReferencia;
             usuarioDaMulta = multaData.usuario;
-            const valor = Math.abs(multaData.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            // Usando a função global para formatar a moeda
+            const valor = typeof formatarMoeda === 'function' ? formatarMoeda(Math.abs(multaData.valor)) : Math.abs(multaData.valor).toFixed(2);
 
             document.getElementById('confirmacao-msg').innerHTML = 'Você deseja remover a multa de ' + valor + ' de <b>' + multaData.usuario + '</b> (' + multaData.motivo + ')?';
-            document.getElementById('popup-remover-multa').style.display = 'flex';
+            
+            // Usa toggleModal (do script.js) ou fallback manual
+            if (typeof toggleModal === 'function') {
+                toggleModal('popup-remover-multa', true);
+            } else {
+                document.getElementById('popup-remover-multa').classList.remove('hidden-start');
+            }
         }
 
         // 2. Lógica para Remover a Multa (Firestore Batch)
@@ -148,29 +154,40 @@
             if (!multaParaRemover || !usuarioDaMulta) return;
 
             const userRef = firestore.collection(USERS_COLLECTION).doc(usuarioDaMulta);
-            const valor = Math.abs(multaParaRemover.valor); 
+            // O valor da multa no Firestore é negativo. Para estornar, precisamos do valor positivo.
+            const valorEstorno = Math.abs(multaParaRemover.valor); 
             
             try {
-                // 1. Remove a multa do array 'multas'
-                // 2. Adiciona o valor de volta ao 'saldo' (valor é positivo aqui)
+                // 1. Remove a multa exata (objeto completo) do array 'multas'
+                // 2. Adiciona o valor de volta ao 'saldo' 
                 await userRef.update({
                     multas: firebase.firestore.FieldValue.arrayRemove(multaParaRemover),
-                    saldo: firebase.firestore.FieldValue.increment(valor) 
+                    saldo: firebase.firestore.FieldValue.increment(valorEstorno) 
                 });
 
-                document.getElementById('popup-remover-multa').style.display = 'none';
-                alert('Multa de ' + multaParaRemover.motivo + ' removida e ' + valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + ' estornado.');
+                // Esconde o modal
+                if (typeof toggleModal === 'function') {
+                    toggleModal('popup-remover-multa', false);
+                } else {
+                    document.getElementById('popup-remover-multa').classList.add('hidden-start');
+                }
+                
+                alert('Multa de ' + multaParaRemover.motivo + ' removida e ' + formatarMoeda(valorEstorno) + ' estornado.');
                 renderMultas(); // Recarrega a lista
                 
             } catch (error) {
                 console.error("Erro ao remover multa:", error);
-                alert('Erro ao remover multa. Tente novamente.');
+                alert('Erro ao remover multa. Verifique suas regras do Firestore.');
             }
         };
 
         // 3. Cancelar Remoção
         document.getElementById('btn-cancelar-remover-multa').onclick = () => {
-            document.getElementById('popup-remover-multa').style.display = 'none';
+            if (typeof toggleModal === 'function') {
+                toggleModal('popup-remover-multa', false);
+            } else {
+                document.getElementById('popup-remover-multa').classList.add('hidden-start');
+            }
         };
 
         // Variável global para armazenar todas as multas carregadas (usado no popup)

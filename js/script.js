@@ -16,7 +16,8 @@ function getUsuarioLogado() {
 
     if (!usuarioLogadoJSON) {
         // Se não houver informações de login, força o redirecionamento.
-        if (window.location.pathname !== '/login.html' && window.location.pathname !== '/cadastrar-usuario.html') {
+        const currentPath = window.location.pathname.split('/').pop();
+        if (currentPath !== 'login.html' && currentPath !== 'cadastrar-usuario.html') {
             window.location.href = 'login.html';
         }
         return null;
