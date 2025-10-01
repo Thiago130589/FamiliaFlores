@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Carteira</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title main-title-success">Minha Carteira</h1>
+        <hr class="divider">
+        
+        <div id="saldo-card" class="tarefa-card" style="border-left-color: var(--success-color); margin-bottom: 25px;">
+            <div class="tarefa-header-admin">
+                <span class="tarefa-nome-admin">Saldo Disponível:</span>
+                <span class="positive-text" id="current-saldo">R$ 0,00</span> 
+            </div>
+            <p class="info-message">Inclui recompensas de tarefas concluídas e deduções de multas.</p>
+        </div>
+
+        <h2 class="section-title">Histórico de Transações</h2>
+        
+        <div id="historico-lista" class="historico-lista">
+            <p class="empty-message">Carregando histórico...</p>
+        </div>
+
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button button-spacing-top">Voltar ao Dashboard</a>
+    </div>
+
+    <script>
+        const firestore = db; // Usando a variável global do firebase-init.js
+        let usuarioAtual = null;
+
+        // Função para formatar a data (opcional, mas recomendado)
+        function formatarData(timestamp) {
+            if (timestamp && timestamp.toDate) {
+                return timestamp.toDate().toLocaleDateString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+            }
+            // Tenta tratar como string ISO ou objeto Date
+            try {
+                 return new Date(timestamp).toLocaleDateString('pt-BR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) {
+                return timestamp || 'N/A';
+            }
+        }
+
+        async function loadCarteira() {
+            // Garante que o usuário esteja logado (função de script.js)
+            checkLoginStatus(); 
+            
+            const userInfo = getUsuarioLogado();
+            const listaEl = document.getElementById('historico-lista');
+            const saldoEl = document.getElementById('current-saldo');
+            
+            if (!userInfo || !userInfo.nome) {
+                return; 
+            }
+            usuarioAtual = userInfo.nome;
+            saldoEl.textContent = 'Carregando...';
+            listaEl.innerHTML = '<p class="empty-message">Buscando histórico...</p>';
+
+            try {
+                // 1. Carregar Saldo
+                const userDoc = await firestore.collection('users').doc(usuarioAtual).get();
+                let saldo = 0;
+                if (userDoc.exists) {
+                    saldo = userDoc.data().saldo || 0;
+                    saldoEl.textContent = formatarMoeda(saldo);
+                    saldoEl.classList.remove('positive-text', 'negative-text');
+                    saldoEl.classList.add(saldo >= 0 ? 'positive-text' : 'negative-text');
+                } else {
+                    saldoEl.textContent = formatarMoeda(0);
+                }
+
+                // 2. Coletar todas as transações (Pagamentos + Multas)
+                const transacoes = [];
+
+                // Pagamentos (Tarefas Concluídas)
+                const tarefasSnapshot = await firestore.collection('tarefasConcluidas')
+                    .where('atribuidaPara', '==', usuarioAtual)
+                    .get();
+
+                tarefasSnapshot.forEach(doc => {
+                    const t = doc.data();
+                    const valor = parseFloat(t.valor || 0);
+                    
+                    if (valor > 0) {
+                        transacoes.push({
+                            tipo: 'Pagamento',
+                            nome: t.nome,
+                            valor: valor,
+                            // Converte a data do Firestore ou string para um objeto Date
+                            data: t.dataPagamento ? (t.dataPagamento.toDate ? t.dataPagamento.toDate() : new Date(t.dataPagamento)) : new Date(),
+                            dataOriginal: t.dataPagamento // Mantém o original para formatar
+                        });
+                    }
+                });
+                
+                // Multas
+                const multasSnapshot = await firestore.collection('multas')
+                    .where('usuario', '==', usuarioAtual)
+                    .get();
+                
+                multasSnapshot.forEach(doc => {
+                    const multa = doc.data();
+                    const valor = parseFloat(multa.valor || 0);
+                    
+                    transacoes.push({
+                        tipo: 'Multa',
+                        nome: multa.motivo || 'Multa Aplicada',
+                        valor: valor * -1, // Negativo
+                        // Converte a data do Firestore ou string para um objeto Date
+                        data: multa.dataMulta ? (multa.dataMulta.toDate ? multa.dataMulta.toDate() : new Date(multa.dataMulta)) : new Date(),
+                        dataOriginal: multa.dataMulta // Mantém o original para formatar
+                    });
+                });
+
+                // 3. Ordenar transações (da mais recente para a mais antiga)
+                transacoes.sort((a, b) => b.data - a.data);
+
+                // 4. Renderizar o Histórico
+                if (transacoes.length > 0) {
+                    let htmlContent = '<ul class="transaction-list">';
+                    transacoes.forEach(t => {
+                        const isPositive = t.valor >= 0;
+                        const valorFormatado = formatarMoeda(Math.abs(t.valor));
+                        const classeCor = isPositive ? 'positive-text' : 'negative-text';
+                        const cardCor = isPositive ? 'card-border-success' : 'card-border-error';
+                        const sinal = isPositive ? '+' : '-';
+                        const dataStr = formatarData(t.dataOriginal);
+
+                        htmlContent += `
+                            <li class="transaction-item ${cardCor}">
+                                <div class="transaction-details">
+                                    <span class="transaction-description">${t.nome} (${t.tipo})</span>
+                                    <span class="transaction-date">${dataStr}</span>
+                                </div>
+                                <span class="transaction-amount ${classeCor}">${sinal}${valorFormatado}</span>
+                            </li>
+                        `;
+                    });
+                    htmlContent += '</ul>';
+                    listaEl.innerHTML = htmlContent;
+                } else {
+                    listaEl.innerHTML = '<p class="empty-message">Nenhuma transação registrada ainda.</p>';
+                }
+
+            } catch (error) {
+                console.error("Erro ao carregar a carteira:", error);
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar dados da carteira. Verifique o console.</p>';
+                saldoEl.textContent = 'Erro';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadCarteira);
+    </script>
+</body>
+</html>
