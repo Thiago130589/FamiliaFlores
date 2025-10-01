@@ -71,7 +71,7 @@ body {
     display: flex;
     justify-content: space-between; 
     align-items: flex-start; 
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     flex-direction: row; /* Garante que o perfil venha antes do botão Sair */
 }
 
