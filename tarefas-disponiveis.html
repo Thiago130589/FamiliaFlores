@@ -54,10 +54,10 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // Filtra por tarefas com status 'Disponivel' (Alterado de 'Disponível' para compatibilidade)
+                // Filtra por tarefas com status 'Disponivel'
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
-                    .where('status', '==', 'Disponivel') // <-- CORRIGIDO AQUI (sem acento)
-                    .orderBy('valor', 'desc'); // Tarefas mais valiosas primeiro
+                    .where('status', '==', 'Disponivel') // CORRIGIDO AQUI (sem acento)
+                    .orderBy('valor', 'desc'); 
 
                 const snapshot = await query.get();
                 let html = '';
@@ -113,7 +113,13 @@
          * Garante que dois usuários não peguem a mesma tarefa.
          */
         async function pegarTarefa(taskId, taskName) {
-            const userName = getUsuarioLogado().nome;
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || !userInfo.nome) {
+                alert('Sua sessão expirou. Faça login novamente.');
+                window.location.href = 'login.html';
+                return;
+            }
+            const userName = userInfo.nome;
 
             if (!confirm(`Tem certeza que deseja pegar a tarefa "${taskName}"? Ela passará para sua lista "Minhas Tarefas".`)) {
                 return;
@@ -121,7 +127,7 @@
 
             try {
                 const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
-                const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); // Novo ID para o registro de atribuição
+                const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); 
 
                 await firestore.runTransaction(async (transaction) => {
                     const taskDoc = await transaction.get(availableRef);
@@ -140,7 +146,7 @@
                         ...taskData,
                         status: 'EmAndamento', // Novo status
                         atribuidaPara: userName,
-                        dataAtribuicao: new Date().toISOString().split('T')[0] // Data de hoje
+                        dataAtribuicao: new Date().toISOString().split('T')[0] 
                     };
                     transaction.set(assignedRef, assignedData);
                 });
@@ -150,8 +156,7 @@
                 
             } catch (error) {
                 console.error("Erro na transação de pegar tarefa:", error);
-                // Exibe uma mensagem de erro mais amigável
-                alert(`Erro ao pegar a tarefa: ${error.message || 'Ocorreu um erro desconhecido. Tente novamente.'}`);
+                alert(`Erro ao pegar a tarefa: ${error.message || 'Ocorreu um erro desconhecido. Verifique o console para mais detalhes.'}`);
             }
         }
 
