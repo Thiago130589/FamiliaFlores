@@ -71,16 +71,18 @@ body {
     display: flex;
     justify-content: space-between; 
     align-items: flex-start; 
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     flex-direction: row; /* Garante que o perfil venha antes do botão Sair */
 }
 
-/* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA */
+/* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA (CORREÇÃO DE ALINHAMENTO) */
 .profile-header-container {
     flex-grow: 1; 
     display: flex;
-    align-items: center; 
-    justify-content: flex-start; 
+    /* Alinhamento forçado para a extrema esquerda */
+    justify-content: flex-start !important; 
+    /* Centraliza o texto verticalmente com a foto */
+    align-items: center !important; 
     text-align: left;
 }
 
@@ -90,6 +92,8 @@ body {
     flex-direction: column;
     align-items: flex-start !important; /* Força o texto à Esquerda da foto */
     margin-left: 10px; 
+    /* Ajusta a margem do topo para centralizar com a foto de 150px */
+    margin-top: 0; 
     text-align: left !important; /* Garante que o texto fique alinhado à esquerda */
 }
 
@@ -113,7 +117,8 @@ body {
 /* --- ESTILOS DO MODAL DE PERFIL: INVERSÃO DA ORDEM E AJUSTE DE TAMANHO --- */
 
 .modal-profile-container {
-    justify-content: space-between;
+    /* Altera para alinhar o texto e foto lado a lado, como no dashboard, mas ajustado ao modal */
+    justify-content: space-between; 
     align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid #eee;
@@ -123,7 +128,7 @@ body {
 .modal-profile-text {
     margin-left: 0; 
     align-items: flex-start !important;
-    order: 1;
+    order: 1; /* Texto na esquerda */
 }
 .modal-profile-pic {
     width: 80px; /* Foto menor no modal */
