@@ -61,7 +61,7 @@
             </a>
         </div>
         
-        <a id="admin-link" href="gerenciar-tarefas.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
+        <a id="admin-link" href="painel-admin.html" class="btn-rounded btn-danger wide-button hidden-start" style="margin-top: 25px;">
             Acessar Painel Admin
         </a>
 
@@ -114,6 +114,19 @@
         const firestore = db;
         const USERS_COLLECTION = 'users';
 
+        // Funções de utilidade dos modais (Geralmente definidas em script.js, mas mantidas aqui para referência)
+        function toggleModal(id, show) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.toggle('hidden-start', !show);
+            }
+        }
+        function closeProfileModal(event) {
+            if (!event || event.target.id === 'profile-modal' || event.target.tagName === 'BUTTON') {
+                toggleModal('profile-modal', false);
+            }
+        }
+        
         /**
          * Abre o modal de configurações de perfil, carregando as informações do usuário logado.
          */
@@ -143,16 +156,6 @@
         }
 
         /**
-         * Fecha o modal de configurações de perfil.
-         */
-        function closeProfileModal(event) {
-            // Garante que o modal feche apenas clicando no overlay ou em um botão
-            if (!event || event.target.id === 'profile-modal' || event.target.tagName === 'BUTTON') {
-                toggleModal('profile-modal', false);
-            }
-        }
-
-        /**
          * Carrega as informações do usuário no Dashboard principal.
          */
         async function loadDashboard() {
@@ -164,7 +167,6 @@
             const userInfo = getUsuarioLogado();
             
             if (!userInfo || !userInfo.nome) {
-                // Se não houver info, a tela fica em 'Carregando...' até o redirect (feito por checkLoginStatus)
                 return;
             }
 
@@ -205,7 +207,7 @@
                 console.error("Erro ao buscar saldo atualizado:", error);
             }
             
-            // Formata e exibe o saldo
+            // Formata e exibe o saldo (Assumindo que formatarMoeda está em script.js)
             saldoElement.textContent = formatarMoeda(currentSaldo);
             saldoElement.classList.remove('positive-text', 'negative-text');
             saldoElement.classList.add(currentSaldo >= 0 ? 'positive-text' : 'negative-text');

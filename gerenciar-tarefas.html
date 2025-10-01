@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <script src="js/script.js"></script> 
 </head>
 <body>
     <div class="center-box large-box">
@@ -27,7 +27,7 @@
             <p class="empty-message">Carregando tarefas pendentes...</p>
         </div>
 
-        <a href="admin.html" class="btn-rounded btn-secondary-text wide-button button-spacing-top">Voltar ao Dashboard</a>
+        <a href="painel-admin.html" class="btn-rounded btn-secondary-text wide-button button-spacing-top">← Voltar ao Menu Admin</a>
     </div>
 
     <div id="modal-criar-tarefa" class="modal-overlay hidden-start">
@@ -89,14 +89,26 @@
     </div>
 
     <script>
+        // Funções de utilidade dos modais (Geralmente definidas em script.js, mas adicionadas aqui para funcionalidade imediata)
+        function toggleModal(id, show) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.toggle('hidden-start', !show);
+            }
+        }
+        function closeModal(id) {
+            toggleModal(id, false);
+        }
+
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
-        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; // Adicionado
+        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
         const USERS_COLLECTION = 'users';
 
         // 1. Verifica Acesso e Inicializa
         function checkAdminAccess() {
+            // Nota: getUsuarioLogado() deve estar definida em 'js/script.js'
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.isAdmin) {
                 alert("Acesso negado. Apenas administradores.");
@@ -140,14 +152,13 @@
 
                     // Botões de Ação
                     let actionButtons = '';
-                    if (t.status === 'PendenteAprovacao' || t.status === 'PendentePagamento') {
-                        actionButtons = `
-                            <button class="btn-rounded btn-success task-action-button" 
-                                onclick="approveTask('${taskId}', '${t.atribuidaPara}')">Aprovar e Pagar</button>
-                            <button class="btn-rounded btn-danger task-action-button" 
-                                onclick="rejectTask('${taskId}', '${t.atribuidaPara}', '${t.nome}')">Rejeitar</button>
-                        `;
-                    }
+                    // Simplificado: Exibir os botões de Aprovar/Rejeitar para os dois status (a transação garante o fluxo correto)
+                    actionButtons = `
+                        <button class="btn-rounded btn-success task-action-button" 
+                            onclick="approveTask('${taskId}', '${t.atribuidaPara}')">Aprovar e Pagar</button>
+                        <button class="btn-rounded btn-danger task-action-button" 
+                            onclick="rejectTask('${taskId}', '${t.atribuidaPara}', '${t.nome}')">Rejeitar</button>
+                    `;
                     
                     // Estrutura do Card
                     html += `
@@ -157,7 +168,7 @@
                             </div>
                             ${statusLine}
                             <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Valor: <span class="positive-text status-bold">${formatarMoeda(t.valor || 0)}</span></div>
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text status-bold">${formatarMoeda(t.valor || 0)}</span></div> 
                                 <div class="tarefa-info-admin">Atribuída a: ${t.atribuidaPara}</div>
                                 <div class="tarefa-info-admin">Data de Conclusão: ${t.dataConclusao || 'N/A'}</div>
                             </div>
@@ -202,7 +213,8 @@
                     
                     const userData = userDoc.data();
                     const valorTarefa = parseFloat(taskDataGlobal.valor || 0);
-                    const novoSaldo = (userData.saldo || 0) + valorTarefa;
+                    // Garante que o saldo seja tratado como número
+                    const novoSaldo = (userData.saldo || 0) + valorTarefa; 
 
                     // 1. Atualiza o saldo do usuário
                     transaction.update(userRef, { saldo: novoSaldo });
@@ -217,10 +229,12 @@
                         dataPagamento: new Date().toISOString().split('T')[0],
                         pagaPor: getUsuarioLogado().nome || 'Admin'
                     };
-                    transaction.set(firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION).doc(), concluidaData);
+                    // Usa o ID da tarefa original como ID da concluída para rastreabilidade (opcional)
+                    transaction.set(firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION).doc(taskId), concluidaData); 
                 });
 
-                alert(`Pagamento de ${formatarMoeda(taskDataGlobal.valor)} efetuado para ${assignedUser} com sucesso!`);
+                // Assumindo que formatarMoeda está em script.js
+                alert(`Pagamento de ${formatarMoeda(taskDataGlobal.valor)} efetuado para ${assignedUser} com sucesso!`); 
                 renderTarefasPendentes(); 
 
             } catch (error) {
@@ -231,7 +245,7 @@
 
         // 4. Função para Rejeitar a Tarefa (volta para tarefas disponíveis) (Função Existente)
         async function rejectTask(taskId, assignedUser, taskName) {
-            if (!confirm(`ATENÇÃO: Rejeitar a tarefa "${taskName}" fará com que ela volte para o status 'Disponível'. Confirma?`)) {
+            if (!confirm(`ATENÇÃO: Rejeitar a tarefa "${taskName}" fará com que ela volte para o status 'Disponível' e seja removida do painel de ${assignedUser}. Confirma?`)) {
                 return;
             }
 
@@ -248,15 +262,19 @@
 
                 await firestore.runTransaction(async (transaction) => {
                     // 1. Adiciona de volta à lista de tarefas disponíveis
+                    // Cria uma nova tarefa disponível com os dados originais (removendo campos de atribuição)
                     const availableTaskData = {
                         nome: originalTaskData.nome,
                         valor: originalTaskData.valor,
                         descricao: originalTaskData.descricao,
+                        dataLimite: originalTaskData.dataLimite || null,
+                        horaLimite: originalTaskData.horaLimite || null,
                         status: 'Disponível',
                         dataCriacao: originalTaskData.dataCriacao,
                         criadaPor: originalTaskData.criadaPor
                     };
-                    transaction.set(firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(), availableTaskData);
+                    // Usa .add() para criar um novo documento, garantindo que o ID antigo não cause conflitos
+                    transaction.set(firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(), availableTaskData); 
                     
                     // 2. Deleta a tarefa da lista de atribuídas
                     transaction.delete(taskRef);
@@ -290,7 +308,8 @@
             const descricao = document.getElementById('task-descricao').value.trim();
             const dataLimite = document.getElementById('task-data').value;
             const horaLimite = document.getElementById('task-hora').value;
-            const userInfo = getUsuarioLogado();
+            // Nota: getUsuarioLogado() deve estar definida em 'js/script.js'
+            const userInfo = getUsuarioLogado(); 
 
             if (!nome || isNaN(valor) || valor <= 0) {
                 alert("Por favor, preencha o nome e o valor da tarefa corretamente.");
@@ -313,6 +332,7 @@
 
                 alert(`Tarefa "${nome}" criada com sucesso e está disponível!`);
                 closeModal('modal-criar-tarefa');
+                // Não é estritamente necessário renderizar, mas garante que a tela está atualizada
                 renderTarefasPendentes(); 
 
             } catch (error) {
@@ -386,12 +406,16 @@
 
                 usersSnapshot.forEach(doc => {
                     foundUsers = true;
-                    const userName = doc.id;
+                    // Assumindo que o ID do documento é o nome de usuário/login
+                    const userName = doc.id; 
+                    const userData = doc.data();
+                    const userDisplayName = userData.nome || userName; // Usa o nome amigável se existir
                     
                     html += `
                         <li class="transaction-item card-border-info">
                             <div class="transaction-details">
-                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-description">${userDisplayName}</span>
+                                <span class="tarefa-info-admin">Login: ${userName}</span>
                             </div>
                             <button class="btn-rounded btn-primary" 
                                     onclick="assignTask('${taskId}', '${userName}')"> 
@@ -418,6 +442,7 @@
 
             try {
                 const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
+                // Usa .doc() sem ID para deixar o Firestore gerar um novo ID na coleção 'atribuidas'
                 const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); 
 
                 await firestore.runTransaction(async (transaction) => {
@@ -509,9 +534,8 @@
 
                 alert(`Tarefa "${taskName}" excluída com sucesso!`);
                 
-                // Atualiza a lista do modal e a lista principal
+                // Atualiza a lista do modal (renderAvailableTasksForDeletion)
                 renderAvailableTasksForDeletion(); 
-                renderTarefasPendentes(); 
                 
             } catch (error) {
                 console.error("Erro ao excluir tarefa:", error);
