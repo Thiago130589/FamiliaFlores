@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu do Administrador</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script> 
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title main-title-danger">Painel do Administrador</h1>
+        <p class="info-message center-text">Selecione a área de gerenciamento.</p>
+        
+        <hr class="divider">
+
+        <div class="action-grid action-grid-single-col button-spacing-top">
+            
+            <a href="gerenciar-tarefas.html" class="btn-rounded btn-danger wide-button">
+                Gerenciar Tarefas
+            </a>
+            
+            <button class="btn-rounded btn-primary wide-button" onclick="alert('Funcionalidade em desenvolvimento.')">
+                Gerenciar Usuários
+            </button>
+            <button class="btn-rounded btn-warning wide-button" onclick="alert('Funcionalidade em desenvolvimento.')">
+                Gerenciar Multas
+            </button>
+            <button class="btn-rounded btn-success wide-button" onclick="alert('Funcionalidade em desenvolvimento.')">
+                Gerenciar Carteira (Pagamentos/Transferências)
+            </button>
+            
+        </div>
+        
+        <hr class="divider">
+
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button">
+            ← Voltar ao Dashboard
+        </a>
+    </div>
+
+    <script>
+        /**
+         * Verifica se o usuário tem permissão de administrador ao carregar a página.
+         */
+        function checkAdminAccess() {
+            // Nota: checkLoginStatus() e getUsuarioLogado() devem estar definidas em 'js/script.js'
+            if (typeof checkLoginStatus === 'function') {
+                checkLoginStatus(); 
+            }
+
+            const userInfo = getUsuarioLogado();
+            // Redireciona se não estiver logado ou não for admin
+            if (!userInfo || !userInfo.isAdmin) {
+                alert("Acesso negado. Apenas administradores podem acessar este painel.");
+                window.location.href = 'index.html'; 
+            }
+        }
+
+        // Inicializa a verificação ao carregar o DOM
+        window.addEventListener('DOMContentLoaded', checkAdminAccess);
+    </script>
+</body>
+</html>
