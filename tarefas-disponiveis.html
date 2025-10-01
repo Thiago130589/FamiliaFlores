@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarefas Disponíveis</title>
     <link rel="stylesheet" href="css/style.css"> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>     
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
@@ -50,6 +50,7 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
+                // Esta consulta agora funcionará, pois o índice foi criado
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponivel') 
                     .orderBy('valor', 'desc'); 
@@ -90,7 +91,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console.</p>'; 
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique o console ou a conexão com o Firebase.</p>'; 
             }
         }
 

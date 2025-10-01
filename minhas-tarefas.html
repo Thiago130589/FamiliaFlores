@@ -29,7 +29,7 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // 1. Verifica Acesso (usa a função do script.js)
+        // 1. Verifica Acesso
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             
