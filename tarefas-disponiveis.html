@@ -30,7 +30,9 @@
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
-        // 1. Verifica Acesso
+        /**
+         * 1. Verifica Acesso e Redireciona se não estiver logado.
+         */
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             
@@ -41,7 +43,9 @@
             return userInfo.nome;
         }
 
-        // 2. Renderiza a lista de tarefas disponíveis
+        /**
+         * 2. Renderiza a lista de tarefas disponíveis no Firestore.
+         */
         async function renderTarefasDisponiveis() {
             const userName = checkAccess();
             if (!userName) return;
@@ -104,17 +108,20 @@
             }
         }
 
-        // 3. Função para Pegar a Tarefa (Transação: move de Disponíveis para Atribuídas)
+        /**
+         * 3. Função para Pegar a Tarefa (Transação: move de Disponíveis para Atribuídas).
+         * Garante que dois usuários não peguem a mesma tarefa.
+         */
         async function pegarTarefa(taskId, taskName) {
             const userName = getUsuarioLogado().nome;
 
-            if (!confirm(`Tem certeza que deseja pegar a tarefa "${taskName}"? Ela passará para sua lista "Em Andamento".`)) {
+            if (!confirm(`Tem certeza que deseja pegar a tarefa "${taskName}"? Ela passará para sua lista "Minhas Tarefas".`)) {
                 return;
             }
 
             try {
                 const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
-                const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); // Novo ID
+                const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); // Novo ID para o registro de atribuição
 
                 await firestore.runTransaction(async (transaction) => {
                     const taskDoc = await transaction.get(availableRef);
@@ -131,7 +138,7 @@
                     // 2. Registra na lista de tarefas atribuídas
                     const assignedData = {
                         ...taskData,
-                        status: 'EmAndamento',
+                        status: 'EmAndamento', // Novo status
                         atribuidaPara: userName,
                         dataAtribuicao: new Date().toISOString().split('T')[0] // Data de hoje
                     };
@@ -143,7 +150,8 @@
                 
             } catch (error) {
                 console.error("Erro na transação de pegar tarefa:", error);
-                alert(`Erro ao pegar a tarefa: ${error.message || 'Tente novamente.'}`);
+                // Exibe uma mensagem de erro mais amigável
+                alert(`Erro ao pegar a tarefa: ${error.message || 'Ocorreu um erro desconhecido. Tente novamente.'}`);
             }
         }
 
