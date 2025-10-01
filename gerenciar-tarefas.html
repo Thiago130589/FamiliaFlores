@@ -166,10 +166,14 @@
                 const snapshot = await query.get();
                 
                 let optionsHtml = '<option value="">Selecione a Tarefa</option>';
-                snapshot.forEach(doc => {
-                    const t = doc.data();
-                    optionsHtml += `<option value="${doc.id}">${t.nome} (R$${t.valor})</option>`;
-                });
+                if (snapshot.empty) {
+                    optionsHtml = '<option value="" disabled>Nenhuma Tarefa Disponível (Crie uma!) </option>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const t = doc.data();
+                        optionsHtml += `<option value="${doc.id}">${t.nome} (R$${t.valor})</option>`;
+                    });
+                }
 
                 selectTarefa.innerHTML = optionsHtml;
             } catch (error) {
