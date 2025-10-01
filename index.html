@@ -13,69 +13,6 @@
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 
-    <style>
-        /* Container principal do topo: Perfil + Botão Sair */
-        .header-actions {
-            display: flex;
-            justify-content: space-between; /* Espaça os elementos (Extrema Esquerda e Extrema Direita) */
-            align-items: flex-start; 
-            margin-bottom: 15px;
-        }
-
-        /* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA */
-        .profile-header-container {
-            flex-grow: 1; 
-            display: flex;
-            align-items: center; 
-            justify-content: flex-start; /* GARANTINDO O ALINHAMENTO TOTAL À ESQUERDA */
-            text-align: left;
-        }
-
-        /* Container das Mensagens (Olá, Status) - REDUZINDO O ESPAÇAMENTO */
-        .profile-text-info {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; 
-            margin-left: 10px; /* Reduzi o espaço entre a foto e o texto para 10px */
-        }
-        
-        /* Foto de perfil no Dashboard: 150px */
-        .profile-pic {
-            width: 150px; 
-            height: 150px; 
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary-color);
-            flex-shrink: 0; 
-            order: 1; 
-        }
-        
-        /* Ajuste do botão Sair (para ficar na extrema direita) */
-        #logout-button-container {
-             flex-shrink: 0; 
-        }
-
-        /* --- Estilos do Modal (Mantidos para garantir a funcionalidade) --- */
-        .modal-content .profile-header-container {
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 20px;
-            display: flex;
-        }
-        .modal-content .profile-text-info {
-            margin-left: 0; 
-            align-items: flex-start;
-            order: 1;
-        }
-        .modal-content .profile-pic {
-            width: 80px; 
-            height: 80px;
-            order: 3; 
-        }
-
-    </style>
 </head>
 <body>
     <div class="center-box large-box">
@@ -135,12 +72,12 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 class="modal-title">Configurações do Perfil</h2>
             
-            <div class="profile-header-container">
-                <div class="profile-text-info">
+            <div class="profile-header-container modal-profile-container">
+                <div class="profile-text-info modal-profile-text">
                     <p id="modal-welcome-message" class="info-message" style="margin-top: 5px; text-align: left;">Carregando...</p>
                     <p id="modal-user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
-                <img id="modal-profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
+                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
             </div>
 
             <p class="info-message center-text" style="margin-bottom: 20px;">Selecione qual informação deseja atualizar.</p>

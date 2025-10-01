@@ -46,7 +46,7 @@ body {
 }
 
 /* =========================================================================
- * 2. LAYOUTS E CAIXAS
+ * 2. LAYOUTS E CAIXAS (ESTILOS CONSOLIDADOS DO PERFIL)
  * ========================================================================= */
 
 .center-box {
@@ -64,29 +64,74 @@ body {
     width: 95%;
 }
 
-/* Para posicionar o botão de logout/configurações */
+/* --- ESTILOS DE PERFIL: ALINHAMENTO À ESQUERDA (DASHBOARD) --- */
+
+/* Container principal do topo: Perfil (Esquerda) + Botão Sair (Direita) */
 .header-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start; /* Alinha a foto/mensagem e o botão Sair */
-    margin-bottom: 20px;
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 15px;
+    flex-direction: row; /* Garante que o perfil venha antes do botão Sair */
 }
 
-/* ESTILO PARA CENTRALIZAR A FOTO/MENSAGEM */
+/* Container que agrupa Foto, Nome e Status - ALINHADO À ESQUERDA */
 .profile-header-container {
-    /* Centraliza a imagem e o texto horizontalmente */
+    flex-grow: 1; 
+    display: flex;
+    align-items: center; 
+    justify-content: flex-start; 
+    text-align: left;
+}
+
+/* Container das Mensagens (Olá, Status) - REDUZINDO O ESPAÇAMENTO */
+.profile-text-info {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    
-    /* Permite que o botão Sair fique à direita do container */
-    flex-grow: 1; 
-    
-    /* Define uma largura máxima para o container, garantindo que o botão 'Sair' 
-        possa se posicionar bem à direita em telas grandes (desktop) */
-    max-width: 70%; 
+    align-items: flex-start !important; /* Força o texto à Esquerda da foto */
+    margin-left: 10px; 
+    text-align: left !important; /* Garante que o texto fique alinhado à esquerda */
 }
+
+/* Foto de perfil no Dashboard: 150px (Mantendo seu tamanho atual) */
+.profile-pic {
+    width: 150px; 
+    height: 150px; 
+    border-radius: 50%; /* Arredondada */
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    flex-shrink: 0; 
+    order: 1; /* Garante que a foto venha antes do texto no Dashboard */
+    margin-bottom: 0; /* Remove a margem inferior desnecessária */
+}
+
+/* Ajuste do botão Sair (para ficar na extrema direita) */
+#logout-button-container {
+     flex-shrink: 0; 
+}
+
+/* --- ESTILOS DO MODAL DE PERFIL: INVERSÃO DA ORDEM E AJUSTE DE TAMANHO --- */
+
+.modal-profile-container {
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
+    display: flex;
+}
+.modal-profile-text {
+    margin-left: 0; 
+    align-items: flex-start !important;
+    order: 1;
+}
+.modal-profile-pic {
+    width: 80px; /* Foto menor no modal */
+    height: 80px;
+    order: 3; /* Coloca a foto à direita do texto no modal */
+    margin-bottom: 0;
+}
+
 
 /* =========================================================================
  * 3. TIPOGRAFIA E ESTILOS GERAIS
@@ -132,21 +177,14 @@ body {
     text-align: center;
 }
 
-.center-text { text-align: center; }
+/* Necessário reverter o center-text para o contexto da mensagem, caso seja necessário */
+.center-text { text-align: center; } 
 
 /* =========================================================================
  * 4. FOTOS DE PERFIL (AVATAR)
  * ========================================================================= */
 
-.profile-pic {
-    /* NOVO TAMANHO: 150px para maior visibilidade */
-    width: 150px;
-    height: 150px;
-    border-radius: 50%; /* Arredondada */
-    object-fit: cover;
-    border: 3px solid var(--primary-color);
-    margin-bottom: 15px;
-}
+/* As regras de .profile-pic foram movidas para a seção 2 (Layouts e Caixas) para facilitar a leitura */
 
 /* Adaptação Responsiva para avatares menores em listas, etc. */
 .profile-pic-small {
@@ -168,7 +206,6 @@ body {
     text-align: center;
     margin-bottom: 20px;
 }
-
 .placar-item {
     padding: 10px;
     border-radius: 10px;
