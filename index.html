@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
@@ -20,9 +21,12 @@
         <div class="header-actions">
             
             <div class="profile-header-container">
-                <img id="profile-pic" class="profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
+                <img id="profile-pic" class="profile-pic" 
+                     src="assets/img/default-avatar.png" 
+                     alt="Foto de Perfil"
+                     onerror="this.onerror=null; console.error('Erro ao carregar foto de perfil (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
                 <div class="profile-text-info">
-                    <p id="welcome-message" class="info-message" style="font-size: 1.1em;">Carregando...</p>
+                    <p id="welcome-message" class="info-message" style="font-size: 1.1em; margin-top: 10px;">Carregando...</p>
                     <p id="user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
             </div>
@@ -77,7 +81,10 @@
                     <p id="modal-welcome-message" class="info-message" style="margin-top: 5px; text-align: left;">Carregando...</p>
                     <p id="modal-user-role-status" class="status-badge" style="margin-top: 5px; font-weight: bold;"></p>
                 </div>
-                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" src="img/default-avatar.png" alt="Foto de Perfil">
+                <img id="modal-profile-pic" class="profile-pic modal-profile-pic" 
+                     src="assets/img/default-avatar.png" 
+                     alt="Foto de Perfil"
+                     onerror="this.onerror=null; console.error('Erro ao carregar foto do modal (src: ' + this.src + ').'); this.src='assets/img/default-avatar.png';">
             </div>
 
             <p class="info-message center-text" style="margin-bottom: 20px;">Selecione qual informação deseja atualizar.</p>
@@ -111,8 +118,8 @@
             const userInfo = getUsuarioLogado();
             
             if (userInfo && userInfo.nome) {
-                // LÓGICA DA FOTO: Tenta fotoBase64, depois fotoUrl, ou usa o default
-                const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'img/default-avatar.png';
+                // LÓGICA DA FOTO: Tenta fotoBase64, depois fotoUrl, ou usa o default (Com caminho corrigido)
+                const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'assets/img/default-avatar.png';
                 
                 document.getElementById('modal-welcome-message').textContent = `Olá, ${userInfo.nome}!`;
                 document.getElementById('modal-profile-pic').src = fotoSource; 
@@ -156,8 +163,8 @@
             // 1. CARREGA DADOS DO LOCALSTORAGE (Dashboard principal)
             welcomeMessageElement.textContent = `Olá, ${userInfo.nome}!`;
             
-            // LÓGICA DA FOTO: Tenta fotoBase64, depois fotoUrl, ou usa o default
-            const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'img/default-avatar.png';
+            // LÓGICA DA FOTO: Tenta fotoBase64, depois fotoUrl, ou usa o default (Com caminho corrigido)
+            const fotoSource = userInfo.fotoBase64 || userInfo.fotoUrl || 'assets/img/default-avatar.png';
             profilePicElement.src = fotoSource; 
             
             // 2. STATUS ADMIN
