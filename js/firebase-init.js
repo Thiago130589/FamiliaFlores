@@ -24,8 +24,16 @@ if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
 }
 
 // 2. Define as variáveis globais para acesso fácil
-// Acessamos 'db' e 'storage' em todos os outros scripts (index.html, cadastrar-usuario.html, etc.)
 const db = firebase.firestore();
-const storage = firebase.storage(); // <<< CRÍTICO: Inicialização do Storage para salvar as fotos
+
+// 3. Inicializa o Storage APENAS se a biblioteca foi carregada (resolve o TypeError)
+let storage;
+if (typeof firebase.storage !== 'undefined') {
+    storage = firebase.storage();
+} else {
+    // Se você removeu o firebase-storage.js do HTML, esta linha não será executada,
+    // e 'storage' será 'undefined' (o que é aceitável se você não for usá-lo).
+    console.warn("Firebase Storage não foi inicializado. Verifique se 'firebase-storage.js' está carregado no HTML.");
+}
 
 // A linha 'const auth = firebase.auth();' foi omitida conforme sua estrutura de login manual.
