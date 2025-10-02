@@ -135,9 +135,10 @@
                 const snapshot = await firestore.collection('users').get();
                 
                 // Mapeia todos os documentos. Filtra administradores se o campo existir e for 'true'.
+                // CORREÇÃO APLICADA AQUI: Apenas exclui se isAdmin for estritamente TRUE.
                 userList = snapshot.docs
                     .map(doc => doc.data())
-                    .filter(user => !user.isAdmin || user.isAdmin === false); 
+                    .filter(user => user.isAdmin !== true); 
                     
             } catch(e) {
                 console.error("Erro ao carregar usuários:", e);
@@ -166,6 +167,7 @@
             } else {
                 userList.forEach(user => {
                     // Certifique-se de que 'nome' é o campo que contém o nome do usuário.
+                    // Assumimos que o campo para atribuir a tarefa é o 'nome'.
                     userOptions += `<option value="${user.nome}">${user.nome}</option>`;
                 });
             }
