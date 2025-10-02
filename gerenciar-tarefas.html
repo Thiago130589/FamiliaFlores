@@ -122,7 +122,8 @@
         // Carrega usuários e tarefas ao iniciar
         window.addEventListener('DOMContentLoaded', () => {
             if (!checkAdminAccess()) return;
-            loadUsersForAssignment(); 
+            // Não é necessário chamar loadUsersForAssignment() aqui se a chamarmos de dentro do openAtribuirTarefaModal()
+            // loadUsersForAssignment(); 
             loadTarefasPendentes(); // Inicia na seção de aprovação
         });
         
@@ -133,15 +134,14 @@
                 // Busca todos os usuários, a coleção é 'users'
                 const snapshot = await firestore.collection('users').get();
                 
-                // Mapeia todos os documentos. Ajuste o filtro se 'isAdmin' não existir ou for diferente.
+                // Mapeia todos os documentos. Filtra administradores se o campo existir e for 'true'.
                 userList = snapshot.docs
                     .map(doc => doc.data())
                     .filter(user => !user.isAdmin || user.isAdmin === false); 
-                    // Se você não tiver o campo isAdmin, use: .map(doc => doc.data());
                     
             } catch(e) {
                 console.error("Erro ao carregar usuários:", e);
-                exibirAlertaGlobal('admin-alerts', "Erro ao carregar lista de usuários.", 'danger');
+                // Não exibe alerta global aqui para não ser invasivo no carregamento inicial
             }
         }
         
@@ -150,26 +150,29 @@
         }
 
         async function openAtribuirTarefaModal() {
-            
-            // 1. Carregar lista de usuários para o select
             const selectUsuario = document.getElementById('select-usuario-atribuicao');
-            let userOptions = '<option value="">Selecione o Usuário</option>';
-            
-            if (userList.length === 0) {
-                 await loadUsersForAssignment(); // Tenta carregar novamente se estiver vazia
-            }
+            const selectTarefa = document.getElementById('select-tarefa-disponivel');
 
-            userList.forEach(user => {
-                // Certifique-se de que 'nome' é o campo que contém o nome do usuário.
-                userOptions += `<option value="${user.nome}">${user.nome}</option>`;
-            });
+            selectUsuario.innerHTML = '<option value="">Carregando Usuários...</option>';
+            selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
+
+            // Garante que a lista de usuários seja carregada antes de continuar
+            await loadUsersForAssignment(); 
+            
+            // 1. Popular lista de Usuários
+            let userOptions = '<option value="">Selecione o Usuário</option>';
+            if (userList.length === 0) {
+                userOptions = '<option value="" disabled>Nenhum Usuário Encontrado</option>';
+            } else {
+                userList.forEach(user => {
+                    // Certifique-se de que 'nome' é o campo que contém o nome do usuário.
+                    userOptions += `<option value="${user.nome}">${user.nome}</option>`;
+                });
+            }
             selectUsuario.innerHTML = userOptions;
 
 
-            // 2. Carregar tarefas disponíveis para o select
-            const selectTarefa = document.getElementById('select-tarefa-disponivel');
-            selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
-
+            // 2. Popular Tarefas disponíveis
             try {
                 // Query que exige o índice: status (Crescente), dataCriacao (Decrescente)
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
@@ -191,9 +194,9 @@
             } catch (error) {
                 selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas disponíveis (Verifique o índice!).", 'danger');
             }
             
+            // ABRIR O MODAL SOMENTE APÓS O CARREGAMENTO
             toggleModal('atribuir-tarefa-modal', true);
         }
 
@@ -403,6 +406,7 @@
             
             try {
                 // REQUER ÍNDICE: status (Crescente), dataConclusao (Decrescente)
+                // Se der erro de índice, verifique: status (Crescente), dataConclusao (Decrescente)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'desc'); // Ordena pelas mais recentes
@@ -484,11 +488,10 @@
             try {
                 const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
-                // Note que para usar 'firebase.firestore.FieldValue.delete()' você precisa ter o Firebase AUTH ou APP inicializado 
-                // e disponível como 'firebase' (além de 'db' para firestore). Se não estiver funcionando, remova a linha de 'dataConclusao'.
+                // Exclui dataConclusao para indicar que a tarefa foi rejeitada e voltou a EmAndamento
+                // É necessário ter o Firebase Auth ou App inicializado para usar firebase.firestore.FieldValue.delete()
                 await taskRef.update({
                     status: 'EmAndamento', 
-                    // Se você não inicializou o 'firebase' globalmente, comente a linha abaixo e resolva a inicialização
                     dataConclusao: firebase.firestore.FieldValue.delete() 
                 });
 
