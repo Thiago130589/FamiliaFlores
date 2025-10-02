@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css"> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="js/firebase-init.js"></script>
     <script src="js/script.js"></script>
 </head>
@@ -33,8 +34,12 @@
             <h2>Atribuir Tarefa Disponível</h2>
             <p class="info-message">Selecione uma tarefa e um usuário para atribuir (Status: EmAndamento).</p>
             <form id="form-atribuir-tarefa">
-                <select id="select-tarefa-disponivel" required style="width: 100%; margin-bottom: 10px;"></select>
-                <select id="select-usuario-atribuicao" required style="width: 100%; margin-bottom: 15px;"></select>
+                <select id="select-tarefa-disponivel" required style="width: 100%; margin-bottom: 10px;">
+                    <option value="">Carregando Tarefas...</option>
+                </select>
+                <select id="select-usuario-atribuicao" required style="width: 100%; margin-bottom: 15px;">
+                    <option value="">Carregando Usuários...</option>
+                </select>
                 <button type="submit" class="btn-rounded btn-primary">Atribuir Tarefa</button>
             </form>
         </div>
@@ -46,7 +51,9 @@
             <h2>Excluir Tarefa (Qualquer Status)</h2>
             <p class="info-message-danger">A exclusão é permanente.</p>
             <form id="form-excluir-tarefa">
-                <select id="select-tarefa-excluir" required style="width: 100%; margin-bottom: 15px;"></select>
+                <select id="select-tarefa-excluir" required style="width: 100%; margin-bottom: 15px;">
+                    <option value="">Carregando Tarefas...</option>
+                </select>
                 <button type="submit" class="btn-rounded btn-danger">Excluir Permanentemente</button>
             </form>
         </div>
@@ -67,8 +74,8 @@
         <hr class="divider">
         
         <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px;">
-            <button class="btn-rounded btn-admin-tab active-tab" onclick="loadTarefasPendentes()">**Pendentes**</button>
-            <a href="tarefas-concluidas.html" class="btn-rounded btn-admin-tab">**Concluídas**</a>
+            <button class="btn-rounded btn-admin-tab active-tab" id="tab-pendentes" onclick="loadTarefasPendentes()">Pendentes</button>
+            <a href="tarefas-concluidas.html" class="btn-rounded btn-admin-tab" id="tab-concluidas">Concluídas</a>
         </div>
         
         <hr class="divider">
@@ -123,13 +130,18 @@
 
         async function loadUsersForAssignment() {
             try {
-                // Busca todos os usuários, exceto admins (se houver campo isAdmin)
+                // Busca todos os usuários, a coleção é 'users'
                 const snapshot = await firestore.collection('users').get();
+                
+                // Mapeia todos os documentos. Ajuste o filtro se 'isAdmin' não existir ou for diferente.
                 userList = snapshot.docs
                     .map(doc => doc.data())
-                    .filter(user => !user.isAdmin); // Filtra administradores se o campo existir
+                    .filter(user => !user.isAdmin || user.isAdmin === false); 
+                    // Se você não tiver o campo isAdmin, use: .map(doc => doc.data());
+                    
             } catch(e) {
                 console.error("Erro ao carregar usuários:", e);
+                exibirAlertaGlobal('admin-alerts', "Erro ao carregar lista de usuários.", 'danger');
             }
         }
         
@@ -138,11 +150,28 @@
         }
 
         async function openAtribuirTarefaModal() {
-            // 1. Carregar tarefas disponíveis para o select
+            
+            // 1. Carregar lista de usuários para o select
+            const selectUsuario = document.getElementById('select-usuario-atribuicao');
+            let userOptions = '<option value="">Selecione o Usuário</option>';
+            
+            if (userList.length === 0) {
+                 await loadUsersForAssignment(); // Tenta carregar novamente se estiver vazia
+            }
+
+            userList.forEach(user => {
+                // Certifique-se de que 'nome' é o campo que contém o nome do usuário.
+                userOptions += `<option value="${user.nome}">${user.nome}</option>`;
+            });
+            selectUsuario.innerHTML = userOptions;
+
+
+            // 2. Carregar tarefas disponíveis para o select
             const selectTarefa = document.getElementById('select-tarefa-disponivel');
             selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
+                // Query que exige o índice: status (Crescente), dataCriacao (Decrescente)
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
@@ -162,16 +191,9 @@
             } catch (error) {
                 selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
                 console.error("Erro ao carregar tarefas disponíveis:", error);
+                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas disponíveis (Verifique o índice!).", 'danger');
             }
-
-            // 2. Carregar lista de usuários para o select
-            const selectUsuario = document.getElementById('select-usuario-atribuicao');
-            let userOptions = '<option value="">Selecione o Usuário</option>';
-            userList.forEach(user => {
-                userOptions += `<option value="${user.nome}">${user.nome}</option>`;
-            });
-            selectUsuario.innerHTML = userOptions;
-
+            
             toggleModal('atribuir-tarefa-modal', true);
         }
 
@@ -180,7 +202,10 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // Busca tarefas ativas (Disponível, EmAndamento, Pendente, Aprovada) - DE AMBAS AS COLEÇÕES
+                // REQUER ÍNDICES para estas queries (se forem usadas separadamente):
+                // 1. tarefasAtribuidas: status IN ['EmAndamento', 'Pendente', 'Aprovada'] + orderBy('dataCriacao', 'desc')
+                // 2. tarefasDisponiveis: status == 'Disponível' + orderBy('dataCriacao', 'desc')
+                // 3. tarefasConcluidas: status == 'Paga' + orderBy('dataPagamento', 'desc')
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataCriacao', 'desc');
@@ -231,6 +256,7 @@
             } catch (error) {
                 selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
                 console.error("Erro ao carregar todas as tarefas:", error);
+                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas para exclusão.", 'danger');
             }
 
             toggleModal('excluir-tarefa-modal', true);
@@ -458,9 +484,11 @@
             try {
                 const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
+                // Note que para usar 'firebase.firestore.FieldValue.delete()' você precisa ter o Firebase AUTH ou APP inicializado 
+                // e disponível como 'firebase' (além de 'db' para firestore). Se não estiver funcionando, remova a linha de 'dataConclusao'.
                 await taskRef.update({
                     status: 'EmAndamento', 
-                    // Garante que o campo de data de conclusão seja removido, já que a tarefa não está mais 'concluída'.
+                    // Se você não inicializou o 'firebase' globalmente, comente a linha abaixo e resolva a inicialização
                     dataConclusao: firebase.firestore.FieldValue.delete() 
                 });
 
