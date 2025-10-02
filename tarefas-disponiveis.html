@@ -16,8 +16,8 @@
         <hr class="divider">
 
         <p class="info-message">Pegue uma tarefa para começar a ganhar pontos (e dinheiro).</p>
-
-        <div id="tarefas-lista" class="historico-lista" style="margin-top: 20px;">
+        
+        <div id="tarefas-alerts"></div> <div id="tarefas-lista" class="historico-lista" style="margin-top: 20px;">
             <p class="empty-message">Carregando tarefas...</p>
         </div>
 
@@ -27,21 +27,20 @@
     </div>
 
     <script>
-        // Variável de coleção (deve ser a mesma usada no gerenciar-tarefas.html)
+        // COLEÇÕES E FIREBASE (db vem de firebase-init.js)
+        const firestore = db;
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
-        
-        // **IMPORTANTE**: Garanta que formatarMoeda e getUsuarioLogado estejam definidos em js/script.js
-        // Se a função formatarMoeda não estiver em script.js, use a implementação abaixo:
-        function formatarMoeda(valor) {
-             return parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
 
+        // Esta função usa formatarMoeda e getUsuarioLogado de js/script.js
         async function loadTarefasDisponiveis() {
             const listaEl = document.getElementById('tarefas-lista');
+            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
                 // Realiza a consulta para buscar tarefas com status 'Disponível'
-                const query = db.collection(TAREFAS_DISPONIVEIS_COLLECTION)
+                // ATENÇÃO: Requer índice composto em 'tarefasDisponiveis' (status CRES, dataCriacao DECR)
+                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
 
@@ -80,22 +79,62 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                // Exibe uma mensagem de erro na tela
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique a inicialização do Firebase no console.</p>';
+                // Usa a função global
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas. Verifique os índices do Firestore.</p>'; 
             }
         }
         
-        // Esta função deve ser implementada para simular a atribuição/movimentação da tarefa.
+        // FUNÇÃO DE MOVIMENTAÇÃO DE TAREFA (Implementação Completa)
         async function pegarTarefa(taskId) {
-            // Implementação futura:
-            // 1. Obter nome do usuário logado (usando getUsuarioLogado)
-            // 2. Usar uma Transação para obter, excluir da coleção 'tarefasDisponiveis' 
-            //    e adicionar na coleção 'tarefasAtribuidas' com status 'EmAndamento' e 'atribuidaPara'.
+            const userInfo = getUsuarioLogado();
             
-            alert(`Ação de "Pegar Tarefa" para o ID ${taskId} será implementada em breve. O status dela mudará para 'EmAndamento' e será movida para sua lista.`);
+            if (!userInfo || !userInfo.nome) {
+                exibirAlertaGlobal('tarefas-alerts', "Você deve estar logado para pegar uma tarefa.", 'danger');
+                return;
+            }
+
+            if (!confirm(`Tem certeza que deseja pegar esta tarefa? Ela será adicionada à sua lista como "EmAndamento".`)) {
+                return;
+            }
             
-            // Depois de implementar a transação de movimentação, chame:
-            // loadTarefasDisponiveis(); 
+            const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
+
+            try {
+                // Usa uma Transação para garantir que a tarefa seja movida atomicamente
+                await firestore.runTransaction(async (transaction) => {
+                    const taskDoc = await transaction.get(availableRef);
+                    
+                    if (!taskDoc.exists) {
+                        throw new Error("Tarefa não encontrada ou já foi pega por outro membro.");
+                    }
+                    
+                    const taskData = taskDoc.data();
+                    
+                    // 1. Exclui da lista de disponíveis
+                    transaction.delete(availableRef);
+
+                    // 2. Cria na lista de atribuídas com os dados do usuário e novo status
+                    const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc();
+                    
+                    const assignedData = {
+                        ...taskData,
+                        status: 'EmAndamento', 
+                        atribuidaPara: userInfo.nome,
+                        dataAtribuicao: new Date().toISOString().split('T')[0] 
+                    };
+                    
+                    transaction.set(assignedRef, assignedData);
+                });
+
+                exibirAlertaGlobal('tarefas-alerts', `Parabéns! Tarefa pega com sucesso e adicionada à sua lista de "Em Andamento".`, 'success');
+                
+                // Recarrega a lista para remover a tarefa que foi pega
+                loadTarefasDisponiveis(); 
+
+            } catch (error) {
+                console.error("Erro ao pegar tarefa:", error);
+                exibirAlertaGlobal('tarefas-alerts', `Erro ao pegar a tarefa: ${error.message || 'Tente novamente.'}`, 'danger');
+            }
         }
 
         // Carrega as tarefas ao carregar a página

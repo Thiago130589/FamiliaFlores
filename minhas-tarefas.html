@@ -28,13 +28,18 @@
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // firestore já está definido como 'db' em js/firebase-init.js
+        const firestore = db;
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
 
+        /**
+         * Verifica o acesso e retorna o nome do usuário logado.
+         * Usa a função getUsuarioLogado de js/script.js.
+         */
         function checkAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.nome) {
-                // getUsuarioLogado já lida com o redirecionamento
+                // Se não logado, getUsuarioLogado já lida com o redirecionamento
                 return false;
             }
             return userInfo.nome;
@@ -49,6 +54,7 @@
             
             try {
                 // Busca tarefas com status "EmAndamento" e que estão atribuídas ao usuário
+                // REQUER ÍNDICE COMPOSTO: atribuidaPara (asc), status (asc), dataAtribuicao (asc)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('atribuidaPara', '==', userName)
                     .where('status', '==', 'EmAndamento') 
@@ -97,11 +103,14 @@
                     `;
                 });
 
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Você não tem tarefas em andamento. Que tal <a href="tarefas-disponiveis.html">pegar uma nova</a>?</p>';
+                listaEl.innerHTML = foundTasks 
+                    ? html 
+                    : '<p class="empty-message">Você não tem tarefas em andamento. Que tal <a href="tarefas-disponiveis.html">pegar uma nova</a>?</p>';
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas:", error);
-                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar suas tarefas.', 'danger');
+                // Usa a função global
+                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar suas tarefas. Verifique o console.', 'danger');
             }
         }
 
@@ -116,11 +125,12 @@
                 
                 await taskRef.update({
                     status: 'Pendente', // NOVO STATUS: "Pendente" (Aguarda Admin)
-                    dataConclusao: new Date().toISOString().split('T')[0]
+                    // Salva a data de conclusão
+                    dataConclusao: new Date().toISOString().split('T')[0] 
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa "${taskName}" marcada como concluída e enviada para aprovação!`, 'success');
-                renderMinhasTarefas(); 
+                renderMinhasTarefas(); // Recarrega a lista
                 
             } catch (error) {
                 console.error("Erro ao marcar tarefa como concluída:", error);

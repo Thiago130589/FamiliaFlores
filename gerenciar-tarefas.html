@@ -67,7 +67,7 @@
         <hr class="divider">
         
         <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px;">
-            <button class="btn-rounded btn-admin-tab" onclick="loadTarefasPendentes()">**Pendentes**</button>
+            <button class="btn-rounded btn-admin-tab active-tab" onclick="loadTarefasPendentes()">**Pendentes**</button>
             <a href="tarefas-concluidas.html" class="btn-rounded btn-admin-tab">**Concluídas**</a>
         </div>
         
@@ -87,28 +87,21 @@
     </div>
 
     <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // firestore é definido globalmente em firebase-init.js
+        const firestore = db;
         
         // COLEÇÕES DEFINIDAS:
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
         const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
         
-        const TAREFAS_COLLECTION = TAREFAS_ATRIBUIDAS_COLLECTION; // Uso interno
-        
         let userList = []; 
         let allTasksList = []; // Para o modal de exclusão
 
         // Funções de utilidade (Assumindo que estão em script.js ou definidas globalmente)
-        function toggleModal(id, show) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.toggle('hidden-start', !show);
-            }
-        }
-        // Assumindo formatarMoeda e getUsuarioLogado estão em script.js
+        // toggleModal, exibirAlertaGlobal, formatarMoeda, getUsuarioLogado
 
-        // --- 1. Funções de Controle de UI ---
+        // --- 1. Funções de Controle de UI/Acesso ---
         
         function checkAdminAccess() {
             const userInfo = getUsuarioLogado();
@@ -130,8 +123,11 @@
 
         async function loadUsersForAssignment() {
             try {
+                // Busca todos os usuários, exceto admins (se houver campo isAdmin)
                 const snapshot = await firestore.collection('users').get();
-                userList = snapshot.docs.map(doc => doc.data()); 
+                userList = snapshot.docs
+                    .map(doc => doc.data())
+                    .filter(user => !user.isAdmin); // Filtra administradores se o campo existir
             } catch(e) {
                 console.error("Erro ao carregar usuários:", e);
             }
@@ -142,12 +138,12 @@
         }
 
         async function openAtribuirTarefaModal() {
-            // 1. Carregar tarefas disponíveis para o select - Lê da coleção de DISPONÍVEIS
+            // 1. Carregar tarefas disponíveis para o select
             const selectTarefa = document.getElementById('select-tarefa-disponivel');
             selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION) // COLEÇÃO CORRETA
+                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
                 const snapshot = await query.get();
@@ -167,7 +163,6 @@
                 selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
                 console.error("Erro ao carregar tarefas disponíveis:", error);
             }
-
 
             // 2. Carregar lista de usuários para o select
             const selectUsuario = document.getElementById('select-usuario-atribuicao');
@@ -194,7 +189,7 @@
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
                     
-                // Limita tarefas pagas para performance
+                // Limita tarefas pagas para performance - apenas as 20 mais recentes
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
@@ -255,12 +250,12 @@
             const userName = checkAdminAccess();
 
             if (isNaN(valor) || valor <= 0) {
-                alert("Por favor, insira um valor válido.");
+                exibirAlertaGlobal('admin-alerts', "Por favor, insira um valor válido.", 'danger');
                 return;
             }
 
             try {
-                // CORREÇÃO AQUI: Salva na coleção TAREFAS_DISPONIVEIS_COLLECTION
+                // Salva na coleção TAREFAS_DISPONIVEIS_COLLECTION
                 await firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).add({
                     nome: nome,
                     valor: valor,
@@ -273,12 +268,12 @@
                 });
 
                 toggleModal('criar-tarefa-modal', false);
-                alert(`Tarefa "${nome}" criada com sucesso! (Status: Disponível)`);
+                exibirAlertaGlobal('admin-alerts', `Tarefa "${nome}" criada com sucesso! (Status: Disponível)`, 'success');
                 this.reset();
                 loadTarefasPendentes(); // Recarrega a lista principal
             } catch (error) {
                 console.error("Erro ao criar tarefa:", error);
-                alert("Erro ao criar tarefa. Tente novamente.");
+                exibirAlertaGlobal('admin-alerts', "Erro ao criar tarefa. Verifique o console.", 'danger');
             }
         });
 
@@ -290,7 +285,7 @@
             const selectedUser = document.getElementById('select-usuario-atribuicao').value;
             
             if (!taskId || !selectedUser) {
-                alert("Selecione uma tarefa e um usuário válidos.");
+                exibirAlertaGlobal('admin-alerts', "Selecione uma tarefa e um usuário válidos.", 'danger');
                 return;
             }
             
@@ -323,16 +318,17 @@
                         atribuidaPara: selectedUser,
                         dataAtribuicao: new Date().toISOString().split('T')[0]
                     };
+                    
                     transaction.set(assignedRef, assignedData);
                 });
 
                 toggleModal('atribuir-tarefa-modal', false);
-                alert(`Tarefa atribuída com sucesso a ${selectedUser}! (Status: EmAndamento)`);
+                exibirAlertaGlobal('admin-alerts', `Tarefa atribuída com sucesso a ${selectedUser}! (Status: EmAndamento)`, 'success');
                 this.reset();
                 loadTarefasPendentes(); // Recarrega a lista principal
             } catch (error) {
                 console.error("Erro ao atribuir tarefa:", error);
-                alert(`Erro ao atribuir tarefa: ${error.message || 'Tente novamente.'}`);
+                exibirAlertaGlobal('admin-alerts', `Erro ao atribuir tarefa: ${error.message || 'Tente novamente.'}`, 'danger');
             }
         });
 
@@ -342,7 +338,7 @@
 
             const selectedValue = document.getElementById('select-tarefa-excluir').value;
             if (!selectedValue) {
-                alert("Selecione uma tarefa para excluir.");
+                exibirAlertaGlobal('admin-alerts', "Selecione uma tarefa para excluir.", 'danger');
                 return;
             }
 
@@ -350,7 +346,7 @@
             const task = allTasksList.find(t => t.id === taskId && t.collection === collectionName);
 
             if (!task) {
-                alert("Erro ao encontrar detalhes da tarefa.");
+                exibirAlertaGlobal('admin-alerts', "Erro ao encontrar detalhes da tarefa.", 'danger');
                 return;
             }
 
@@ -362,28 +358,29 @@
                 await firestore.collection(collectionName).doc(taskId).delete();
                 
                 toggleModal('excluir-tarefa-modal', false);
-                alert(`Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`);
+                exibirAlertaGlobal('admin-alerts', `Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`, 'success');
                 this.reset();
                 loadTarefasPendentes(); // Recarrega a lista principal
             } catch (error) {
                 console.error("Erro ao excluir tarefa:", error);
-                alert("Erro ao excluir tarefa. Tente novamente.");
+                exibirAlertaGlobal('admin-alerts', "Erro ao excluir tarefa. Tente novamente.", 'danger');
             }
         });
 
 
-        // --- 4. Funções de Carregamento de Lista ---
+        // --- 4. Funções de Carregamento de Lista e Ações (Aprovação/Rejeição) ---
 
-        // Aprovação (Status "Pendente" -> "Aprovada")
+        // Aprovação (Status "Pendente")
         async function loadTarefasPendentes() {
             const listaEl = document.getElementById('tarefas-pendentes-aprovacao-lista');
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
             
             try {
+                // REQUER ÍNDICE: status (Crescente), dataConclusao (Decrescente)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
-                    .orderBy('dataConclusao', 'asc');
-
+                    .orderBy('dataConclusao', 'desc'); // Ordena pelas mais recentes
+                
                 const snapshot = await query.get();
                 let html = '';
                 let foundTasks = false;
@@ -412,11 +409,11 @@
                             </div>
                             <div style="margin-top: 15px; display: flex; gap: 10px;">
                                 <button class="btn-rounded btn-success" 
-                                            onclick="aprovarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
+                                        onclick="aprovarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
                                     APROVAR (Status "Aprovada")
                                 </button>
                                 <button class="btn-rounded btn-danger-outline" 
-                                            onclick="rejeitarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
+                                        onclick="rejeitarTarefa('${taskId}', '${t.atribuidaPara || 'N/A'}')">
                                     Rejeitar
                                 </button>
                             </div>
@@ -428,7 +425,8 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas pendentes:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes.</p>';
+                // O erro de índice deve ser capturado aqui.
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes. Verifique se o índice do Firestore está ATIVADO.</p>';
             }
         }
         
@@ -444,11 +442,11 @@
                     status: 'Aprovada', 
                 });
 
-                alert(`Tarefa aprovada e pronta para pagamento para ${usuarioNome} (status "Aprovada").`);
+                exibirAlertaGlobal('admin-alerts', `Tarefa aprovada e pronta para pagamento para ${usuarioNome} (status "Aprovada").`, 'success');
                 loadTarefasPendentes(); 
             } catch (error) {
                 console.error("Erro ao aprovar tarefa:", error);
-                alert(`Erro ao aprovar a tarefa: ${error.message || 'Tente novamente.'}`);
+                exibirAlertaGlobal('admin-alerts', `Erro ao aprovar a tarefa: ${error.message || 'Tente novamente.'}`, 'danger');
             }
         }
 
@@ -462,19 +460,17 @@
                 
                 await taskRef.update({
                     status: 'EmAndamento', 
+                    // Garante que o campo de data de conclusão seja removido, já que a tarefa não está mais 'concluída'.
                     dataConclusao: firebase.firestore.FieldValue.delete() 
                 });
 
-                alert(`Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`);
+                exibirAlertaGlobal('admin-alerts', `Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`, 'danger');
                 loadTarefasPendentes(); 
             } catch (error) {
                 console.error("Erro ao rejeitar tarefa:", error);
-                alert("Erro ao rejeitar tarefa. Tente novamente.");
+                exibirAlertaGlobal('admin-alerts', "Erro ao rejeitar tarefa. Tente novamente.", 'danger');
             }
         }
-
-        // A função loadGerenciamentoTarefas foi removida para simplificar.
-        // A navegação agora é feita entre os arquivos HTML.
     </script>
 </body>
 </html>
