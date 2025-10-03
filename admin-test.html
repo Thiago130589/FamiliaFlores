@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Acesso Admin</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
+</head>
+<body>
+
+    <div id="admin-content" style="padding: 20px; text-align: center; display: none;">
+        <h1>ACESSO ADMIN LIBERADO!</h1>
+        <p>Esta tela só deve aparecer se você for um Administrador. Se não for, você será redirecionado para index.html.</p>
+        <button onclick="window.location.href='index.html'">Voltar ao Dashboard (index.html)</button>
+    </div>
+
+    <script>
+        // A função checkAdminAccess que estava no outro arquivo.
+        function checkAdminAccess() {
+            // Supondo que 'getUsuarioLogado' existe em 'js/script.js' ou 'firebase-init.js'
+            const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : { nome: null, isAdmin: false };
+            
+            // Se não for admin ou não estiver logado, redireciona.
+            if (!userInfo || !userInfo.isAdmin) {
+                // Redireciona para a página principal
+                window.location.href = 'index.html'; 
+                return false;
+            }
+            // Se for admin, mostra o conteúdo e retorna o nome.
+            document.getElementById('admin-content').style.display = 'block';
+            return userInfo.nome;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Apenas executa a checagem no carregamento.
+            checkAdminAccess();
+        });
+    </script>
+</body>
+</html>
