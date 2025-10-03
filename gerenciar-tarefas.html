@@ -15,6 +15,7 @@
     <script src="script.js"></script>
     
     <style>
+        /* Estilos da barra de botões mantidos */
         .task-view-switcher {
             display: flex;
             gap: 10px;
@@ -36,13 +37,33 @@
             color: white;
             font-weight: bold;
         }
-        /* Estilo para a nova seção de filtro (só aparece no histórico) */
         .filter-section {
             padding: 15px;
             background-color: #f7f7f7;
             border-radius: 8px;
             margin-bottom: 15px;
             border: 1px solid #eee;
+        }
+        .hidden {
+            display: none;
+        }
+        
+        /* Novas Classes de Cores para o status/borda */
+        .color-disponivel {
+            color: var(--success-color); /* Verde */
+            border-left-color: var(--success-color) !important;
+        }
+        .color-pendente {
+            color: var(--warning-color); /* Amarelo */
+            border-left-color: var(--warning-color) !important;
+        }
+        .color-vencido {
+            color: var(--danger-color); /* Vermelho */
+            border-left-color: var(--danger-color) !important;
+        }
+        .color-concluida {
+            color: #4a4a4a; /* Preto/Cinza Escuro */
+            border-left-color: #4a4a4a !important;
         }
     </style>
 </head>
@@ -101,6 +122,7 @@
          * Verifica o acesso de administrador e retorna o objeto do admin.
          */
         function checkAdminAccessAndLoad() {
+            // Assume que 'getUsuarioLogado' e 'exibirAlertaGlobal' estão em 'script.js'
             const userInfo = getUsuarioLogado();
             if (!userInfo || userInfo.isAdmin !== true) {
                  // Se não for admin, redireciona para a home
@@ -160,6 +182,39 @@
                 renderTarefas(false, filtroUsuario); // renderiza histórico (filtrado ou todos)
             }
         }
+        
+        /**
+         * Determina a classe de cor da borda/status com base nas regras do Admin.
+         */
+        function getTaskColorClass(taskData) {
+            // Verifica se o prazo está vencido (prioridade alta)
+            if (taskData.dataPrazo) {
+                const prazoCompleto = `${taskData.dataPrazo} ${taskData.horarioPrazo || '23:59'}`;
+                const prazoDate = new Date(prazoCompleto.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+                const now = new Date();
+                
+                // Prazo vencido se a tarefa não estiver Paga ou Reprovada
+                if (prazoDate < now && taskData.status !== 'Paga' && taskData.status !== 'Reprovada') {
+                    return 'color-vencido'; // Vermelho
+                }
+            }
+            
+            // Verifica status específicos
+            switch(taskData.status) {
+                case 'Pendente':
+                    return 'color-pendente'; // Amarelo
+                case 'Disponível':
+                case 'Criada':
+                case 'EmAndamento': // Em andamento ainda é 'ativa' ou 'disponível' para fins de cor
+                    return 'color-disponivel'; // Verde
+                case 'Paga':
+                case 'Reprovada':
+                case 'Concluída': // 'Concluída' (aprovada/aguardando pagamento) ou status final
+                    return 'color-concluida'; // Preto/Cinza Escuro
+                default:
+                    return 'color-concluida';
+            }
+        }
 
 
         // --- Renderização de Tarefas ---
@@ -182,22 +237,25 @@
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'asc');
             } 
-            // 2. Visão Filtrada: Histórico completo de um Usuário
+            // 2. Visão Histórico: TODAS as tarefas, opcionalmente filtradas por UID
             else {
                 let tituloNome = 'Todos os Usuários';
                 if (filtroUID !== 'todos-historico') {
                     const selectEl = document.getElementById('filtro-usuario');
                     tituloNome = selectEl.options[selectEl.selectedIndex].textContent.split('(')[0].trim();
+                    
+                    // Filtra pelo UID
+                    query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                        .where('usuarioUID', '==', filtroUID)
+                        .orderBy('dataCriacao', 'desc');
+                } else {
+                    // Busca todas as tarefas no sistema
+                    tituloEl.textContent = `Histórico Completo do Sistema`;
+                    query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                        .orderBy('dataCriacao', 'desc');
                 }
+                
                 tituloEl.textContent = `Histórico de Tarefas de: ${tituloNome}`;
-                
-                query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                    // Se for 'todos-historico', não usa o where('usuarioUID')
-                    .orderBy('dataCriacao', 'desc'); // Mostra o histórico, ordenado pela criação
-                
-                if (filtroUID !== 'todos-historico') {
-                     query = query.where('usuarioUID', '==', filtroUID);
-                }
             }
 
             try {
@@ -205,7 +263,7 @@
                 let html = '';
                 let foundTasks = false;
 
-                // Mapeamento de UID para Nome do Usuário (para a lista de pendentes)
+                // Mapeamento de UID para Nome do Usuário (necessário para todas as visões que não filtram por um único UID)
                 const userMap = {}; 
                 if (isPendingView || filtroUID === 'todos-historico') {
                     const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
@@ -221,15 +279,18 @@
                     const valor = parseFloat(t.valor || 0);
                     
                     // Obtém o nome do usuário para a exibição
-                    const nomeAtribuido = isPendingView || filtroUID === 'todos-historico' 
+                    const nomeAtribuido = (isPendingView || filtroUID === 'todos-historico')
                                             ? userMap[t.usuarioUID] || t.atribuidaPara || 'Desconhecido'
-                                            : t.atribuidaPara; 
+                                            : t.atribuidaPara;
+                    
+                    // Determina a classe de cor da borda/texto
+                    const colorClass = getTaskColorClass(t);
                     
                     // Renderização e lógica de status para Admin
-                    const { statusClass, statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
+                    const { statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
 
                     html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: ${statusClass === 'status-success' ? 'var(--success-color)' : statusClass === 'status-danger' ? 'var(--danger-color)' : statusClass === 'status-warning' ? 'var(--warning-color)' : 'var(--info-color)'};">
+                        <div class="tarefa-card admin-card ${colorClass}">
                             <div class="tarefa-header-admin">
                                 <div class="tarefa-nome-admin">${t.nome}</div>
                                 <div class="tarefa-valor ${valor > 0 ? 'positive-text' : 'negative-text'}">${formatarMoeda(valor)}</div>
@@ -237,13 +298,14 @@
                             
                             <div class="tarefa-status-line" style="margin-bottom: 5px;">
                                 <span>Status:</span>
-                                <span class="${statusClass}">${statusText}</span> 
+                                <span class="${colorClass}">${statusText}</span> 
                             </div>
                             
                             <div class="tarefa-details-admin">
                                 <div class="tarefa-info-admin">Atribuído a: <b>${nomeAtribuido}</b></div>
                                 <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
                                 <div class="tarefa-info-admin">Prazo Limite: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</div>
+                                ${t.motivoReprovacao ? `<div class="tarefa-info-admin color-vencido">Motivo Reprovação: ${t.motivoReprovacao}</div>` : ''}
                                 <p class="tarefa-descricao-admin">${t.descricao}</p>
                             </div>
                             
@@ -265,10 +327,9 @@
         }
         
         /**
-         * Retorna classes e botões de ação com base no status da tarefa.
+         * Retorna a descrição do status e botões de ação com base no status da tarefa.
          */
         function getTaskAdminUI(taskId, taskData, isPendingView) {
-            let statusClass = '';
             let statusText = taskData.status;
             let actionButtons = '';
             
@@ -277,7 +338,6 @@
 
             switch(taskData.status) {
                 case 'Pendente':
-                    statusClass = 'status-warning';
                     statusText = 'PENDENTE DE APROVAÇÃO';
                     if (showActionButtons) {
                         actionButtons = `
@@ -293,26 +353,26 @@
                     }
                     break;
                 case 'EmAndamento':
-                    statusClass = 'status-info';
                     statusText = 'EM ANDAMENTO';
                     break;
                 case 'Paga': // Tarefa finalizada e creditada
-                    statusClass = 'status-success';
                     statusText = 'PAGA E CONCLUÍDA';
                     break;
                 case 'Reprovada':
-                    statusClass = 'status-danger';
                     statusText = `REPROVADA (Multa: ${taskData.valorMultaAplicada ? formatarMoeda(taskData.valorMultaAplicada) : 'N/A'})`;
                     break;
+                case 'Disponível':
+                case 'Criada':
+                    statusText = 'DISPONÍVEL PARA INÍCIO';
+                    break;
                 default:
-                    statusClass = 'status-secondary';
                     statusText = taskData.status;
             }
-            return { statusClass, statusText, actionButtons };
+            return { statusText, actionButtons };
         }
 
 
-        // --- Funções de Ação do Admin ---
+        // --- Funções de Ação do Admin (Mantidas) ---
 
         // 1. Aprovar Tarefa: Paga o valor e registra no histórico.
         async function aprovarTarefa(taskId, userUID, userName, valor) {
@@ -362,7 +422,7 @@
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) na conta de ${userName}.`, 'success');
-                renderTarefas(true); // Renderiza a visão atual
+                renderTarefas(true); // Renderiza a visão atual (Pendentes)
             } catch (error) {
                 console.error("Erro na aprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível aprovar e pagar. Detalhe: ${error.message}`, 'danger');
@@ -371,7 +431,6 @@
 
         // 2. Rejeitar Tarefa: Aplica multa/penalidade e registra no histórico.
         async function rejeitarTarefa(taskId, userUID, userName, valor) {
-            // Em vez de só confirmar, pedimos um motivo para a multa
             const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}" (Ex: Limpeza incompleta). O valor original era ${formatarMoeda(valor)}. \n\nO valor da multa será igual ao valor da tarefa.`);
             
             if (motivo === null || motivo.trim() === '') {
@@ -379,7 +438,7 @@
                 return;
             }
 
-            const valorMulta = valor; // Exemplo: multa é igual ao valor que o usuário receberia
+            const valorMulta = valor; 
             
             if (!confirm(`Confirmar REPROVAÇÃO e aplicar penalidade de ${formatarMoeda(valorMulta)} para ${userName}?`)) return;
 
@@ -429,7 +488,7 @@
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}. Motivo: ${motivo}`, 'danger');
-                renderTarefas(true); // Renderiza a visão atual
+                renderTarefas(true); // Renderiza a visão atual (Pendentes)
             } catch (error) {
                 console.error("Erro na reprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível rejeitar a tarefa e aplicar a multa. Detalhe: ${error.message}`, 'danger');
