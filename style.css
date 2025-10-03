@@ -1,139 +1,139 @@
 ﻿/*
- * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL)
- * Contém variáveis, resets, layouts, botões, formulários e todos os estilos
- * específicos (Login, Cadastro, Dashboard, Cards de Tarefas).
- */
+ * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL)
+ * Contém variáveis, resets, layouts, botões, formulários e todos os estilos
+ * específicos (Login, Cadastro, Dashboard, Cards de Tarefas).
+ */
 
 /* =========================================================================
- * 1. GERAIS E VARIÁVEIS (ROOT, RESET)
- * ========================================================================= */
+ * 1. GERAIS E VARIÁVEIS (ROOT, RESET)
+ * ========================================================================= */
 :root {
-    /* Cores Principais */
-    --primary-color: #007bff;
-    --primary-light: #52a7ff;
-    --primary-dark: #0056b3;
-    
-    /* Fundo Padrão (Usado no Login) */
-    --background-color-login: #1a76ff; 
-    --background-color-default: #ffffff; /* Fundo Padrão para Dashboard/Conteúdo */
-    
-    /* Cores de Feedback */
-    --success-color: #28a745;
-    --error-color: #dc3545;
-    --warning-color: #ffc107;
-    --info-color: #17a2b8;
-    --danger-color: #dc3545;
+    /* Cores Principais */
+    --primary-color: #007bff;
+    --primary-light: #52a7ff;
+    --primary-dark: #0056b3;
+    
+    /* Fundo Padrão (Usado no Login) */
+    --background-color-login: #1a76ff; 
+    --background-color-default: #ffffff; /* Fundo Padrão para Dashboard/Conteúdo */
+    
+    /* Cores de Feedback */
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --danger-color: #dc3545;
 
-    /* Neutros */
-    --text-color: #333;
-    --text-light: #6c757d;
-    
-    /* Cores de Fundo de Caixas (Containers) */
-    --box-bg-color-login: #ffffff; 
-    --box-bg-color-cadastro: #e6ffe6; 
-    --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
+    /* Neutros */
+    --text-color: #333;
+    --text-light: #6c757d;
+    
+    /* Cores de Fundo de Caixas (Containers) */
+    --box-bg-color-login: #ffffff; 
+    --box-bg-color-cadastro: #e6ffe6; 
+    --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
 
-    --list-item-bg-color: #f7f7f7;
-    --shadow-color: rgba(0, 0, 0, 0.2);
-    
-    /* Botões */
-    --button-primary-bg: #6c757d;
-    --button-primary-dark: #5a6268;
+    --list-item-bg-color: #f7f7f7;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    
+    /* Botões */
+    --button-primary-bg: #6c757d;
+    --button-primary-dark: #5a6268;
 }
 
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
 }
 
 /* =========================================================================
- * 2. LAYOUT UNIVERSAL: CENTRALIZAÇÃO
- * ========================================================================= */
+ * 2. LAYOUT UNIVERSAL: CENTRALIZAÇÃO
+ * ========================================================================= */
 
 /* Body Padrão (Fundo Branco/Dashboard) */
 body {
-    background-color: var(--background-color-default);
-    color: var(--text-color);
-    line-height: 1.6;
-    min-height: 100vh;
-    
-    /* Centralização de Conteúdo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px; 
+    background-color: var(--background-color-default);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    
+    /* Centralização de Conteúdo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; 
 }
 
 /* Sobrescreve para a tela de Login (Fundo Azul) */
 .body-login {
-    background-color: var(--background-color-login);
+    background-color: var(--background-color-login);
 }
 
 
 /* Base da caixa centralizada (Padrão para Dashboard/Cadastro) */
 .center-box {
-    background-color: var(--box-bg-color-default); 
-    border-radius: 20px;
-    padding: 30px; 
-    box-shadow: 0 4px 12px var(--shadow-color);
-    width: 95%; 
-    max-width: 380px; /* Largura para Dashboard/Conteúdo estreito */
+    background-color: var(--box-bg-color-default); 
+    border-radius: 20px;
+    padding: 30px; 
+    box-shadow: 0 4px 12px var(--shadow-color);
+    width: 95%; 
+    max-width: 380px; /* Largura para Dashboard/Conteúdo estreito */
 }
 
 /* Classe Específica para a caixa de Login (Branca e menor padding) */
 .center-box-login {
-    background-color: var(--box-bg-color-login);
-    padding: 40px; 
-    max-width: 400px; 
+    background-color: var(--box-bg-color-login);
+    padding: 40px; 
+    max-width: 400px; 
 }
 
 /* Classe Específica para a caixa de Cadastro (Verde e maior) */
 .center-box-cadastro {
-    background-color: var(--box-bg-color-cadastro);
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 500px; 
+    background-color: var(--box-bg-color-cadastro);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px; 
 }
 
 /* Adaptação da caixa grande para outras telas (multas/admin) */
 .large-box { 
-    max-width: 900px;
-    padding: 30px; 
+    max-width: 900px;
+    padding: 30px; 
 }
 
 
 /* =========================================================================
- * 3. TIPOGRAFIA E UTILITÁRIOS
- * ========================================================================= */
+ * 3. TIPOGRAFIA E UTILITÁRIOS
+ * ========================================================================= */
 
 .main-title {
-    font-size: 2.2em; 
-    font-weight: bold; 
-    color: var(--primary-color);
-    text-align: center;
-    margin-bottom: 10px;
+    font-size: 2.2em; 
+    font-weight: bold; 
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
 }
 .section-title {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: var(--text-color);
-    margin: 20px 0 10px 0;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #eee;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
 }
 
 /* Mensagens de Feedback */
 .info-message { font-size: 0.9em; color: var(--text-light); }
 .error-message { 
-    color: var(--danger-color); 
-    font-weight: bold; 
-    text-align: center; 
-    padding: 10px; 
-    margin-top: 15px; 
-    border: 1px solid var(--danger-color);
-    border-radius: 5px;
+    color: var(--danger-color); 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 10px; 
+    margin-top: 15px; 
+    border: 1px solid var(--danger-color);
+    border-radius: 5px;
 }
 .empty-message { text-align: center; color: #999; padding: 20px; font-style: italic; }
 
@@ -147,23 +147,24 @@ body {
 
 /* Separadores */
 .divider { border: none; height: 1px; background-color: #e0e0e0; margin: 15px 0; }
+.divider-thin { border: none; height: 1px; background-color: #f0f0f0; margin: 10px 0; }
 
 
 /* =========================================================================
- * 4. BOTÕES E LINKS (Geral)
- * ========================================================================= */
+ * 4. BOTÕES E LINKS (Geral)
+ * ========================================================================= */
 
 .btn-rounded {
-    padding: 12px 20px; 
-    border: none; border-radius: 25px; cursor: pointer;
-    font-weight: bold; text-align: center; text-decoration: none;
-    transition: background-color 0.3s, opacity 0.3s; 
-    font-size: 1em; 
-    display: block; 
+    padding: 12px 20px; 
+    border: none; border-radius: 25px; cursor: pointer;
+    font-weight: bold; text-align: center; text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s; 
+    font-size: 1em; 
+    display: block; 
 }
 .btn-rounded-large { /* Botões maiores para Login */
-    padding: 15px 25px;
-    font-size: 1.1em;
+    padding: 15px 25px;
+    font-size: 1.1em;
 }
 
 .btn-primary { background-color: var(--button-primary-bg); color: white; }
@@ -179,42 +180,61 @@ body {
 
 /* Link de Navegação (Voltar para Login/Cadastro) */
 .login-link { 
-    display: block; text-align: center; margin-top: 20px;
-    font-size: 0.9em; color: var(--primary-color); text-decoration: none;
+    display: block; text-align: center; margin-top: 20px;
+    font-size: 0.9em; color: var(--primary-color); text-decoration: none;
 }
 .login-link:hover { color: var(--primary-dark); text-decoration: underline; }
 
 /* Link Secundário (Já tem conta/Faça login) */
 .btn-secondary-text { 
-    background-color: transparent; color: var(--primary-color); 
-    border: none; text-decoration: underline; display: block;
-    padding: 10px 0; font-weight: normal; text-align: center;
+    background-color: transparent; color: var(--primary-color); 
+    border: none; text-decoration: underline; display: block;
+    padding: 10px 0; font-weight: normal; text-align: center;
 }
 
 /* Botão de Ícone (Câmera) */
 .btn-icon {
-    width: 48px; height: 48px; padding: 0; font-size: 1.5em; 
-    flex-shrink: 0; display: flex; justify-content: center; 
-    align-items: center; border-radius: 50%; 
+    width: 48px; height: 48px; padding: 0; font-size: 1.5em; 
+    flex-shrink: 0; display: flex; justify-content: center; 
+    align-items: center; border-radius: 50%; 
+}
+
+/* Botão de Sair no Card */
+.btn-logout-card {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 10px;
+    transition: color 0.3s;
+}
+
+.btn-logout-card:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
 }
 
 
 /* =========================================================================
- * 5. FORMULÁRIOS E INPUTS (Base)
- * ========================================================================= */
+ * 5. FORMULÁRIOS E INPUTS (Base)
+ * ========================================================================= */
 form { display: flex; flex-direction: column; gap: 10px; }
 
 .form-group { margin-bottom: 15px; }
 label { 
-    font-weight: bold; margin-bottom: 5px; 
-    color: var(--text-color); display: block;
+    font-weight: bold; margin-bottom: 5px; 
+    color: var(--text-color); display: block;
 }
 
 input[type="text"], input[type="password"], input[type="number"],
 input[type="date"], input[type="time"], textarea, select, .input-rounded {
-    padding: 15px; /* Padrão Login/Cadastro */
-    border: 1px solid #ccc; border-radius: 8px;
-    font-size: 1em; width: 100%;
+    padding: 15px; /* Padrão Login/Cadastro */
+    border: 1px solid #ccc; border-radius: 8px;
+    font-size: 1em; width: 100%;
 }
 /* Reduz o padding em formulários menores (Dashboard) */
 .input-rounded-small { padding: 12px; } 
@@ -224,49 +244,96 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 6. ESPECÍFICO DO DASHBOARD (index.html)
- * ========================================================================= */
+ * 6. ESPECÍFICO DO DASHBOARD (index.html) - CORRIGIDO PARA LAYOUT FLEX
+ * ========================================================================= */
 
-/* 6.1 Perfil e Saldo */
-.user-profile {
-    display: flex; flex-direction: column; align-items: center;
-    text-align: center; margin-bottom: 20px;
+/* 6.1 Layout Flexível: Detalhes do Usuário (Texto à esquerda, Foto à direita) */
+.profile-flex-layout {
+    display: flex;
+    justify-content: space-between; /* Espaço entre os dois lados */
+    align-items: flex-start; /* Alinha o conteúdo ao topo */
+    gap: 20px; 
+    padding: 10px 0;
+    margin-bottom: 10px;
 }
-.profile-icon {
-    width: 80px; height: 80px; border-radius: 50%;
-    background-color: var(--primary-color); color: white;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 2em; font-weight: bold; margin-bottom: 10px;
+
+/* Estilo para a imagem (CRÍTICO: Torna a imagem redonda e visível) */
+.user-photo-style {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%; /* Torna redonda */
+    object-fit: cover; /* Garante que a imagem se encaixe sem distorcer */
+    flex-shrink: 0; /* Impede que a foto encolha */
+    border: 3px solid var(--primary-color); /* Borda */
+    background-color: #f0f0f0; /* Fundo para placeholder */
 }
-.username { font-size: 1.8em; font-weight: bold; color: var(--text-color); margin-bottom: 5px; }
+
+/* Antiga seção 6.1 (user-profile) substituída pelas novas classes: */
+.user-details-text {
+    flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+}
+.user-photo-container {
+    padding-top: 5px; /* Pequeno ajuste de alinhamento vertical */
+}
+
+/* Elementos de Texto do Perfil */
+#user-name {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+#user-username { 
+    font-size: 1em; 
+    color: var(--text-light); 
+    margin-bottom: 10px; 
+    display: block;
+}
+.profile-badge {
+    background-color: var(--text-light); color: white; padding: 3px 8px;
+    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px;
+}
 .admin-badge {
-    background-color: var(--error-color); color: white; padding: 3px 8px;
-    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px;
+    background-color: var(--error-color);
 }
 .user-info { font-size: 1em; color: var(--text-light); margin-bottom: 15px; }
 
-.saldo-box {
-    text-align: center; padding: 15px; border-radius: 10px;
-    background-color: var(--list-item-bg-color); border: 1px solid #ddd;
-    margin-bottom: 20px;
+
+/* Saldo (Ajustado para o novo layout) */
+.user-balance {
+    text-align: left;
+    margin-top: 15px;
 }
-.saldo-label { font-size: 1em; color: var(--text-light); margin-bottom: 5px; }
-.saldo-valor { font-size: 2.5em; font-weight: bold; line-height: 1; }
+.user-balance p {
+    color: var(--text-light);
+    font-size: 0.9em;
+}
+#user-saldo {
+    font-size: 2.2em; /* Tamanho reduzido para caber melhor no layout flex */
+    font-weight: bold;
+    color: var(--success-color); 
+    line-height: 1.2;
+}
 
 
 /* 6.2 Grid de Ações */
+.action-grid-card {
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+
 .action-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
 }
 .action-item {
-    text-align: center; padding: 15px; border-radius: 10px;
-    background-color: var(--box-bg-color-login); /* Branco */
-    border: 1px solid #ddd;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); transition: transform 0.2s;
-    text-decoration: none; color: var(--text-color);
+    text-align: center; padding: 15px; border-radius: 10px;
+    background-color: var(--box-bg-color-login); /* Branco */
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); transition: transform 0.2s;
+    text-decoration: none; color: var(--text-color);
 }
 .action-item:hover {
-    transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .action-icon { font-size: 2em; margin-bottom: 5px; }
@@ -277,14 +344,14 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 7. LISTAS E CARDS (Tarefas e Recompensas)
- * ========================================================================= */
+ * 7. LISTAS E CARDS (Tarefas e Recompensas)
+ * ========================================================================= */
 
 /* Card Geral de Tarefa */
 .tarefa-card {
-    background-color: var(--list-item-bg-color); padding: 15px;
-    margin-bottom: 10px; border-radius: 6px; border-left: 5px solid var(--primary-color);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column;
+    background-color: var(--list-item-bg-color); padding: 15px;
+    margin-bottom: 10px; border-radius: 6px; border-left: 5px solid var(--primary-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column;
 }
 
 /* Tarefas Atribuídas/Concluídas */
@@ -303,8 +370,8 @@ textarea { resize: vertical; min-height: 80px; }
 /* Tarefas Disponíveis (Header e valores) */
 .tarefa-card-disponivel { border-left-color: var(--primary-color); }
 .tarefa-card-disponivel .tarefa-header {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
 }
 .tarefa-card-disponivel .tarefa-nome { font-size: 1.3em; font-weight: bold; color: var(--primary-dark); flex-grow: 1; }
 .tarefa-card-disponivel .tarefa-valor { font-size: 1.3em; font-weight: bold; color: var(--success-color); margin-left: 10px; white-space: nowrap; }
@@ -313,59 +380,62 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 8. MODAIS (Popups) 
- * ========================================================================= */
+ * 8. MODAIS (Popups) 
+ * ========================================================================= */
 .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); display: flex;
-    justify-content: center; align-items: center; z-index: 1000;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); display: flex;
+    justify-content: center; align-items: center; z-index: 1000;
 }
 .modal-content {
-    background-color: var(--box-bg-color-login); padding: 30px;
-    border-radius: 10px; width: 90%; max-width: 450px;
-    position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background-color: var(--box-bg-color-login); padding: 30px;
+    border-radius: 10px; width: 90%; max-width: 450px;
+    position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 .close-btn {
-    position: absolute; top: 10px; right: 20px; font-size: 24px;
-    font-weight: bold; color: #aaa; cursor: pointer;
+    position: absolute; top: 10px; right: 20px; font-size: 24px;
+    font-weight: bold; color: #aaa; cursor: pointer;
 }
 .close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
 .modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
 
 
 /* =========================================================================
- * 9. RESPONSIVIDADE (Desktop/Tablet)
- * ========================================================================= */
+ * 9. RESPONSIVIDADE (Desktop/Tablet)
+ * ========================================================================= */
 
 @media (min-width: 600px) {
-    /* Layouts Gerais */
-    .center-box {
-        max-width: 450px;
-        padding: 40px; 
+    /* Layouts Gerais */
+    .center-box {
+        max-width: 450px;
+        padding: 40px; 
+    }
+    .center-box-dashboard {
+        max-width: 550px; /* Mais espaço no desktop para o layout flex */
     }
-    .large-box {
-        max-width: 900px;
-    }
+    .large-box {
+        max-width: 900px;
+    }
 
-    /* Dashboard */
-    .action-grid {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 20px;
-    }
-    .action-item {
-        padding: 20px;
-    }
-    
-    /* Formulários e Cards */
-    .tarefa-card-disponivel .tarefa-header {
-        flex-direction: row;
-        align-items: center;
-    }
-    .tarefa-card-disponivel .tarefa-nome,
-    .tarefa-card-disponivel .tarefa-valor {
-        font-size: 1.2em;
-    }
-    
-    /* Input Padrão no Desktop (volta ao padding 15px, mas já está em 15px) */
-    .input-rounded-small { padding: 15px; }
+    /* Dashboard */
+    .action-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+    }
+    .action-item {
+        padding: 20px;
+    }
+    
+    /* Formulários e Cards */
+    .tarefa-card-disponivel .tarefa-header {
+        flex-direction: row;
+        align-items: center;
+    }
+    .tarefa-card-disponivel .tarefa-nome,
+    .tarefa-card-disponivel .tarefa-valor {
+        font-size: 1.2em;
+    }
+    
+    /* Input Padrão no Desktop (volta ao padding 15px, mas já está em 15px) */
+    .input-rounded-small { padding: 15px; }
 }
