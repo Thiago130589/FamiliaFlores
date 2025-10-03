@@ -106,8 +106,8 @@ body {
 }
 
 /* Adaptação da caixa grande para outras telas (admin) */
-.large-box { 
-    max-width: 900px;
+.center-box-admin { 
+    max-width: 900px; /* Aumenta o tamanho para o Painel Admin */
     padding: 30px; 
 }
 
@@ -208,14 +208,7 @@ body {
     padding: 10px 0; font-weight: normal; text-align: center;
 }
 
-/* Botão de Ícone (Câmera) */
-.btn-icon {
-    width: 48px; height: 48px; padding: 0; font-size: 1.5em; 
-    flex-shrink: 0; display: flex; justify-content: center; 
-    align-items: center; border-radius: 50%; 
-}
-
-/* Botão de Sair no Card */
+/* Botão de Sair no Card (Dashboard) */
 .btn-logout-card {
     position: absolute;
     top: 15px;
@@ -229,9 +222,47 @@ body {
     transition: color 0.3s;
     z-index: 10; 
 }
-
 .btn-logout-card:hover {
     color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* Botão de Sair no Painel Admin */
+.btn-logout-admin {
+    background-color: var(--error-color);
+    color: white;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+    transition: background-color 0.3s;
+}
+.btn-logout-admin:hover {
+    background-color: var(--danger-color);
+}
+
+
+/* Botão de Ícone (Câmera) */
+.btn-icon {
+    width: 48px; height: 48px; padding: 0; font-size: 1.5em; 
+    flex-shrink: 0; display: flex; justify-content: center; 
+    align-items: center; border-radius: 50%; 
+}
+/* Botão de Voltar (Painel Admin) */
+.btn-voltar {
+    display: inline-block;
+    margin-top: -10px; 
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+.btn-voltar:hover {
+    color: var(--primary-dark);
     text-decoration: underline;
 }
 
@@ -256,7 +287,13 @@ input[type="date"], input[type="time"], textarea, select, .input-rounded {
 .input-rounded-small { padding: 15px; } 
 
 textarea { resize: vertical; min-height: 80px; }
-.input-group { display: flex; gap: 10px; align-items: center; } 
+/* Ajustado para compatibilidade com o login/cadastro */
+.input-group { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 5px; 
+    margin-bottom: 15px;
+} 
 
 
 /* =========================================================================
@@ -315,15 +352,15 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .profile-badge {
     background-color: var(--text-light); color: white; padding: 3px 8px;
-    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px;
+    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 5px; /* Ajuste para não quebrar a linha */
+    display: inline-block;
 }
 .admin-badge {
     background-color: var(--error-color);
 }
-.user-info { font-size: 1em; color: var(--text-light); margin-bottom: 15px; }
 
 
-/* Saldo (Ajustado para o novo layout) */
+/* Saldo */
 .user-balance {
     text-align: left; 
     margin-top: 15px;
@@ -332,11 +369,33 @@ textarea { resize: vertical; min-height: 80px; }
     color: var(--text-light);
     font-size: 0.9em;
 }
+
+/* Linha Saldo + Botão Carteira (CRÍTICO: Garante que fiquem lado a lado) */
+.balance-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+}
+
 #user-saldo {
     font-size: 2.5em; 
     font-weight: bold;
     color: var(--success-color); 
     line-height: 1.2;
+}
+.btn-carteira-saldo {
+    padding: 10px 15px;
+    background-color: #eee;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.btn-carteira-saldo:hover {
+    background-color: #ddd;
 }
 
 
@@ -354,7 +413,7 @@ textarea { resize: vertical; min-height: 80px; }
     margin-top: 20px;
 }
 
-/* ESTILO FINAL DO BOTÃO DE AÇÃO (AZUL, BRANCO, ARREDONDADO E SOMBRA) */
+/* ESTILO FINAL DO BOTÃO DE AÇÃO */
 .action-item {
     padding: 15px 10px; 
     border-radius: 8px; 
@@ -371,25 +430,88 @@ textarea { resize: vertical; min-height: 80px; }
     text-decoration: none; 
     font-weight: bold;
 }
-/* Efeito de hover */
 .action-item:hover {
     transform: translateY(-2px); 
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); 
     background-color: var(--primary-dark); 
 }
 
-/* Garante que o ícone fique branco no estado normal e no hover */
 .action-icon { 
     font-size: 2em; 
     margin-bottom: 5px; 
-    color: white !important; /* Ícone Branco FORÇADO */
+    color: white !important; 
 }
 
 
 /* =========================================================================
- * 7. LISTAS E CARDS (Tarefas e Recompensas)
+ * 7. ESPECÍFICO DO PAINEL ADMIN (painel-admin.html)
  * ========================================================================= */
 
+.admin-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+.admin-header h1 {
+    font-size: 2em;
+    color: var(--primary-dark);
+}
+.admin-header p {
+    color: var(--text-light);
+    font-size: 1.1em;
+}
+
+.admin-section {
+    margin-bottom: 30px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #fcfcfc;
+}
+.admin-section h2 {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+}
+.admin-section h2 .fas {
+    margin-right: 10px;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 3 colunas em telas maiores */
+    gap: 15px;
+}
+
+.admin-action-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #fff;
+    border: 1px solid var(--primary-light);
+    text-decoration: none;
+    color: var(--text-color);
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, transform 0.2s;
+}
+.admin-action-item:hover {
+    background-color: #eaf5ff;
+    transform: translateY(-2px);
+    border-color: var(--primary-dark);
+}
+.admin-action-item .fas {
+    font-size: 2.5em;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+
+/* =========================================================================
+ * 8. LISTAS E CARDS (Tarefas e Recompensas)
+ * ========================================================================= */
+ 
 /* Card Geral de Tarefa */
 .tarefa-card {
     background-color: var(--list-item-bg-color); padding: 15px;
@@ -423,7 +545,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 8. MODAIS (Popups) 
+ * 9. MODAIS (Popups) 
  * ========================================================================= */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;

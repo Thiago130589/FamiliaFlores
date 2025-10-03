@@ -3,75 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Painel Admin</title>
+    <title>Painel de Administração | Plataforma</title>
     
     <link rel="stylesheet" href="style.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script src="firebase-init.js"></script>
     
     <script src="script.js" defer></script> 
-</head>
+    
+    </head>
 <body>
-    <div class="center-box center-box-dashboard">
-        
-        <button id="logout-button" class="btn-logout-card">Sair</button>
-
-        <header class="user-profile-header">
-            <div class="user-details-text">
-                <h1 id="user-name">Carregando...</h1>
-                <span id="user-username">@loading</span>
-                <span id="user-role" class="profile-badge admin-badge hidden-start">ADMIN</span>
-            </div>
-            
-            <div class="user-photo-container">
-                <img id="user-photo" class="user-photo-style" alt="Foto do Usuário" src="imagens/default-avatar.png">
-            </div>
+    <div class="center-box center-box-admin">
+        <header class="admin-header">
+            <h1><i class="fas fa-user-shield"></i> Painel de Administração</h1>
+            <p>Gerencie usuários, tarefas e recompensas da plataforma.</p>
         </header>
 
+        <a href="index.html" class="btn-voltar"><i class="fas fa-arrow-left"></i> Voltar ao Dashboard</a>
+
         <hr class="divider">
 
-        <div class="user-balance">
-            <p>Saldo Atual</p>
-            <div class="balance-line">
-                <p id="user-saldo" class="saldo-positivo">R$ 0,00</p>
-                <a href="minha-carteira.html" class="btn-carteira-saldo">
-                    <i class="fas fa-wallet"></i> Carteira
+        <div class="admin-section">
+            <h2><i class="fas fa-users"></i> Gestão de Usuários</h2>
+            <div class="admin-grid">
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-user-plus"></i> Adicionar Usuário
+                </a>
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-user-edit"></i> Editar Pontuações
+                </a>
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-user-times"></i> Remover Usuário
                 </a>
             </div>
         </div>
 
         <hr class="divider">
 
-        <div class="action-grid-card">
-            <div class="section-title">Ações</div>
-            <div class="action-grid">
-                
-                <a href="tarefas-disponiveis.html" class="action-item">
-                    <i class="fas fa-list-check action-icon icon-tarefas"></i>
-                    Tarefas Disponíveis
+        <div class="admin-section">
+            <h2><i class="fas fa-list-check"></i> Gestão de Tarefas</h2>
+            <div class="admin-grid">
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-plus-circle"></i> Criar Nova Tarefa
                 </a>
-                
-                <a href="resgatar-recompensas.html" class="action-item">
-                    <i class="fas fa-gift action-icon icon-recompensa"></i>
-                    Resgatar Recompensas
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-check-double"></i> Aprovar/Rejeitar Tarefas
                 </a>
-                
-                <a href="historico.html" class="action-item">
-                    <i class="fas fa-history action-icon icon-historico"></i>
-                    Histórico
-                </a>
-
-                <a href="painel-admin.html" id="admin-button" class="action-item hidden-start">
-                    <i class="fas fa-user-gear action-icon icon-admin"></i>
-                    Painel Admin
-                </a>
-
             </div>
         </div>
-        
+
+        <hr class="divider">
+
+        <div class="admin-section">
+            <h2><i class="fas fa-gift"></i> Gestão de Recompensas</h2>
+            <div class="admin-grid">
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-cart-plus"></i> Gerenciar Itens
+                </a>
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-trophy"></i> Aprovar Resgates
+                </a>
+            </div>
+        </div>
+
+        <button id="logout-button" class="btn-logout-admin">
+            <i class="fas fa-sign-out-alt"></i> Sair da Conta
+        </button>
     </div>
 </body>
 </html>

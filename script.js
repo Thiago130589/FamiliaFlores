@@ -10,9 +10,10 @@ function checkLoginStatus() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
     const path = window.location.pathname;
 
-    // Se estiver em telas de AUTH, garante que o usuário logado seja redirecionado para o dashboard.
+    // Se estiver em telas de AUTH (login/cadastro), redireciona se já estiver logado.
     if (path.includes('login.html') || path.includes('cadastrar-usuario.html')) {
         if (usuarioLogado) {
+            // Pequeno delay para evitar o "flickering"
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 10);
@@ -31,6 +32,7 @@ function checkLoginStatus() {
             currentUser = JSON.parse(usuarioLogado);
             console.log("Dashboard carregado para:", currentUser.username, "(Admin:", currentUser.isAdmin, ")");
             
+            // Se estiver no Dashboard, carrega os dados
             if (path.includes('index.html')) {
                 loadDashboardData();
             }
@@ -62,24 +64,18 @@ function loadDashboardData() {
     // 2. Foto do Perfil
     const userPhotoEl = document.getElementById('user-photo');
     if (userPhotoEl) {
-        // CORREÇÃO DE CAMINHO DE IMAGEM: 
-        // 1. Tenta carregar a foto do DB
-        // 2. Se falhar, tenta o caminho 'imagens/default-avatar.png'
-        // 3. Se ainda falhar (erro 404), usa um caminho mais simples 'default-avatar.png'
+        // Lógica de fallback para evitar erros 404
         const defaultPath = 'imagens/default-avatar.png';
-        const fallbackPath = 'default-avatar.png'; // Caminho de fallback caso o 404 persista
+        const fallbackPath = 'default-avatar.png';
         
         userPhotoEl.src = currentUser.foto || defaultPath; 
 
-        // Adiciona um listener para lidar com o erro 404 de forma suave
         userPhotoEl.onerror = function() {
-            // Tenta o caminho de fallback se a primeira tentativa falhar
             if (userPhotoEl.src.endsWith(defaultPath)) {
                 userPhotoEl.src = fallbackPath;
             } else if (userPhotoEl.src.endsWith(fallbackPath)) {
-                // Se o fallback também falhar, usa um URL vazio para não quebrar.
                 userPhotoEl.src = ''; 
-                console.error("ERRO 404 CRÍTICO: A imagem de perfil padrão não pôde ser carregada em nenhum caminho. Verifique a pasta/nome do arquivo.");
+                console.error("ERRO 404: Imagem de perfil padrão não encontrada.");
             }
         };
     }
@@ -89,6 +85,8 @@ function loadDashboardData() {
     if (saldoEl) {
         const saldoFormatado = (currentUser.pontuacao || 0).toFixed(2).replace('.', ',');
         saldoEl.textContent = `R$ ${saldoFormatado}`;
+        
+        // Aplica classe de cor
         if (currentUser.pontuacao < 0) {
             saldoEl.classList.add('saldo-negativo');
             saldoEl.classList.remove('saldo-positivo');
@@ -100,8 +98,8 @@ function loadDashboardData() {
 
     // 4. Exibir/Ocultar elementos de ADMIN
     const isAdmin = currentUser.isAdmin === true;
-    const adminBadge = document.getElementById('user-role');
-    const adminButton = document.getElementById('admin-button');
+    const adminBadge = document.getElementById('user-role'); // Onde aparece "ADMIN" no perfil
+    const adminButton = document.getElementById('admin-button'); // O link "Painel Admin"
 
     if (adminBadge) {
         if (isAdmin) {
@@ -130,10 +128,14 @@ function loadDashboardData() {
 // 3. INICIALIZAÇÃO
 // =========================================================================
 
+// Chama a verificação de status imediatamente ao carregar o script
 checkLoginStatus();
 
+// Garante que a lógica do dashboard rode após o DOM ser totalmente carregado (útil com 'defer')
 document.addEventListener('DOMContentLoaded', () => {
+    // Se a página for o dashboard e o usuário estiver definido, garante o carregamento
     if (window.location.pathname.includes('index.html') && currentUser) {
+        // O loadDashboardData já foi chamado, esta é uma redundância segura
         loadDashboardData();
     }
 });
