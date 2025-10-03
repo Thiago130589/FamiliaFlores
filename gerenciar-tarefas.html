@@ -113,18 +113,19 @@
 
             try {
                 // 1. Query Atribuídas (EmAndamento, Pendente, Aprovada)
-                // CORRIGIDO: Ordenação por dataAtribuicao, que está em um índice ATIVADO
+                // REATIVADO: Usa dataAtribuicao para casar com o índice que você deve criar: status + dataAtribuicao
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
-                    .orderBy('dataAtribuicao', 'desc'); // <-- CORREÇÃO AQUI
+                    .orderBy('dataAtribuicao', 'desc'); 
                     
                 // 2. Query Disponíveis
-                // CORRIGIDO: Ordenação por dataCriacao, que está em um índice ATIVADO
+                // MANTIDO: status + dataCriacao deve estar em um índice
                 const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
-                    .orderBy('dataCriacao', 'desc'); // <-- CORREÇÃO AQUI
+                    .orderBy('dataCriacao', 'desc'); 
                     
                 // 3. Query Pagas (Histórico)
+                // REATIVADO: Usa dataPagamento para casar com o índice que você deve criar: status + dataPagamento
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
