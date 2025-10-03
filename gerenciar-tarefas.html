@@ -112,17 +112,19 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // Query Atribuídas 
+                // 1. Query Atribuídas (EmAndamento, Pendente, Aprovada)
+                // CORRIGIDO: Ordenação por dataAtribuicao, que está em um índice ATIVADO
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
-                    .orderBy('dataCriacao', 'desc');
+                    .orderBy('dataAtribuicao', 'desc'); // <-- CORREÇÃO AQUI
                     
-                // Query Disponíveis
+                // 2. Query Disponíveis
+                // CORRIGIDO: Ordenação por dataCriacao, que está em um índice ATIVADO
                 const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
-                    .orderBy('dataCriacao', 'desc');
+                    .orderBy('dataCriacao', 'desc'); // <-- CORREÇÃO AQUI
                     
-                // Query Pagas
+                // 3. Query Pagas (Histórico)
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
@@ -162,9 +164,10 @@
 
                 selectExcluir.innerHTML = optionsHtml;
             } catch (error) {
-                selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
-                console.error("Erro ao carregar todas as tarefas:", error);
-                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas para exclusão. Verifique os índices.", 'danger');
+                // Se a consulta falhar por falta de índice, o erro é exibido aqui
+                console.error("Erro ao carregar todas as tarefas para exclusão (VERIFIQUE ÍNDICES):", error);
+                selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas. Verifique os índices.</option>';
+                exibirAlertaGlobal('admin-alerts', `Erro ao carregar tarefas para exclusão: ${error.message}.`, 'danger');
             }
 
             toggleModal('excluir-tarefa-modal', true);
@@ -254,7 +257,7 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
             
             try {
-                // Query: status == 'Pendente', dataConclusao 'desc' (Requer índice: status, dataConclusao)
+                // Query: status == 'Pendente', dataConclusao 'desc' (Corresponde a um índice ATIVADO: image_61844f.png)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'desc'); 

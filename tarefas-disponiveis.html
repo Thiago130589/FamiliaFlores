@@ -58,8 +58,8 @@
         const isAdmin = userInfo && userInfo.isAdmin === true;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Se for admin, carrega a lista de usuários (para o modal de atribuição)
             if (isAdmin) {
+                // Se for admin, carrega a lista de usuários (para o modal de atribuição)
                 loadUsersForAssignment(); 
             }
             loadTarefasDisponiveis();
@@ -68,18 +68,19 @@
         // Função do Admin para carregar a lista de usuários (apenas membros, não admin)
         async function loadUsersForAssignment() {
             try {
-                // Esta consulta só é necessária para o Admin.
+                // REQUER: allow read: if request.auth != null; nas regras da coleção /users
                 const snapshot = await firestore.collection('users').get();
                 
                 userList = snapshot.docs
                     .map(doc => doc.data())
-                    .filter(user => user.isAdmin !== true); 
+                    .filter(user => user.isAdmin !== true && user.nome); // Filtra quem não é admin E quem tem campo 'nome'
                 
                 console.log("Usuários carregados (Para atribuição):", userList);
                     
             } catch(e) {
                 console.error("Erro ao carregar usuários (Verifique Regras de Segurança/Permissões):", e);
-                // Exibir o alerta no console é suficiente, pois a falha não bloqueia o membro comum.
+                // Exibe o erro de permissão para o Admin, se falhar
+                exibirAlertaGlobal('user-alerts', "Erro ao carregar lista de usuários para atribuição. Verifique as regras de segurança (coleção 'users').", 'danger');
             }
         }
 
@@ -93,17 +94,18 @@
             const selectUsuario = document.getElementById('select-usuario-atribuicao');
             
             let userOptions = '<option value="">Selecione o Usuário</option>';
-            if (userList.length === 0) {
+            if (userList.length === 0 && (!userInfo || !userInfo.nome)) {
                 userOptions = '<option value="" disabled>Nenhum Usuário Encontrado</option>';
             } else {
                 userList.forEach(user => {
+                    // Adiciona apenas membros que foram carregados
                     if (user.nome) {
                         userOptions += `<option value="${user.nome}">${user.nome}</option>`;
                     }
                 });
             }
             
-            // Adiciona o Admin à lista para que ele possa se atribuir a tarefa.
+            // Adiciona o Admin (Thiago) como opção de atribuição
             if (userInfo && userInfo.nome) {
                  userOptions += `<option value="${userInfo.nome}">${userInfo.nome} (Eu/Admin)</option>`;
             }
@@ -134,7 +136,7 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas disponíveis...</p>';
             
             try {
-                // CORREÇÃO DO ÍNDICE: USANDO dataCriacao que está ATIVADO
+                // CORREÇÃO DO ÍNDICE: USANDO dataCriacao que está ATIVADO (image_5783cf.png, image_61844f.png)
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc'); // <-- CORRIGIDO AQUI
@@ -147,7 +149,6 @@
                     foundTasks = true;
                     const taskId = doc.id;
                     const t = doc.data();
-                    // Garante que o valor é tratado como float ou 0
                     const valor = parseFloat(t.valor || 0);
                     
                     let actionButton = '';
