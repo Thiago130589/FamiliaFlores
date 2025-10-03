@@ -13,15 +13,27 @@ let currentUser = null;
  */
 function checkLoginStatus() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
+    const path = window.location.pathname;
 
-    // Se o usuário estiver na tela de login, não faz nada.
-    if (window.location.pathname.includes('login.html') || window.location.pathname === '/') {
+    // 🔴 CORREÇÃO CRÍTICA DO LOOP: Se o usuário estiver nas telas de AUTH, não faça a verificação de redirecionamento.
+    // Isso evita que a tela de login ou cadastro se redirecionem para si mesmas.
+    if (path.includes('login.html') || path.includes('cadastrar-usuario.html')) {
+        
+        // Se estiver logado E tentar ir para login/cadastro, redireciona para o dashboard.
+        if (usuarioLogado) {
+            console.log("Usuário logado tentando acessar página de autenticação. Redirecionando para dashboard.");
+            window.location.href = 'index.html';
+        }
         return; 
     }
 
+    // ----------------------------------------------------------------------
+    // Lógica para as páginas PROTEGIDAS (como index.html)
+    // ----------------------------------------------------------------------
+
     if (!usuarioLogado) {
         // Se NÃO houver dados de usuário, redireciona para a tela de login.
-        console.log("Usuário não logado. Redirecionando para login.");
+        console.log("Usuário não logado em página protegida. Redirecionando para login.");
         setTimeout(() => {
             window.location.href = 'login.html'; 
         }, 10); // Pequeno delay para garantir que o script carregue
@@ -31,8 +43,8 @@ function checkLoginStatus() {
             currentUser = JSON.parse(usuarioLogado);
             console.log("Usuário logado encontrado:", currentUser.username);
             
-            // Chama a função que carrega os dados na tela
-            if (window.location.pathname.includes('index.html')) {
+            // Chama a função que carrega os dados na tela (apenas para o index.html)
+            if (path.includes('index.html')) {
                 loadDashboardData();
             }
             
