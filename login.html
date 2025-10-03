@@ -1,95 +1,111 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Gerenciador de Tarefas</title>
-        <link rel="stylesheet" href="login.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login de Usuário</title>
+    <link rel="stylesheet" href="css/login.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title">Acesso ao Sistema</h1>
-        
-        <div class="form-group">
-            <label for="username">Nome de Usuário</label>
-                        <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
-        </div>
+    <div class="center-box">
+        <div class="login-header">
+            <h1 class="main-title">Acesso ao Sistema</h1>
+            <p>Entre com seu Nome de Usuário e Senha.</p>
+        </div>
+        
+        <hr class="divider">
 
-        <div class="form-group">
-            <label for="password">Senha</label>
-                        <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
-        </div>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="login-username">Nome de Usuário (Apelido)</label>
+                <input type="text" id="login-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
+            </div>
 
-        <button onclick="loginUser()" class="btn-rounded btn-primary wide-button button-spacing-top">Entrar</button>
-        
-        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button center-text button-spacing-top">Primeiro acesso? Cadastre-se.</a>
+            <div class="form-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" class="input-rounded" placeholder="Sua senha" required>
+            </div>
+            
+            <button type="submit" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
+                Entrar
+            </button>
+        </form>
 
-                <p id="error-message" class="error-message hidden-start button-spacing-top center-text" role="alert"></p>
-    </div>
+        <a href="cadastrar-usuario.html" class="login-link">Não tem conta? Cadastre-se aqui.</a>
+        
+        <p id="login-message" class="error-message hidden-start" role="alert"></p>
+    </div>
 
-    <script>
-        const firestore = db;
-        const USERS_COLLECTION = 'users';
+    <script>
+        // Agora 'db' é global e acessível
+        const firestore = db;
+        const USERS_COLLECTION = 'users';
 
-        async function loginUser() {
-            const usernameInput = document.getElementById('username').value.trim();
-            const passwordInput = document.getElementById('password').value.trim();
-            const errorMessage = document.getElementById('error-message');
+        document.getElementById('login-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            loginUser();
+        });
 
-            errorMessage.classList.add('hidden-start');
-            errorMessage.textContent = '';
+        async function loginUser() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            const messageEl = document.getElementById('login-message');
 
-            if (!usernameInput || !passwordInput) {
-                errorMessage.textContent = 'Por favor, preencha todos os campos.';
-                errorMessage.classList.remove('hidden-start');
-                return;
-            }
+            messageEl.classList.add('hidden-start');
+            messageEl.textContent = '';
+            
+            if (!username || !password) {
+                messageEl.textContent = 'Por favor, preencha todos os campos.';
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
 
-            try {
-                const userIdToFetch = usernameInput; 
-                
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
+            try {
+                // 1. Busca o documento do usuário pelo nome de usuário
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
-                if (!userDoc.exists) {
-                    errorMessage.textContent = 'Usuário não encontrado. Verifique o nome.';
-                    errorMessage.classList.remove('hidden-start');
-                    return;
-                }
+                if (!userDoc.exists) {
+                    messageEl.textContent = 'Nome de usuário ou senha incorretos.';
+                    messageEl.classList.remove('hidden-start');
+                    return;
+                }
 
-                const userData = userDoc.data();
-                const storedPassword = userData.password || userData.senha; 
+                const userData = userDoc.data();
 
-                if (!storedPassword || storedPassword !== passwordInput) {
-                    errorMessage.textContent = 'Senha incorreta.';
-                    errorMessage.classList.remove('hidden-start');
-                    return;
-                }
+                // 2. Verifica a senha (em um projeto real, esta senha deveria ser hasheada!)
+                if (userData.senha !== password) {
+                    messageEl.textContent = 'Nome de usuário ou senha incorretos.';
+                    messageEl.classList.remove('hidden-start');
+                    return;
+                }
 
-                // LOGIN BEM-SUCEDIDO: Monta e Salva o objeto completo no localStorage
-                const usuarioLogado = {
-                    nome: userIdToFetch,
-                    isAdmin: userData.isAdmin === true, 
-                    // CRÍTICO: Agora pega fotoBase64 do Firestore ou a foto antiga (foto)
-                    fotoBase64: userData.fotoBase64 || userData.foto || 'img/default-avatar.png', 
-                    saldo: userData.saldo || 0
-                };
+                // 3. Login bem-sucedido
+                console.log("Login realizado com sucesso:", userData.nome);
+                
+                // Armazenar o usuário logado (usando localStorage de forma simplificada)
+                localStorage.setItem('currentUser', username); 
+                
+                messageEl.textContent = 'Login bem-sucedido! Redirecionando...';
+                messageEl.style.color = 'var(--success-color)';
+                messageEl.classList.remove('hidden-start');
 
-                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                // Redireciona após 1.5 segundos
+                setTimeout(() => {
+                    window.location.href = 'index.html'; 
+                }, 1500);
 
-                window.location.href = 'index.html';
-
-            } catch (error) {
-                console.error("Erro no login:", error);
-                errorMessage.textContent = 'Erro ao tentar conectar. Tente novamente.';
-                errorMessage.classList.remove('hidden-start');
-            }
-        }
-    </script>
+            } catch (error) {
+                console.error("Erro no login:", error);
+                messageEl.textContent = `Erro ao tentar logar: ${error.message || 'Verifique o console.'}`;
+                messageEl.classList.remove('hidden-start');
+            }
+        }
+    </script>
 </body>
 </html>

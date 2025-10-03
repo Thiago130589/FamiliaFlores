@@ -1,11 +1,10 @@
 /*
- * login.css - ARQUIVO COMPLETO
- * Contém TODOS os estilos necessários para a página login.html, 
- * incluindo base, layout de centralização e componentes de formulário.
+ * login.css - Estilos específicos para a tela de Login
+ * Inclui: Base, Variáveis, Reset Básico e o Layout de Centralização Responsiva.
  */
 
 /* =========================================================================
- * 1. GERAIS E VARIÁVEIS (ROOT, BODY, RESET) - BASE
+ * 1. GERAIS E VARIÁVEIS (BASE)
  * ========================================================================= */
 :root {
     /* Cores Principais */
@@ -14,17 +13,17 @@
     --primary-dark: #0056b3;
     
     /* Fundo */
-    --background-color: #ffffff;
+    --background-color: #f8f9fa; /* Fundo levemente cinza para destacar a caixa */
     
     /* Cores de Feedback */
     --success-color: #28a745;
     --error-color: #dc3545;
-    --warning-color: #ffc107;
+    --info-color: #17a2b8;
 
     /* Neutros */
     --text-color: #333;
     --text-light: #6c757d;
-    --box-bg-color: #e6ffe6; /* Verde Claro (Cor principal da caixa) */
+    --box-bg-color: #ffffff; /* Caixa branca */
     --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -35,65 +34,79 @@
     font-family: Arial, sans-serif;
 }
 
+/* =========================================================================
+ * 2. LAYOUT: CENTRALIZAÇÃO (Mobile First)
+ * ========================================================================= */
+
 body {
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
     min-height: 100vh;
     
-    /* Centralização Completa da Tela de Login */
+    /* Centralização horizontal e vertical */
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 0;
+    padding: 20px; 
 }
-
-/* =========================================================================
- * 2. LAYOUT E CENTRALIZAÇÃO (Caixa de Login)
- * ========================================================================= */
 
 .center-box {
     background-color: var(--box-bg-color);
-    border-radius: 20px;
+    border-radius: 10px;
     padding: 30px;
     box-shadow: 0 4px 12px var(--shadow-color);
-    margin: 20px auto; 
-    width: 95%; 
-    max-width: 380px; /* Largura ideal para formulário de login */
+    width: 100%; /* Ocupa 100% da largura no mobile */
+    max-width: 380px; /* Limite em telas maiores (desktop) */
 }
 
 /* =========================================================================
- * 3. TIPOGRAFIA E UTILITÁRIOS
+ * 3. COMPONENTES: FORMULÁRIO
  * ========================================================================= */
+
+.login-header { 
+    margin-bottom: 20px; 
+    text-align: center; 
+}
 
 .main-title {
     font-size: 2em;
     font-weight: bold; 
     color: var(--primary-color);
-    text-align: center;
-    margin-bottom: 25px; /* Mais espaço para o título de login */
+    margin-bottom: 5px;
+}
+.divider { 
+    border: none; 
+    height: 1px; 
+    background-color: #e0e0e0; 
+    margin: 15px 0; 
 }
 
-.center-text { text-align: center; } 
-
-.error-message {
-    color: var(--error-color);
-    font-weight: bold;
-    text-align: center;
-    padding: 10px;
-    border: 1px solid var(--error-color);
-    border-radius: 5px;
+.form-group {
+    margin-bottom: 15px;
 }
 
-.hidden-start { display: none; }
+label { 
+    font-weight: bold; 
+    margin-bottom: 5px; 
+    color: var(--text-color); 
+    display: block;
+}
 
+.input-rounded {
+    padding: 12px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px;
+    font-size: 1em; 
+    width: 100%;
+}
 
 /* =========================================================================
- * 4. BOTÕES E LINKS
+ * 4. COMPONENTES: BOTÕES E FEEDBACK
  * ========================================================================= */
 
 .btn-rounded {
-    padding: 12px 20px; /* Um pouco maior */
+    padding: 12px 20px; 
     border: none;
     border-radius: 25px;
     cursor: pointer;
@@ -102,58 +115,39 @@ body {
     text-decoration: none;
     transition: background-color 0.3s, opacity 0.3s;
     font-size: 1em;
-    display: block; /* Garante que o botão ocupe toda a largura */
-}
-
-.btn-primary { background-color: var(--primary-color); color: white; }
-.btn-primary:hover { background-color: var(--primary-dark); }
-
-.btn-secondary-text { 
-    background-color: transparent; 
-    color: var(--primary-color); 
-    border: none;
-    text-decoration: underline;
-    display: inline-block;
-    padding: 10px 0;
-    font-weight: normal;
-}
-.btn-secondary-text:hover { color: var(--primary-dark); }
-
-.wide-button { width: 100%; }
-.button-spacing-top { margin-top: 15px; }
-
-
-/* =========================================================================
- * 5. FORMULÁRIOS E INPUTS
- * ========================================================================= */
-
-.form-group {
-    margin-bottom: 15px;
-}
-label { 
-    font-weight: bold; 
-    margin-bottom: 5px; 
-    color: var(--text-color); 
     display: block;
 }
 
-/* Input principal (mudando para a classe 'input-rounded' usada no HTML) */
-.input-rounded {
-    padding: 15px; 
-    border: 1px solid #ccc; 
-    border-radius: 8px;
-    font-size: 1em; 
-    width: 100%;
+.btn-primary { 
+    background-color: var(--primary-color); 
+    color: white; 
+}
+.btn-primary:hover { 
+    background-color: var(--primary-dark); 
 }
 
-
-/* =========================================================================
- * 6. RESPONSIVIDADE
- * ========================================================================= */
-
-@media (min-width: 600px) {
-    .center-box {
-        max-width: 450px;
-        padding: 40px; 
-    }
+.wide-button { 
+    width: 100%; 
 }
+
+.login-link {
+    display: block; 
+    text-align: center; 
+    margin-top: 15px;
+    font-size: 0.9em; 
+    color: var(--primary-color); 
+    text-decoration: none;
+}
+.login-link:hover { 
+    color: var(--primary-dark); 
+    text-decoration: underline; 
+}
+
+.error-message { 
+    color: var(--error-color); 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 10px;
+    margin-top: 15px;
+}
+.hidden-start { display: none; }
