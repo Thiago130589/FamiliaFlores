@@ -6,8 +6,7 @@
  * Otimizado para usar SOMENTE o Firestore, conforme a autenticação manual via Firestore.
  */
 
-// NOTA CRÍTICA: O HTML deve carregar apenas 'firebase-app.js' e 'firebase-firestore.js'.
-
+// Sua configuração do Firebase (dados omitidos por segurança)
 const firebaseConfig = {
     apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", // Use sua chave real
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
@@ -18,25 +17,24 @@ const firebaseConfig = {
     measurementId: "G-8E95B0VFNR" 
 };
 
-// 1. Inicializa o Firebase App usando o objeto global 'firebase'
+// 1. Inicializa o Firebase App
 let app;
 if (typeof firebase !== 'undefined') {
     if (!firebase.apps.length) {
         app = firebase.initializeApp(firebaseConfig);
     } else {
-        app = firebase.app(); // Usa a instância existente
+        app = firebase.app();
     }
 } else {
     console.error("ERRO CRÍTICO: O objeto 'firebase' não está definido. Verifique se o 'firebase-app.js' está carregado no seu HTML.");
 }
 
 // 2. Define a variável global 'db' com o serviço Firestore.
-// O serviço de autenticação (auth) foi removido para evitar o TypeError,
-// já que a autenticação está sendo feita manualmente via Firestore.
-const db = typeof app !== 'undefined' ? firebase.firestore() : null;
-
-if (db === null) {
+// A inicialização de 'firebase.auth()' foi removida para evitar o TypeError.
+let db;
+if (typeof app !== 'undefined' && typeof firebase.firestore !== 'undefined') {
+    db = firebase.firestore();
+} else {
+    // Esta mensagem deve aparecer se o script for carregado na ordem errada.
     console.error("ERRO CRÍTICO: O Firestore (db) falhou ao inicializar. O script 'firebase-firestore.js' está carregado?");
 }
-
-// O Storage não é inicializado aqui.

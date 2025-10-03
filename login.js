@@ -1,31 +1,38 @@
 // Arquivo: login.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica se a variável 'db' do Firestore e CryptoJS foram definidos
-    // O CryptoJS foi adicionado ao <head> do login.html, mas verificamos aqui.
-    if (typeof db === 'undefined' || typeof CryptoJS === 'undefined') {
-        console.error("ERRO CRÍTICO: O Firestore ('db') ou a biblioteca Crypto-JS ('CryptoJS') não estão definidos. Verifique o carregamento dos scripts no login.html e o firebase-init.js.");
-        return;
+    // Verifica se a variável 'db' do Firestore foi definida
+    if (typeof db === 'undefined') {
+        console.error("ERRO CRÍTICO: O Firestore ('db') não está definido. Verifique o carregamento dos scripts no login.html e o firebase-init.js.");
+        // Permite a execução para exibir a mensagem de erro no formulário
     }
 
+    // Limpa o localStorage ao carregar a página de login para evitar loops
     localStorage.removeItem('usuarioLogado'); 
 
-    const firestore = db;
+    // Garante que 'db' esteja definido ou seja null para evitar o ReferenceError
+    const firestore = typeof db !== 'undefined' ? db : null;
     const USERS_COLLECTION = 'users';
 
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            loginUser();
+            if (firestore) {
+                loginUser();
+            } else {
+                showMessage("Erro de inicialização: Banco de dados indisponível. Verifique o console.", true);
+            }
         });
     }
 
     const showMessage = (message, isError = true) => {
         const messageEl = document.getElementById('login-message');
         messageEl.textContent = message;
+        
         messageEl.style.color = isError ? 'var(--danger-color)' : 'var(--success-color)';
         messageEl.style.borderColor = isError ? 'var(--danger-color)' : 'var(--success-color)';
+        
         messageEl.classList.remove('hidden-start');
     };
 
@@ -33,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value.trim();
         
-        // ... (limpeza de mensagem)
+        document.getElementById('login-message').classList.add('hidden-start');
 
         if (!username || !password) {
             showMessage('Por favor, preencha todos os campos.');
@@ -41,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 1. BUSCA O USUÁRIO
+            // 1. BUSCA O USUÁRIO pelo username
             const snapshot = await firestore.collection(USERS_COLLECTION)
                 .where('username', '==', username)
                 .limit(1)
@@ -55,17 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const userDoc = snapshot.docs[0];
             const userData = userDoc.data();
             
-            // 2. CRIPTOGRAFA A SENHA fornecida para comparação (SHA-256)
-            const hashedPassword = CryptoJS.SHA256(password).toString();
-
-            // 3. Verifica a senha Cifrada
-            if (userData.password !== hashedPassword) {
-                // Se cair aqui, a senha não bateu.
+            // 2. VERIFICAÇÃO DE SENHA (AGORA SEM CRIPTOGRAFIA)
+            // Compara a senha digitada (password) com a senha salva no DB (userData.password)
+            if (userData.password !== password) {
                 showMessage('Nome de usuário ou senha incorretos.');
                 return;
             }
 
-            // 4. Login bem-sucedido: Salva dados no localStorage
+            // 3. Login bem-sucedido: Salva dados no localStorage
             const userToSave = {
                 username: username,
                 nome: userData.nome,
@@ -73,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 isAdmin: userData.isAdmin || false, 
                 perfil: userData.perfil || 'usuario',
                 pontuacao: userData.pontuacao || 0,
-                // Garantimos que a foto seja um caminho vazio ou o valor do DB
                 foto: userData.foto || '', 
             };
             
@@ -81,14 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             showMessage('Login bem-sucedido! Redirecionando...', false);
 
-            // 5. Redireciona
+            // 4. Redireciona para o Dashboard
             setTimeout(() => {
                 window.location.href = 'index.html'; 
             }, 500); 
 
         } catch (error) {
             console.error("Erro no login:", error);
-            showMessage("Erro na comunicação com o servidor.");
+            showMessage("Erro na comunicação com o servidor. Detalhes no console.");
         }
     }
 });
