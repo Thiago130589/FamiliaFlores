@@ -16,14 +16,16 @@
     --background-color: #e3f2fd; /* Azul muito claro, suave */
     
     /* Cores de Feedback */
-    --success-color: #28a745; /* Verde para sucesso/ganhos */
-    --error-color: #dc3545; /* Vermelho para multas/erros */
+    --success-color: #28a745; /* Verde para sucesso/ganhos/aprovar */
+    --error-color: #dc3545; /* Vermelho para multas/erros/rejeitar */
     --warning-color: #ffc107; /* Amarelo para pendente/atenção */
     --info-color: #17a2b8; /* Ciano para informação/atribuição */
 
     /* Neutros */
     --text-color: #333;
+    --text-light: #6c757d;
     --box-bg-color: #ffffff;
+    --list-item-bg-color: #f7f7f7; /* Fundo sutil para itens de lista */
     --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
@@ -98,7 +100,7 @@ body {
 
 .info-message {
     font-size: 0.9em;
-    color: #6c757d;
+    color: var(--text-light);
 }
 
 .empty-message {
@@ -114,6 +116,12 @@ body {
     text-align: center;
 }
 .center-text { text-align: center; } 
+
+/* Cores de Saldo/Placar */
+.saldo-negativo { color: var(--error-color); }
+.saldo-positivo { color: var(--success-color); }
+.negative-text { color: var(--error-color); }
+.positive-text { color: var(--success-color); }
 
 
 /* =========================================================================
@@ -176,6 +184,18 @@ body {
     max-width: 300px; 
     margin: 10px auto; 
     display: block; 
+}
+
+/* Novo: Botões de Ação de Admin/Lista (menores e compactos) */
+.btn-admin-action {
+    padding: 6px 14px;
+    font-size: 0.85em;
+    font-weight: bold;
+    border: none;
+    border-radius: 25px; /* Mantendo o arredondamento */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
 }
 
 
@@ -284,11 +304,6 @@ textarea {
     font-weight: bold;
 }
 
-/* Cores de Saldo/Placar */
-.saldo-negativo { color: var(--error-color); }
-.saldo-positivo { color: var(--success-color); }
-.negative-text { color: var(--error-color); }
-.positive-text { color: var(--success-color); }
 
 /* --- RELÓGIO --- */
 
@@ -313,25 +328,32 @@ textarea {
 }
 
 /* =========================================================================
- * 7. ESPECÍFICO DE LISTAS DE TAREFAS (TAREFAS-DISPONIVEIS.HTML / MINHAS-TAREFAS.HTML)
+ * 7. ESPECÍFICO DE LISTAS E CARDS (TAREFAS, ADMIN)
  * ========================================================================= */
 
-.tarefas-lista-compacta {
+/* Estilo Base para qualquer lista de itens */
+.tarefas-lista-compacta,
+.admin-list {
     padding-top: 5px;
 }
 
-.tarefa-item-compacta {
-    /* Layout principal: Conteúdo (esquerda) | Botão (direita) */
+.list-card {
     display: flex;
     justify-content: space-between; 
     align-items: center; 
     padding: 12px 15px;
     margin-bottom: 8px;
-    background-color: #ffffff;
+    background-color: var(--list-item-bg-color); /* Fundo sutil */
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border-left: 5px solid var(--success-color); 
+    border-left: 5px solid var(--primary-color); /* Cor de destaque genérica */
     transition: transform 0.2s;
+}
+
+/* Cartão para Tarefas Disponíveis/Minhas Tarefas (Borda verde) */
+.tarefa-item-compacta {
+    /* Usa .list-card, apenas sobrescreve a cor da borda */
+    border-left: 5px solid var(--success-color); 
 }
 
 .tarefa-details-list {
@@ -353,7 +375,7 @@ textarea {
     display: flex;
     flex-direction: column; /* Empilha no celular */
     font-size: 0.85em;
-    color: #6c757d;
+    color: var(--text-light);
     margin-bottom: 5px;
 }
 
@@ -381,6 +403,27 @@ textarea {
     flex-shrink: 0; 
     transition: background-color 0.2s;
 }
+
+/* NOVO: Estilo para a Lista de Aprovação de Tarefas (tarefas-pendentes.html) */
+.tarefa-card-aprovacao {
+    /* Herda do .list-card, sobrescreve apenas o fundo/borda e ajusta layout interno */
+    border-left: 5px solid var(--warning-color); /* Laranja para "Pendente" */
+    flex-wrap: wrap; 
+}
+
+.tarefa-info-left {
+    text-align: left;
+    flex-grow: 1;
+    min-width: 250px; 
+}
+
+.tarefa-acoes-right {
+    display: flex;
+    gap: 8px; /* Espaço entre os botões Aprovar e Rejeitar */
+    margin-top: 5px; 
+    flex-shrink: 0;
+}
+
 
 /* =========================================================================
  * 8. MODAIS (POPUPS) - MODAL DE PERFIL, ETC.
@@ -470,14 +513,14 @@ textarea {
     /* 9.1 Ajuste da caixa branca */
     .center-box {
         max-width: 450px; /* Volta para o tamanho ideal de desktop/tablet */
-        padding: 60px;
+        padding: 40px; /* Reduz um pouco o padding para 40px */
     }
     
     .large-box {
         max-width: 800px;
     }
 
-    /* 9.2 Ajuste de lista (Tarefas Disponíveis) */
+    /* 9.2 Ajuste de lista (Tarefas Disponíveis/Atribuídas) */
     .tarefa-details-list {
         flex-direction: row; /* Coloca os detalhes lado a lado */
         align-items: center;
@@ -506,5 +549,19 @@ textarea {
     
     .btn-pegar-compacta {
         margin-left: 5px; 
+    }
+
+    /* 9.3 Ajuste da lista de Aprovação */
+    .tarefa-card-aprovacao {
+        /* Desfaz o flex-wrap em telas maiores */
+        flex-wrap: nowrap;
+    }
+    .tarefa-info-left {
+        /* Garante que o texto ocupe o espaço necessário antes dos botões */
+        min-width: unset;
+        max-width: calc(100% - 160px); /* Deixa espaço para os 2 botões + margem */
+    }
+    .tarefa-acoes-right {
+        margin-top: 0; /* Remove a margem vertical desnecessária no desktop */
     }
 }
