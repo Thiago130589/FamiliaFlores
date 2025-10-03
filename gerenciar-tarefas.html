@@ -100,10 +100,10 @@
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
         const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
-        const USERS_COLLECTION = 'users'; // Adicionado
+        const USERS_COLLECTION = 'users'; 
         
         let allTasksList = []; 
-        let allUsersList = []; // Adicionado
+        let allUsersList = []; 
         
         // --- Funções de Verificação e Inicialização ---
         
@@ -127,11 +127,9 @@
             toggleModal('criar-tarefa-modal', true);
         }
         
-        // Adicionada função para abrir Modal de Atribuição
         async function openAtribuirTarefaModal() {
-            if (allUsersList.length === 0) {
-                await loadUsersForAssignment();
-            }
+            // Garante que a lista de usuários e tarefas esteja carregada antes de abrir
+            await loadUsersForAssignment();
             await loadAvailableTasksForAssignment(); 
             toggleModal('atribuir-tarefa-modal', true);
         }
@@ -150,16 +148,19 @@
                 const snapshot = await query.get();
                 let optionsHtml = '<option value="">Selecione a Tarefa</option>';
 
-                snapshot.forEach(doc => {
-                    const t = doc.data();
-                    const valorFormatado = (t.valor || 0).toFixed(2).replace('.', ',');
-                    optionsHtml += `<option value="${doc.id}">${t.nome} (R$${valorFormatado})</option>`;
-                });
+                if(snapshot.empty) {
+                     optionsHtml = '<option value="">Nenhuma tarefa disponível.</option>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const t = doc.data();
+                        const valorFormatado = (t.valor || 0).toFixed(2).replace('.', ',');
+                        optionsHtml += `<option value="${doc.id}">${t.nome} (R$${valorFormatado})</option>`;
+                    });
+                }
                 
                 selectTarefa.innerHTML = optionsHtml;
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis (VERIFIQUE ÍNDICES):", error);
-                // Feedback visual de erro
                 selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas. Verifique os índices.</option>';
                  if(typeof exibirAlertaGlobal === 'function') {
                     exibirAlertaGlobal('admin-alerts', `Erro ao carregar tarefas disponíveis: ${error.message}.`, 'danger');
@@ -167,7 +168,7 @@
             }
         }
         
-        // FUNÇÃO PARA CARREGAR USUÁRIOS (COM REGRAS CORRETAS)
+        // FUNÇÃO PARA CARREGAR USUÁRIOS (Corrigir problema de Permissão/Regra)
         async function loadUsersForAssignment() {
             const selectUsuario = document.getElementById('select-usuario-atribuir');
             selectUsuario.innerHTML = '<option value="">Carregando Usuários...</option>';
@@ -179,46 +180,49 @@
                 let optionsHtml = '<option value="">Selecione o Usuário</option>';
                 const adminName = checkAdminAccess();
 
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    // Assumindo que o campo 'nome' existe e é o nome de exibição
-                    const displayName = u.nome || 'Usuário Sem Nome'; 
-                    // Assume que a propriedade 'isAdmin' é usada para o badge
-                    const isAdmin = u.isAdmin ? ' (Admin)' : ''; 
-                    
-                    allUsersList.push({ id: doc.id, ...u });
-                    optionsHtml += `<option value="${u.nome}">${displayName}${isAdmin}</option>`;
-                });
+                if(snapshot.empty) {
+                    optionsHtml = '<option value="">Nenhum usuário encontrado.</option>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const u = doc.data();
+                        const displayName = u.nome || 'Usuário Sem Nome'; 
+                        const isAdmin = u.isAdmin ? ' (Admin)' : ''; 
+                        
+                        allUsersList.push({ id: doc.id, ...u });
+                        // Usamos o nome como valor para a atribuição
+                        optionsHtml += `<option value="${u.nome}">${displayName}${isAdmin}</option>`;
+                    });
+                }
                 
                 selectUsuario.innerHTML = optionsHtml;
             } catch (error) {
                 console.error("Erro ao carregar usuários (VERIFIQUE REGRAS DE SEGURANÇA):", error);
                 // Este erro geralmente é de permissão (Missing or insufficient permissions)
-                selectUsuario.innerHTML = '<option value="">Erro ao carregar usuários. Verifique as Regras de Segurança.</option>';
+                selectUsuario.innerHTML = '<option value="">Erro ao carregar usuários. Verifique as Regras de Segurança (list).</option>';
                  if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', `Erro ao carregar usuários: ${error.message}. Verifique as Regras.`, 'danger');
+                    exibirAlertaGlobal('admin-alerts', `Erro ao carregar usuários: ${error.message}. Verifique as Regras de list/read.`, 'danger');
                 } 
             }
         }
 
 
-        // Mantida a função openExcluirTarefaModal, pois já estava no código anterior
+        // FUNÇÃO PARA CARREGAR TODAS AS TAREFAS PARA EXCLUSÃO (Corrigir problema de Índice)
         async function openExcluirTarefaModal() {
             const selectExcluir = document.getElementById('select-tarefa-excluir');
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // 1. Query Atribuídas (EmAndamento, Pendente, Aprovada) - REQUER ÍNDICE
+                // 1. Query Atribuídas (EmAndamento, Pendente, Aprovada) - REQUER ÍNDICE: status, dataAtribuicao
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataAtribuicao', 'desc'); 
                     
-                // 2. Query Disponíveis - REQUER ÍNDICE
+                // 2. Query Disponíveis - REQUER ÍNDICE: status, dataCriacao
                 const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc'); 
                     
-                // 3. Query Pagas (Histórico) - REQUER ÍNDICE
+                // 3. Query Pagas (Histórico) - REQUER ÍNDICE: status, dataPagamento
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
@@ -232,9 +236,11 @@
                 
                 allTasksList = [];
                 let optionsHtml = '<option value="">Selecione a Tarefa para Excluir</option>';
+                let foundTasks = false;
                 
                 // Adiciona Atribuídas
                 snapshotAtribuidas.forEach(doc => {
+                    foundTasks = true;
                     const t = doc.data();
                     allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_ATRIBUIDAS_COLLECTION });
                     optionsHtml += `<option value="${doc.id}|${TAREFAS_ATRIBUIDAS_COLLECTION}">${t.nome} (Status: ${t.status} - Atribuída)</option>`;
@@ -242,21 +248,22 @@
                 
                 // Adiciona Disponíveis
                 snapshotDisponiveis.forEach(doc => {
+                    foundTasks = true;
                     const t = doc.data();
                     allTasksList.push({ id: doc.id, ...t, collection: TAREFAS_DISPONIVEIS_COLLECTION });
                     optionsHtml += `<option value="${doc.id}|${TAREFAS_DISPONIVEIS_COLLECTION}">${t.nome} (Status: ${t.status} - Disponível)</option>`;
                 });
 
-                // Adiciona Pagas
+                // Adiciona Pagas (Máximo 20)
                 snapshotPagas.forEach(doc => {
+                    foundTasks = true;
                     const t = doc.data();
                     const collectionName = TAREFAS_CONCLUIDAS_COLLECTION;
                     allTasksList.push({ id: doc.id, ...t, collection: collectionName });
                     optionsHtml += `<option value="${doc.id}|${collectionName}">${t.nome} (Status: ${t.status} - Histórico)</option>`;
                 });
 
-
-                selectExcluir.innerHTML = optionsHtml;
+                selectExcluir.innerHTML = foundTasks ? optionsHtml : '<option value="">Nenhuma tarefa encontrada.</option>';
             } catch (error) {
                 console.error("Erro ao carregar todas as tarefas para exclusão (VERIFIQUE ÍNDICES):", error);
                 selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas. Verifique os índices.</option>';
@@ -272,7 +279,94 @@
 
         // --- Funções de Submissão de Forms (Modais) ---
         
-        // C. ATRIBUIR TAREFA (Novo)
+        // A. CRIAR TAREFA
+        document.getElementById('form-criar-tarefa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nome = document.getElementById('nova-tarefa-nome').value;
+            const valor = parseFloat(document.getElementById('nova-tarefa-valor').value);
+            const dataPrazo = document.getElementById('nova-tarefa-data').value;
+            const horarioPrazo = document.getElementById('nova-tarefa-horario').value;
+            const descricao = document.getElementById('nova-tarefa-descricao').value;
+            const userName = checkAdminAccess();
+
+            if (isNaN(valor) || valor <= 0) {
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', "Por favor, insira um valor válido.", 'danger');
+                }
+                return;
+            }
+
+            try {
+                await firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).add({
+                    nome: nome,
+                    valor: valor,
+                    dataPrazo: dataPrazo, 
+                    horarioPrazo: horarioPrazo,
+                    descricao: descricao,
+                    status: 'Disponível', 
+                    criadaPor: userName,
+                    dataCriacao: new Date().toISOString().split('T')[0]
+                });
+
+                toggleModal('criar-tarefa-modal', false);
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', `Tarefa "${nome}" criada com sucesso! (Status: Disponível)`, 'success');
+                }
+                this.reset();
+                loadTarefasPendentes(); 
+            } catch (error) {
+                console.error("Erro ao criar tarefa:", error);
+                 if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', "Erro ao criar tarefa. Verifique o console.", 'danger');
+                }
+            }
+        });
+
+        // B. EXCLUIR TAREFA
+        document.getElementById('form-excluir-tarefa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const selectedValue = document.getElementById('select-tarefa-excluir').value;
+            if (!selectedValue) {
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', "Selecione uma tarefa para excluir.", 'danger');
+                }
+                return;
+            }
+
+            const [taskId, collectionName] = selectedValue.split('|');
+            const task = allTasksList.find(t => t.id === taskId && t.collection === collectionName);
+
+            if (!task) {
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', "Erro ao encontrar detalhes da tarefa.", 'danger');
+                }
+                return;
+            }
+
+            if (!confirm(`ATENÇÃO! Tem certeza que deseja EXCLUIR permanentemente a tarefa "${task.nome}" (Status: ${task.status})? Esta ação não pode ser desfeita.`)) {
+                return;
+            }
+
+            try {
+                await firestore.collection(collectionName).doc(taskId).delete();
+                
+                toggleModal('excluir-tarefa-modal', false);
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', `Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`, 'success');
+                }
+                this.reset();
+                loadTarefasPendentes(); 
+            } catch (error) {
+                console.error("Erro ao excluir tarefa:", error);
+                if(typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('admin-alerts', "Erro ao excluir tarefa. Tente novamente.", 'danger');
+                }
+            }
+        });
+
+        // C. ATRIBUIR TAREFA
         document.getElementById('form-atribuir-tarefa').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -329,14 +423,14 @@
         });
 
 
-        // Funções de Aprovação/Rejeição e LoadTarefasPendentes (Mantidas do código anterior)
+        // Funções de Load e Ação (Aprovar/Rejeitar)
 
         async function loadTarefasPendentes() {
             const listaEl = document.getElementById('tarefas-pendentes-aprovacao-lista');
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
             
             try {
-                // Query: status == 'Pendente', dataConclusao 'desc' (Requer índice)
+                // Query: status == 'Pendente', dataConclusao 'desc' (Requer índice: status, dataConclusao)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'desc'); 
@@ -391,7 +485,6 @@
         }
         
         async function aprovarTarefa(taskId, usuarioNome) {
-            // (Função completa, omitida por brevidade, mas deve ser copiada da resposta anterior)
             if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? A tarefa será movida para Concluídas.`)) {
                 return;
             }
@@ -432,7 +525,6 @@
         }
 
         async function rejeitarTarefa(taskId, usuarioNome) {
-            // (Função completa, omitida por brevidade, mas deve ser copiada da resposta anterior)
              if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? A tarefa será devolvida para Disponíveis.`)) {
                 return;
             }
@@ -448,6 +540,7 @@
                 const taskData = taskDoc.data();
                 const batch = firestore.batch();
 
+                // Remove campos específicos de atribuição
                 const { atribuidaPara, dataAtribuicao, dataConclusao, ...disponivelData } = taskData;
                 disponivelData.status = 'Disponível';
                 disponivelData.dataRejeicao = new Date().toISOString().split('T')[0]; 
@@ -469,93 +562,6 @@
                 }
             }
         }
-
-        // Funções de Criar e Excluir Tarefa (Mantidas)
-        // ... (manter as funções form-criar-tarefa submit e form-excluir-tarefa submit)
-        document.getElementById('form-criar-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const nome = document.getElementById('nova-tarefa-nome').value;
-            const valor = parseFloat(document.getElementById('nova-tarefa-valor').value);
-            const dataPrazo = document.getElementById('nova-tarefa-data').value;
-            const horarioPrazo = document.getElementById('nova-tarefa-horario').value;
-            const descricao = document.getElementById('nova-tarefa-descricao').value;
-            const userName = checkAdminAccess();
-
-            if (isNaN(valor) || valor <= 0) {
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', "Por favor, insira um valor válido.", 'danger');
-                }
-                return;
-            }
-
-            try {
-                await firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).add({
-                    nome: nome,
-                    valor: valor,
-                    dataPrazo: dataPrazo, 
-                    horarioPrazo: horarioPrazo,
-                    descricao: descricao,
-                    status: 'Disponível', 
-                    criadaPor: userName,
-                    dataCriacao: new Date().toISOString().split('T')[0]
-                });
-
-                toggleModal('criar-tarefa-modal', false);
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', `Tarefa "${nome}" criada com sucesso! (Status: Disponível)`, 'success');
-                }
-                this.reset();
-                loadTarefasPendentes(); 
-            } catch (error) {
-                console.error("Erro ao criar tarefa:", error);
-                 if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', "Erro ao criar tarefa. Verifique o console.", 'danger');
-                }
-            }
-        });
-
-        document.getElementById('form-excluir-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const selectedValue = document.getElementById('select-tarefa-excluir').value;
-            if (!selectedValue) {
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', "Selecione uma tarefa para excluir.", 'danger');
-                }
-                return;
-            }
-
-            const [taskId, collectionName] = selectedValue.split('|');
-            const task = allTasksList.find(t => t.id === taskId && t.collection === collectionName);
-
-            if (!task) {
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', "Erro ao encontrar detalhes da tarefa.", 'danger');
-                }
-                return;
-            }
-
-            if (!confirm(`ATENÇÃO! Tem certeza que deseja EXCLUIR permanentemente a tarefa "${task.nome}" (Status: ${task.status})? Esta ação não pode ser desfeita.`)) {
-                return;
-            }
-
-            try {
-                await firestore.collection(collectionName).doc(taskId).delete();
-                
-                toggleModal('excluir-tarefa-modal', false);
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', `Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`, 'success');
-                }
-                this.reset();
-                loadTarefasPendentes(); 
-            } catch (error) {
-                console.error("Erro ao excluir tarefa:", error);
-                if(typeof exibirAlertaGlobal === 'function') {
-                    exibirAlertaGlobal('admin-alerts', "Erro ao excluir tarefa. Tente novamente.", 'danger');
-                }
-            }
-        });
     </script>
 </body>
 </html>
