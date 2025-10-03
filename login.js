@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. Busca o documento do usuário pelo nome de usuário (que é o ID do documento)
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+            // ESTA LINHA ESTÁ CAUSANDO O ERRO DE PERMISSÃO ANTES DESTA CORREÇÃO NAS REGRAS
+            const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get(); 
 
             if (!userDoc.exists) {
                 messageEl.textContent = 'Nome de usuário ou senha incorretos.';
@@ -79,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Erro no login:", error);
             let errorMessage = "Erro na comunicação com o servidor. Verifique o console.";
             
-            // Adiciona uma mensagem de erro mais específica para regras de segurança do Firestore
-            if (error.message && error.message.includes('permission denied')) {
-                 errorMessage = "Erro de permissão. Verifique suas regras do Firestore (Security Rules).";
+            // Mensagem de erro que estava aparecendo
+            if (error.message && error.message.includes('permission denied') || error.message.includes('insufficient permissions')) {
+                 errorMessage = "Erro de permissão no Firebase. Verifique suas regras de segurança.";
             }
             
             messageEl.textContent = errorMessage;
