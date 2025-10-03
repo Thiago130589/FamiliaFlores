@@ -13,6 +13,38 @@
     
     <script src="firebase-init.js"></script>
     <script src="script.js"></script>
+    
+    <style>
+        .task-view-switcher {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-view-switch {
+            flex: 1;
+            padding: 12px 10px;
+            font-size: 1em;
+            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            background-color: transparent;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .btn-view-switch.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+        }
+        /* Estilo para a nova seção de filtro (só aparece no histórico) */
+        .filter-section {
+            padding: 15px;
+            background-color: #f7f7f7;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+        }
+    </style>
 </head>
 <body>
     <div class="center-box large-box">
@@ -22,15 +54,26 @@
         
         <div id="tarefas-alerts"></div>
 
-        <div class="form-group" style="margin-bottom: 20px;">
-            <label for="filtro-usuario">Filtrar por Usuário:</label>
-            <select id="filtro-usuario" class="input-rounded" onchange="renderTarefas()">
-                <option value="pendentes-todos">TODAS PENDENTES DE APROVAÇÃO</option>
-                <option value="loading" disabled>Carregando usuários...</option>
-            </select>
+        <div class="task-view-switcher">
+            <button id="btn-pendentes" class="btn-view-switch active" 
+                    onclick="switchView('pendentes')">
+                <i class="fas fa-exclamation-triangle"></i> Tarefas Pendentes
+            </button>
+            <button id="btn-historico" class="btn-view-switch" 
+                    onclick="switchView('historico')">
+                <i class="fas fa-history"></i> Histórico de Tarefas
+            </button>
         </div>
         
         <hr class="divider">
+
+        <div id="filter-section" class="filter-section hidden">
+            <label for="filtro-usuario">Filtrar Histórico por Usuário:</label>
+            <select id="filtro-usuario" class="input-rounded" onchange="renderTarefas(false, this.value)">
+                <option value="todos-historico">TODOS OS USUÁRIOS (Histórico)</option>
+                <option value="loading" disabled>Carregando usuários...</option>
+            </select>
+        </div>
 
         <h2 id="tarefas-titulo">Tarefas Pendentes de Aprovação</h2>
         
@@ -48,8 +91,11 @@
         const firestore = db;
         // Definimos as coleções para garantir a consistência
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
-        const HISTORICO_PAGAMENTOS_COLLECTION = 'historicoPagamentos'; // Nova coleção para registro de pagamentos/multas
+        const HISTORICO_PAGAMENTOS_COLLECTION = 'historicoPagamentos'; 
         const USERS_COLLECTION = 'users';
+
+        // Variável de estado para a visão atual
+        let currentView = 'pendentes'; 
 
         /**
          * Verifica o acesso de administrador e retorna o objeto do admin.
@@ -58,8 +104,8 @@
             const userInfo = getUsuarioLogado();
             if (!userInfo || userInfo.isAdmin !== true) {
                  // Se não for admin, redireciona para a home
-                window.location.href = 'index.html'; 
-                return null;
+                 window.location.href = 'index.html'; 
+                 return null;
             }
             return userInfo;
         }
@@ -68,7 +114,7 @@
 
         async function loadUserDropdown() {
             const selectEl = document.getElementById('filtro-usuario');
-            selectEl.innerHTML = '<option value="pendentes-todos">TODAS PENDENTES DE APROVAÇÃO</option>';
+            selectEl.innerHTML = '<option value="todos-historico">TODOS OS USUÁRIOS (Histórico)</option>';
 
             try {
                 const usersSnapshot = await firestore.collection(USERS_COLLECTION).orderBy('nome').get();
@@ -89,23 +135,48 @@
                 exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar lista de usuários para filtro.', 'danger');
             }
         }
+        
+        /**
+         * Alterna a visão entre Pendentes e Histórico e renderiza.
+         */
+        function switchView(view) {
+            currentView = view;
+            
+            const btnPendentes = document.getElementById('btn-pendentes');
+            const btnHistorico = document.getElementById('btn-historico');
+            const filterSection = document.getElementById('filter-section');
+            
+            if (view === 'pendentes') {
+                btnPendentes.classList.add('active');
+                btnHistorico.classList.remove('active');
+                filterSection.classList.add('hidden');
+                renderTarefas(true); // renderiza pendentes
+            } else {
+                btnPendentes.classList.remove('active');
+                btnHistorico.classList.add('active');
+                filterSection.classList.remove('hidden');
+                // Pega o valor do filtro atual para renderizar o histórico
+                const filtroUsuario = document.getElementById('filtro-usuario').value; 
+                renderTarefas(false, filtroUsuario); // renderiza histórico (filtrado ou todos)
+            }
+        }
+
 
         // --- Renderização de Tarefas ---
-
-        async function renderTarefas() {
+        // isPendingView: true para Pendentes, false para Histórico
+        // filtroUID: UID do usuário para histórico, ou 'todos-historico'
+        async function renderTarefas(isPendingView = true, filtroUID = 'todos-historico') {
             const adminUser = checkAdminAccessAndLoad();
             if (!adminUser) return;
 
-            const selectEl = document.getElementById('filtro-usuario');
             const listaEl = document.getElementById('tarefas-lista');
             const tituloEl = document.getElementById('tarefas-titulo');
-            const filtroValue = selectEl.value;
             
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             let query;
 
             // 1. Visão Padrão: Todas as Pendentes de Aprovação (Para o Admin agir)
-            if (filtroValue === 'pendentes-todos') {
+            if (isPendingView) {
                 tituloEl.textContent = 'Tarefas Pendentes de Aprovação';
                 query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
@@ -113,13 +184,20 @@
             } 
             // 2. Visão Filtrada: Histórico completo de um Usuário
             else {
-                const selectedUserName = selectEl.options[selectEl.selectedIndex].textContent.split('(')[0].trim();
-                tituloEl.textContent = `Histórico de Tarefas de: ${selectedUserName}`;
+                let tituloNome = 'Todos os Usuários';
+                if (filtroUID !== 'todos-historico') {
+                    const selectEl = document.getElementById('filtro-usuario');
+                    tituloNome = selectEl.options[selectEl.selectedIndex].textContent.split('(')[0].trim();
+                }
+                tituloEl.textContent = `Histórico de Tarefas de: ${tituloNome}`;
                 
-                // Filtra pelo UID do usuário (valor do select) e ordena pela mais recente
                 query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                    .where('usuarioUID', '==', filtroValue) 
+                    // Se for 'todos-historico', não usa o where('usuarioUID')
                     .orderBy('dataCriacao', 'desc'); // Mostra o histórico, ordenado pela criação
+                
+                if (filtroUID !== 'todos-historico') {
+                     query = query.where('usuarioUID', '==', filtroUID);
+                }
             }
 
             try {
@@ -127,20 +205,34 @@
                 let html = '';
                 let foundTasks = false;
 
+                // Mapeamento de UID para Nome do Usuário (para a lista de pendentes)
+                const userMap = {}; 
+                if (isPendingView || filtroUID === 'todos-historico') {
+                    const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+                    usersSnapshot.forEach(doc => {
+                        userMap[doc.id] = doc.data().nome;
+                    });
+                }
+                
                 snapshot.forEach(doc => {
                     foundTasks = true;
                     const taskId = doc.id;
                     const t = doc.data();
                     const valor = parseFloat(t.valor || 0);
                     
+                    // Obtém o nome do usuário para a exibição
+                    const nomeAtribuido = isPendingView || filtroUID === 'todos-historico' 
+                                            ? userMap[t.usuarioUID] || t.atribuidaPara || 'Desconhecido'
+                                            : t.atribuidaPara; 
+                    
                     // Renderização e lógica de status para Admin
-                    const { statusClass, statusText, actionButtons } = getTaskAdminUI(taskId, t, filtroValue);
+                    const { statusClass, statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
 
                     html += `
                         <div class="tarefa-card admin-card" style="border-left-color: ${statusClass === 'status-success' ? 'var(--success-color)' : statusClass === 'status-danger' ? 'var(--danger-color)' : statusClass === 'status-warning' ? 'var(--warning-color)' : 'var(--info-color)'};">
                             <div class="tarefa-header-admin">
                                 <div class="tarefa-nome-admin">${t.nome}</div>
-                                <div class="tarefa-valor ${statusClass}">${formatarMoeda(valor)}</div>
+                                <div class="tarefa-valor ${valor > 0 ? 'positive-text' : 'negative-text'}">${formatarMoeda(valor)}</div>
                             </div>
                             
                             <div class="tarefa-status-line" style="margin-bottom: 5px;">
@@ -149,7 +241,7 @@
                             </div>
                             
                             <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Atribuído a: <b>${t.atribuidaPara}</b></div>
+                                <div class="tarefa-info-admin">Atribuído a: <b>${nomeAtribuido}</b></div>
                                 <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
                                 <div class="tarefa-info-admin">Prazo Limite: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</div>
                                 <p class="tarefa-descricao-admin">${t.descricao}</p>
@@ -175,26 +267,26 @@
         /**
          * Retorna classes e botões de ação com base no status da tarefa.
          */
-        function getTaskAdminUI(taskId, taskData, filtroValue) {
+        function getTaskAdminUI(taskId, taskData, isPendingView) {
             let statusClass = '';
             let statusText = taskData.status;
             let actionButtons = '';
             
             // Só mostra botões de ação se estiver na visão PENDENTE
-            const isPendingView = (filtroValue === 'pendentes-todos' && taskData.status === 'Pendente');
+            const showActionButtons = (isPendingView && taskData.status === 'Pendente');
 
             switch(taskData.status) {
                 case 'Pendente':
                     statusClass = 'status-warning';
                     statusText = 'PENDENTE DE APROVAÇÃO';
-                    if (isPendingView) {
+                    if (showActionButtons) {
                         actionButtons = `
                             <button class="btn-rounded btn-success wide-button" 
-                                    onclick="aprovarTarefa('${taskId}', '${taskData.atribuidaPara}', ${taskData.valor})">
+                                    onclick="aprovarTarefa('${taskId}', '${taskData.usuarioUID}', '${taskData.atribuidaPara}', ${taskData.valor})">
                                 <i class="fas fa-thumbs-up"></i> APROVAR E PAGAR
                             </button>
                             <button class="btn-rounded btn-danger wide-button" 
-                                    onclick="rejeitarTarefa('${taskId}', '${taskData.atribuidaPara}', ${taskData.valor})">
+                                    onclick="rejeitarTarefa('${taskId}', '${taskData.usuarioUID}', '${taskData.atribuidaPara}', ${taskData.valor})">
                                 <i class="fas fa-thumbs-down"></i> REJEITAR (Aplicar Multa/Penalidade)
                             </button>
                         `;
@@ -204,17 +296,13 @@
                     statusClass = 'status-info';
                     statusText = 'EM ANDAMENTO';
                     break;
-                case 'Concluída': // Aprovação de tarefas (status final antes de Paga)
-                    statusClass = 'status-success';
-                    statusText = 'APROVADA (AGUARDANDO PAGAMENTO)';
-                    break;
                 case 'Paga': // Tarefa finalizada e creditada
                     statusClass = 'status-success';
                     statusText = 'PAGA E CONCLUÍDA';
                     break;
                 case 'Reprovada':
                     statusClass = 'status-danger';
-                    statusText = 'REPROVADA (APLICADA MULTA)';
+                    statusText = `REPROVADA (Multa: ${taskData.valorMultaAplicada ? formatarMoeda(taskData.valorMultaAplicada) : 'N/A'})`;
                     break;
                 default:
                     statusClass = 'status-secondary';
@@ -227,14 +315,14 @@
         // --- Funções de Ação do Admin ---
 
         // 1. Aprovar Tarefa: Paga o valor e registra no histórico.
-        async function aprovarTarefa(taskId, userName, valor) {
+        async function aprovarTarefa(taskId, userUID, userName, valor) {
             if (!confirm(`Aprovar a tarefa e pagar ${formatarMoeda(valor)} para ${userName}?`)) return;
             
             try {
                 // Inicia uma transação para garantir que o saldo e o status sejam atualizados atomicamente
                 await firestore.runTransaction(async (transaction) => {
                     const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
-                    const userRef = firestore.collection(USERS_COLLECTION).doc(taskRef.data().usuarioUID); // Usa UID para a ref
+                    const userRef = firestore.collection(USERS_COLLECTION).doc(userUID); 
 
                     const taskDoc = await transaction.get(taskRef);
                     const userDoc = await transaction.get(userRef);
@@ -274,7 +362,7 @@
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) na conta de ${userName}.`, 'success');
-                renderTarefas();
+                renderTarefas(true); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na aprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível aprovar e pagar. Detalhe: ${error.message}`, 'danger');
@@ -282,16 +370,15 @@
         }
 
         // 2. Rejeitar Tarefa: Aplica multa/penalidade e registra no histórico.
-        async function rejeitarTarefa(taskId, userName, valor) {
+        async function rejeitarTarefa(taskId, userUID, userName, valor) {
             // Em vez de só confirmar, pedimos um motivo para a multa
-            const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}" (Ex: Limpeza incompleta). O valor original era ${formatarMoeda(valor)}.`);
+            const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}" (Ex: Limpeza incompleta). O valor original era ${formatarMoeda(valor)}. \n\nO valor da multa será igual ao valor da tarefa.`);
             
             if (motivo === null || motivo.trim() === '') {
                 exibirAlertaGlobal('tarefas-alerts', 'Ação cancelada. É necessário um motivo para rejeitar.', 'warning');
                 return;
             }
 
-            // Você pode decidir aplicar uma multa igual ao valor da recompensa, ou zero, ou um valor manual
             const valorMulta = valor; // Exemplo: multa é igual ao valor que o usuário receberia
             
             if (!confirm(`Confirmar REPROVAÇÃO e aplicar penalidade de ${formatarMoeda(valorMulta)} para ${userName}?`)) return;
@@ -300,7 +387,7 @@
                 // Inicia uma transação para garantir atomicidade
                 await firestore.runTransaction(async (transaction) => {
                     const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
-                    const userRef = firestore.collection(USERS_COLLECTION).doc(taskRef.data().usuarioUID); 
+                    const userRef = firestore.collection(USERS_COLLECTION).doc(userUID); 
 
                     const taskDoc = await transaction.get(taskRef);
                     const userDoc = await transaction.get(userRef);
@@ -342,7 +429,7 @@
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}. Motivo: ${motivo}`, 'danger');
-                renderTarefas();
+                renderTarefas(true); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na reprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível rejeitar a tarefa e aplicar a multa. Detalhe: ${error.message}`, 'danger');
@@ -355,8 +442,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Verifica o acesso do Admin e carrega o dropdown
             if (checkAdminAccessAndLoad()) {
+                // Carrega o dropdown primeiro, mas não renderiza até que ele esteja pronto
                 loadUserDropdown().then(() => {
-                    renderTarefas(); // Carrega as tarefas pendentes por padrão após carregar usuários
+                    // Após carregar os usuários, renderiza a visão padrão (Pendentes)
+                    switchView('pendentes'); 
                 });
             }
         });
