@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. Busca o documento do usuário pelo nome de usuário (que é o ID do documento)
-            // ESTA LINHA ESTÁ CAUSANDO O ERRO DE PERMISSÃO ANTES DESTA CORREÇÃO NAS REGRAS
             const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get(); 
 
             if (!userDoc.exists) {
@@ -47,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userData = userDoc.data();
 
-            // 2. Verifica a senha (Atenção: EM UM PROJETO REAL, USE HASHEAMENTO DE SENHA!)
-            if (userData.senha !== password) {
+            // 2. Verifica a senha: CORREÇÃO DA CHAVE 'password' (estava 'senha')
+            if (userData.password !== password) {
                 messageEl.textContent = 'Nome de usuário ou senha incorretos.';
                 messageEl.classList.remove('hidden-start');
                 return;
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. Login bem-sucedido
             console.log("Login realizado com sucesso:", userData.nome);
             
-            // CORREÇÃO: Salvar o objeto JSON na chave 'usuarioLogado' para ser lido pelo script.js
+            // Salvar o objeto JSON na chave 'usuarioLogado' para ser lido pelo script.js
             const userToSave = {
                 username: username, // O apelido
                 nome: userData.nome,  // Nome completo
@@ -80,8 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Erro no login:", error);
             let errorMessage = "Erro na comunicação com o servidor. Verifique o console.";
             
-            // Mensagem de erro que estava aparecendo
-            if (error.message && error.message.includes('permission denied') || error.message.includes('insufficient permissions')) {
+            // Mensagem de erro para regras de segurança
+            if (error.message && (error.message.includes('permission denied') || error.message.includes('insufficient permissions'))) {
                  errorMessage = "Erro de permissão no Firebase. Verifique suas regras de segurança.";
             }
             

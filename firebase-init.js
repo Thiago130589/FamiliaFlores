@@ -1,6 +1,7 @@
 ﻿/**
  * js/firebase-init.js
  * Configuração e inicialização do Firebase (Versão v8 Namespaced)
+ * **ADAPTADO PARA NÃO USAR FIREBASE STORAGE**
  */
 
 // NOTA: Este arquivo depende que as bibliotecas v8 sejam carregadas no HTML.
@@ -9,8 +10,7 @@ const firebaseConfig = {
     apiKey: "...", // Sua chave real
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
-    // Remova 'storageBucket' se não for usá-lo ou aponte para um balde vazio.
-    storageBucket: "familia-flores-2ed6a.appspot.com", 
+    storageBucket: "familia-flores-2ed6a.appspot.com", // Manter o campo é inofensivo
     messagingSenderId: "...",
     appId: "...",
     measurementId: "..." 
@@ -21,11 +21,9 @@ if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// 2. Define os serviços que REALMENTE PRECISAMOS
-// A 'auth' é usada para o futuro (regras de segurança)
+// 2. Define os serviços que REALMENTE PRECISAMOS (Auth e Firestore)
 const auth = firebase.auth(); 
 const db = firebase.firestore();
 
-// O Storage NÃO é inicializado aqui.
-// REMOVA a linha que diz: "let storage; if (typeof firebase.storage !== 'undefined') { storage = firebase.storage(); }"
-// E a linha que diz "console.warn("Firebase Storage não foi inicializado...")"
+// O Storage não é inicializado para evitar avisos no console.
+// A variável 'storage' não existe mais.
