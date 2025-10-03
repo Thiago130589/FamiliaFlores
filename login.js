@@ -1,10 +1,15 @@
-// O 'db' é uma variável global definida em firebase-init.js (Firestore)
+// Arquivo: login.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof db === 'undefined') {
-        console.error("ERRO: A variável 'db' do Firestore não está definida. Verifique firebase-init.js e o carregamento dos scripts.");
+    // Verifica se a variável 'db' do Firestore foi definida (em firebase-init.js)
+    if (typeof db === 'undefined' || typeof CryptoJS === 'undefined') {
+        console.error("ERRO: O Firestore ('db') ou a biblioteca Crypto-JS ('CryptoJS') não estão definidos. Verifique o carregamento dos scripts.");
         return;
     }
+
+    // Limpa qualquer estado de login anterior ao iniciar na página de login.
+    // ISSO É INTENCIONAL e CORRETO aqui para garantir que a sessão antiga seja apagada.
+    localStorage.removeItem('usuarioLogado'); 
 
     const firestore = db;
     const USERS_COLLECTION = 'users';
@@ -17,72 +22,79 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Função auxiliar para mostrar mensagens
+    const showMessage = (message, isError = true) => {
+        const messageEl = document.getElementById('login-message');
+        messageEl.textContent = message;
+        messageEl.style.color = isError ? 'var(--danger-color)' : 'var(--success-color)';
+        messageEl.style.borderColor = isError ? 'var(--danger-color)' : 'var(--success-color)';
+        messageEl.classList.remove('hidden-start');
+    };
+
     async function loginUser() {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value.trim();
+        
         const messageEl = document.getElementById('login-message');
-
         messageEl.classList.add('hidden-start');
         messageEl.textContent = '';
-        messageEl.style.color = '';
 
         if (!username || !password) {
-            messageEl.textContent = 'Por favor, preencha todos os campos.';
-            messageEl.classList.remove('hidden-start');
+            showMessage('Por favor, preencha todos os campos.');
             return;
         }
 
         try {
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get(); 
+            // 1. BUSCA O USUÁRIO PELO CAMPO 'username' (Apelido)
+            const snapshot = await firestore.collection(USERS_COLLECTION)
+                .where('username', '==', username)
+                .limit(1)
+                .get(); 
 
-            if (!userDoc.exists) {
-                messageEl.textContent = 'Nome de usuário ou senha incorretos.';
-                messageEl.classList.remove('hidden-start');
+            if (snapshot.empty) {
+                showMessage('Nome de usuário ou senha incorretos.');
                 return;
             }
 
+            const userDoc = snapshot.docs[0];
             const userData = userDoc.data();
+            
+            // 2. CRIPTOGRAFA A SENHA fornecida para comparação (SHA-256)
+            const hashedPassword = CryptoJS.SHA256(password).toString();
 
-            // 2. Verifica a senha
-            if (userData.password !== password) {
-                messageEl.textContent = 'Nome de usuário ou senha incorretos.';
-                messageEl.classList.remove('hidden-start');
+            // 3. Verifica a senha Cifrada
+            if (userData.password !== hashedPassword) {
+                showMessage('Nome de usuário ou senha incorretos.');
                 return;
             }
 
-            // 3. Login bem-sucedido
+            // 4. Login bem-sucedido: Salva dados no localStorage
             console.log("Login realizado com sucesso:", userData.nome);
             
-            // CORREÇÃO CRÍTICA AQUI: Salvar o campo 'foto' para o Dashboard usar
             const userToSave = {
                 username: username,
                 nome: userData.nome,
+                uid: userDoc.id, // ID do documento do Firestore
                 isAdmin: userData.isAdmin || false, 
                 perfil: userData.perfil || 'usuario',
                 pontuacao: userData.pontuacao || 0,
-                foto: userData.foto || null, // CAMPO FOTO ADICIONADO AQUI
+                foto: userData.foto || null,
             };
             
             localStorage.setItem('usuarioLogado', JSON.stringify(userToSave));
             
-            messageEl.textContent = 'Login bem-sucedido! Redirecionando...';
-            messageEl.style.color = 'var(--success-color)';
-            messageEl.classList.remove('hidden-start');
+            showMessage('Login bem-sucedido! Redirecionando...', false);
 
+            // 5. Redireciona
             setTimeout(() => {
                 window.location.href = 'index.html'; 
-            }, 1000);
+            }, 500); // Tempo reduzido para 500ms para ser mais rápido
 
         } catch (error) {
             console.error("Erro no login:", error);
-            let errorMessage = "Erro na comunicação com o servidor. Verifique o console.";
+            let errorMessage = "Erro na comunicação com o servidor. Verifique o console ou as regras do Firestore.";
             
-            if (error.message && (error.message.includes('permission denied') || error.message.includes('insufficient permissions'))) {
-                 errorMessage = "Erro de permissão no Firebase. Verifique suas regras de segurança.";
-            }
-            
-            messageEl.textContent = errorMessage;
-            messageEl.classList.remove('hidden-start');
+            showMessage(errorMessage);
         }
     }
 });

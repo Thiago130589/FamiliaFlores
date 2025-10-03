@@ -3,44 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login de Usuário</title>
+    <title>Dashboard | Plataforma</title>
     <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-init.js"></script>
-    <script src="script.js"></script>
-    <script src="login.js" defer></script> 
-</head>
-<body class="body-login">
-    <div class="center-box center-box-login">
-        <div class="login-header">
-            <h1 class="main-title main-title-success">Familia Flores</h1>
-            <p class="center-text">Acesse sua conta de tarefas e recompensas.</p>
-        </div>
+    <script src="script.js"></script> </head>
+<body>
+    <div class="center-box center-box-dashboard">
         
-        <hr class="divider">
+        <button id="logout-button" class="btn-logout-card">Sair</button>
 
-        <form id="login-form">
-            <div class="form-group">
-                <label for="login-username">Nome de Usuário (Apelido)</label>
-                <input type="text" id="login-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
-            </div>
-
-            <div class="form-group">
-                <label for="login-password">Senha</label>
-                <input type="password" id="login-password" class="input-rounded" placeholder="Sua senha" required>
+        <header class="user-profile-header">
+            <div class="user-details-text">
+                <h1 id="user-name">Carregando...</h1>
+                <span id="user-username">@loading</span>
+                <span id="user-role" class="profile-badge admin-badge hidden-start">ADMIN</span>
             </div>
             
-            <button type="submit" class="btn-rounded btn-primary btn-rounded-large wide-button">
-                Entrar
-            </button>
-        </form>
+            <div class="user-photo-container">
+                <img id="user-photo" class="user-photo-style" alt="Foto do Usuário" src="imagens/default-avatar.png">
+            </div>
+        </header>
 
-        <a href="cadastrar-usuario.html" class="login-link">Não tem conta? Cadastre-se aqui.</a>
+        <hr class="divider">
+
+        <div class="user-balance">
+            <p>Saldo Atual</p>
+            <div class="balance-line">
+                <p id="user-saldo" class="saldo-positivo">R$ 0,00</p>
+                <a href="minha-carteira.html" class="btn-carteira-saldo">
+                    <i class="fas fa-wallet"></i> Carteira
+                </a>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="action-grid-card">
+            <div class="section-title">Ações</div>
+            <div class="action-grid">
+                <a href="tarefas-disponiveis.html" class="action-item">
+                    <i class="fas fa-list-check action-icon icon-tarefas"></i>
+                    Tarefas Disponíveis
+                </a>
+                
+                <a href="resgatar-recompensas.html" class="action-item">
+                    <i class="fas fa-gift action-icon icon-recompensa"></i>
+                    Resgatar Recompensas
+                </a>
+                
+                <a href="historico.html" class="action-item">
+                    <i class="fas fa-history action-icon icon-historico"></i>
+                    Histórico
+                </a>
+
+                <a href="painel-admin.html" id="admin-button" class="action-item hidden-start">
+                    <i class="fas fa-user-gear action-icon icon-admin"></i>
+                    Painel Admin
+                </a>
+
+            </div>
+        </div>
         
-        <p id="login-message" class="error-message hidden-start" role="alert"></p>
     </div>
-</body>
+    
+    </body>
 </html>
