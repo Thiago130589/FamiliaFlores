@@ -52,11 +52,11 @@ body {
 }
 
 .center-box {
-    background-color: var(--box-bg-color);
+    background-color: blue;
     border-radius: 10px;
     padding: 30px;
     box-shadow: 0 4px 12px var(--shadow-color);
-    width: 100%; /* Ocupa 100% da largura no mobile */
+    width: 80%; /* Ocupa 80% da largura no mobile */
     max-width: 380px; /* Limite em telas maiores (desktop) */
 }
 
