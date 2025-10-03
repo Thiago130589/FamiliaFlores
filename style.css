@@ -1,5 +1,7 @@
 ﻿/*
- * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL COM LAYOUT FIXO E BOTÕES CORRIGIDOS)
+ * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL COM LAYOUT E BOTÕES FIXOS)
+ * Todos os estilos de layout (incluindo o grid de botões e o tamanho das caixas)
+ * são forçados a serem o padrão de PC/Tablet, garantindo consistência no celular.
  */
 
 /* =========================================================================
@@ -79,7 +81,7 @@ body {
     padding: 40px; 
     box-shadow: 0 4px 12px var(--shadow-color);
     
-    /* DEFININDO A LARGURA FIXA DE PC */
+    /* FORÇANDO A LARGURA FIXA DE PC EM TODAS AS TELAS */
     min-width: 320px; 
     max-width: 450px; 
     width: 95%; 
@@ -345,46 +347,43 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .action-grid {
+    /* FORÇANDO GRID DE DUAS COLUNAS EM TODAS AS TELAS */
     display: grid; 
     grid-template-columns: 1fr 1fr; 
-    gap: 20px; 
+    gap: 15px; 
     margin-top: 20px;
 }
 
-/* CORREÇÃO AQUI: Estilizando os links do grid como botões de borda azul e texto escuro */
+/* ESTILO FINAL DO BOTÃO DE AÇÃO (AZUL, BRANCO, ARREDONDADO E SOMBRA) */
 .action-item {
-    padding: 20px; 
+    padding: 15px 10px; 
+    border-radius: 8px; 
     text-align: center; 
-    border-radius: 10px;
+    font-size: 0.95em; 
     
-    /* Configuração de Botão (Fundo Branco, Borda Azul, Texto Principal) */
-    background-color: var(--box-bg-color-login); /* Fundo Branco */
-    border: 2px solid var(--primary-color); /* Borda Azul Sólida */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); 
-    transition: transform 0.2s, background-color 0.2s;
+    background-color: var(--primary-color); 
+    color: white; 
+    border: none; 
+    
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); 
+    
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     text-decoration: none; 
-    color: var(--text-color); /* Cor do Texto (Preto/Escuro) */
     font-weight: bold;
 }
-/* Efeito de hover para contraste */
+/* Efeito de hover */
 .action-item:hover {
-    transform: translateY(-3px); 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: var(--primary-color); /* Fundo Azul no Hover */
-    color: white; /* Letra Branca no Hover */
+    transform: translateY(-2px); 
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); 
+    background-color: var(--primary-dark); 
 }
 
-/* Garante que o ícone também mude de cor no hover */
-.action-item:hover .icon {
-    color: white !important; /* Força o ícone a ficar branco no hover */
+/* Garante que o ícone fique branco no estado normal e no hover */
+.action-icon { 
+    font-size: 2em; 
+    margin-bottom: 5px; 
+    color: white !important; /* Ícone Branco FORÇADO */
 }
-
-
-.action-icon { font-size: 2em; margin-bottom: 5px; }
-.icon-tarefas { color: var(--primary-color); }
-.icon-historico { color: var(--info-color); } /* Manter a cor original do ícone no estado normal */
-.icon-admin { color: var(--error-color); } /* Manter a cor original do ícone no estado normal */
-.icon-recompensa { color: var(--success-color); } /* Manter a cor original do ícone no estado normal */
 
 
 /* =========================================================================
