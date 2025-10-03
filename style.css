@@ -1,6 +1,6 @@
 ﻿/*
- * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL)
- * CORREÇÃO: Removido o media query para forçar o layout de PC/Tablet em todas as telas.
+ * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL COM LAYOUT FIXO)
+ * Correção: Assegura que o layout de PC seja mantido em todas as telas.
  */
 
 /* =========================================================================
@@ -62,7 +62,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px; /* Padding padrão para o conteúdo não grudar nas bordas do body */
+    padding: 20px; 
+    overflow-x: auto; /* Permite scroll horizontal se a tela for muito pequena */
 }
 
 /* Sobrescreve para a tela de Login (Fundo Azul) */
@@ -72,16 +73,20 @@ body {
 }
 
 
-/* Base da caixa centralizada (Padrão para Dashboard/Cadastro) */
+/* Base da caixa centralizada */
 .center-box {
     background-color: var(--box-bg-color-default); 
     border-radius: 20px;
-    padding: 40px; /* Aumentado para o padrão de PC/Tablet */
+    padding: 40px; 
     box-shadow: 0 4px 12px var(--shadow-color);
-    width: 95%; 
+    
+    /* DEFININDO A LARGURA FIXA DE PC */
+    min-width: 320px; /* Largura mínima razoável */
     max-width: 450px; /* Largura padrão de PC para Login/Dashboard */
+    width: 95%; /* Usa 95% do espaço disponível até o max-width */
+    
     position: relative; 
-    margin: 20px auto; /* Garante margem para respiro */
+    margin: 20px auto; 
 }
 
 /* Classe Específica para a caixa de Login */
@@ -99,7 +104,7 @@ body {
     max-width: 500px; 
 }
 
-/* Adaptação da caixa grande para outras telas (multas/admin) */
+/* Adaptação da caixa grande para outras telas (admin) */
 .large-box { 
     max-width: 900px;
     padding: 30px; 
@@ -109,7 +114,7 @@ body {
 .center-box-dashboard {
     max-width: 450px; 
     padding-top: 50px; 
-    padding-bottom: 40px; /* Padrão de PC/Tablet */
+    padding-bottom: 40px; 
 }
 
 
@@ -247,7 +252,6 @@ input[type="date"], input[type="time"], textarea, select, .input-rounded {
     border: 1px solid #ccc; border-radius: 8px;
     font-size: 1em; width: 100%;
 }
-/* O padrão agora é 15px. Removido o small para consistência */
 .input-rounded-small { padding: 15px; } 
 
 textarea { resize: vertical; min-height: 80px; }
@@ -342,14 +346,14 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .action-grid {
-    /* Força o grid de duas colunas, mesmo no celular, para replicar o layout de PC */
+    /* Força o grid de duas colunas com espaçamento de PC em todas as telas */
     display: grid; 
     grid-template-columns: 1fr 1fr; 
-    gap: 20px; /* Aumentado para o padrão de PC */
+    gap: 20px; 
     margin-top: 20px;
 }
 .action-item {
-    padding: 20px; /* Aumentado para o padrão de PC */
+    padding: 20px; 
 }
 
 .action-icon { font-size: 2em; margin-bottom: 5px; }
@@ -414,11 +418,3 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
 .modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
-
-
-/* =========================================================================
- * 9. REMOÇÃO DE RESPONSIVIDADE (FIXADO NO LAYOUT DE PC)
- * ========================================================================= */
-
-/* Removemos o media query para forçar o layout padrão em todas as telas.
-   As regras de design 'maior' já foram movidas para as classes principais. */
