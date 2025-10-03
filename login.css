@@ -12,8 +12,8 @@
     --primary-light: #52a7ff;
     --primary-dark: #0056b3;
     
-    /* Fundo */
-    --background-color: #f8f9fa; /* Fundo levemente cinza para destacar a caixa */
+    /* Fundo da Tela em AZUL (Solicitado) */
+    --background-color: #1a76ff; 
     
     /* Cores de Feedback */
     --success-color: #28a745;
@@ -23,8 +23,10 @@
     /* Neutros */
     --text-color: #333;
     --text-light: #6c757d;
-    --box-bg-color: #ffffff; /* Caixa branca */
-    --shadow-color: rgba(0, 0, 0, 0.1);
+    --box-bg-color: #ffffff; /* Caixa em BRANCO (Solicitado) */
+    --button-secondary-bg: #6c757d; /* Cinza para o botão */
+    --button-secondary-dark: #5a6268;
+    --shadow-color: rgba(0, 0, 0, 0.2);
 }
 
 * {
@@ -52,25 +54,25 @@ body {
 }
 
 .center-box {
-    background-color: blue;
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: 0 4px 12px var(--shadow-color);
-    width: 80%; /* Ocupa 80% da largura no mobile */
-    max-width: 380px; /* Limite em telas maiores (desktop) */
+    background-color: var(--box-bg-color); /* BRANCO */
+    border-radius: 15px; /* Mais arredondado */
+    padding: 40px; /* Mais padding para parecer maior */
+    box-shadow: 0 8px 25px var(--shadow-color); /* Sombra mais forte */
+    width: 100%; 
+    max-width: 400px; /* Um pouco maior */
 }
 
 /* =========================================================================
- * 3. COMPONENTES: FORMULÁRIO
+ * 3. COMPONENTES: FORMULÁRIO E TIPOGRAFIA
  * ========================================================================= */
 
 .login-header { 
-    margin-bottom: 20px; 
+    margin-bottom: 25px; 
     text-align: center; 
 }
 
 .main-title {
-    font-size: 2em;
+    font-size: 2.2em;
     font-weight: bold; 
     color: var(--primary-color);
     margin-bottom: 5px;
@@ -83,7 +85,7 @@ body {
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 label { 
@@ -94,7 +96,7 @@ label {
 }
 
 .input-rounded {
-    padding: 12px; 
+    padding: 15px; /* Input maior */
     border: 1px solid #ccc; 
     border-radius: 8px;
     font-size: 1em; 
@@ -106,24 +108,25 @@ label {
  * ========================================================================= */
 
 .btn-rounded {
-    padding: 12px 20px; 
+    padding: 15px 25px; /* Botão maior */
     border: none;
     border-radius: 25px;
     cursor: pointer;
     font-weight: bold;
     text-align: center;
     text-decoration: none;
-    transition: background-color 0.3s, opacity 0.3s;
-    font-size: 1em;
+    transition: background-color 0.3s;
+    font-size: 1.1em;
     display: block;
 }
 
+/* Botão Primário agora é CINZA (Solicitado) */
 .btn-primary { 
-    background-color: var(--primary-color); 
+    background-color: var(--button-secondary-bg); /* Cinza */
     color: white; 
 }
 .btn-primary:hover { 
-    background-color: var(--primary-dark); 
+    background-color: var(--button-secondary-dark); /* Cinza Escuro */
 }
 
 .wide-button { 
@@ -133,7 +136,7 @@ label {
 .login-link {
     display: block; 
     text-align: center; 
-    margin-top: 15px;
+    margin-top: 20px;
     font-size: 0.9em; 
     color: var(--primary-color); 
     text-decoration: none;
