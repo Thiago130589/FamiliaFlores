@@ -1,7 +1,6 @@
 ﻿/*
  * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL)
- * Contém variáveis, resets, layouts, botões, formulários e todos os estilos
- * específicos (Login, Cadastro, Dashboard, Cards de Tarefas).
+ * CORREÇÃO: Removido o media query para forçar o layout de PC/Tablet em todas as telas.
  */
 
 /* =========================================================================
@@ -49,7 +48,7 @@
 }
 
 /* =========================================================================
- * 2. LAYOUT UNIVERSAL: CENTRALIZAÇÃO
+ * 2. LAYOUT UNIVERSAL: CENTRALIZAÇÃO (Layout Padrão para TODAS AS TELAS)
  * ========================================================================= */
 
 /* Body Padrão (Fundo Branco/Dashboard) */
@@ -63,13 +62,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px; 
+    padding: 20px; /* Padding padrão para o conteúdo não grudar nas bordas do body */
 }
 
 /* Sobrescreve para a tela de Login (Fundo Azul) */
 .body-login {
     background-color: var(--background-color-login);
-    /* Removendo padding para evitar que a caixa fique desalinhada verticalmente */
     padding: 0; 
 }
 
@@ -78,43 +76,40 @@ body {
 .center-box {
     background-color: var(--box-bg-color-default); 
     border-radius: 20px;
-    padding: 30px; 
+    padding: 40px; /* Aumentado para o padrão de PC/Tablet */
     box-shadow: 0 4px 12px var(--shadow-color);
     width: 95%; 
-    max-width: 380px; /* Largura para Dashboard/Conteúdo estreito */
-    position: relative; /* CRÍTICO: Para posicionamento absoluto da foto */
+    max-width: 450px; /* Largura padrão de PC para Login/Dashboard */
+    position: relative; 
+    margin: 20px auto; /* Garante margem para respiro */
 }
 
-/* Classe Específica para a caixa de Login (Branca e menor padding) */
+/* Classe Específica para a caixa de Login */
 .center-box-login {
     background-color: var(--box-bg-color-login);
     padding: 40px; 
     max-width: 400px; 
-    /* Adicionado margin auto para garantir centralização horizontal em caso de quebra do flex */
-    margin: 20px auto; 
 }
 
-/* Classe Específica para a caixa de Cadastro (Verde e maior) */
+/* Classe Específica para a caixa de Cadastro */
 .center-box-cadastro {
     background-color: var(--box-bg-color-cadastro);
     border-radius: 20px;
     padding: 30px;
     max-width: 500px; 
-    margin: 20px auto; 
 }
 
 /* Adaptação da caixa grande para outras telas (multas/admin) */
 .large-box { 
     max-width: 900px;
     padding: 30px; 
-    margin: 20px auto; 
 }
 
 /* Tamanho para o card do Dashboard */
 .center-box-dashboard {
     max-width: 450px; 
-    padding-top: 50px; /* Espaço para a foto no topo */
-    padding-bottom: 30px; /* Mantém o padding inferior */
+    padding-top: 50px; 
+    padding-bottom: 40px; /* Padrão de PC/Tablet */
 }
 
 
@@ -157,8 +152,8 @@ body {
 .saldo-positivo, .positive-text { color: var(--success-color); }
 
 .center-text { text-align: center; } 
-.hidden { display: none !important; } /* Corrigi para usar !important para sobrescrever */
-.hidden-start { display: none !important; } /* Mantido, mas 'hidden' é preferível */
+.hidden { display: none !important; } 
+.hidden-start { display: none !important; } 
 
 /* Separadores */
 .divider { border: none; height: 1px; background-color: #e0e0e0; margin: 15px 0; }
@@ -226,7 +221,7 @@ body {
     font-size: 14px;
     padding: 5px 10px;
     transition: color 0.3s;
-    z-index: 10; /* Garante que fique acima da foto */
+    z-index: 10; 
 }
 
 .btn-logout-card:hover {
@@ -248,12 +243,12 @@ label {
 
 input[type="text"], input[type="password"], input[type="number"],
 input[type="date"], input[type="time"], textarea, select, .input-rounded {
-    padding: 15px; /* Padrão Login/Cadastro */
+    padding: 15px; 
     border: 1px solid #ccc; border-radius: 8px;
     font-size: 1em; width: 100%;
 }
-/* Reduz o padding em formulários menores (Dashboard) */
-.input-rounded-small { padding: 12px; } 
+/* O padrão agora é 15px. Removido o small para consistência */
+.input-rounded-small { padding: 15px; } 
 
 textarea { resize: vertical; min-height: 80px; }
 .input-group { display: flex; gap: 10px; align-items: center; } 
@@ -266,7 +261,7 @@ textarea { resize: vertical; min-height: 80px; }
 /* Cabeçalho do perfil para conter nome e foto */
 .user-profile-header {
     display: flex;
-    align-items: flex-start; /* Alinha o texto e a foto ao topo */
+    align-items: flex-start; 
     margin-bottom: 20px;
     position: relative; 
     padding-right: 100px; /* Deixa espaço para a foto */
@@ -275,8 +270,8 @@ textarea { resize: vertical; min-height: 80px; }
 /* Container da foto (posicionamento) */
 .user-photo-container {
     position: absolute;
-    top: -30px; /* Move para cima do topo do .center-box-dashboard */
-    right: 0; /* Alinha à direita */
+    top: -30px; 
+    right: 0; 
     width: 90px;
     height: 90px;
     z-index: 5; 
@@ -325,7 +320,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Saldo (Ajustado para o novo layout) */
 .user-balance {
-    text-align: left; /* Alinha o saldo à esquerda */
+    text-align: left; 
     margin-top: 15px;
 }
 .user-balance p {
@@ -333,7 +328,7 @@ textarea { resize: vertical; min-height: 80px; }
     font-size: 0.9em;
 }
 #user-saldo {
-    font-size: 2.5em; /* Tamanho original do saldo */
+    font-size: 2.5em; 
     font-weight: bold;
     color: var(--success-color); 
     line-height: 1.2;
@@ -347,17 +342,14 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .action-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
+    /* Força o grid de duas colunas, mesmo no celular, para replicar o layout de PC */
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 20px; /* Aumentado para o padrão de PC */
+    margin-top: 20px;
 }
 .action-item {
-    text-align: center; padding: 15px; border-radius: 10px;
-    background-color: var(--box-bg-color-login); /* Branco */
-    border: 1px solid #ddd;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); transition: transform 0.2s;
-    text-decoration: none; color: var(--text-color);
-}
-.action-item:hover {
-    transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px; /* Aumentado para o padrão de PC */
 }
 
 .action-icon { font-size: 2em; margin-bottom: 5px; }
@@ -425,43 +417,8 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 9. RESPONSIVIDADE (Desktop/Tablet)
+ * 9. REMOÇÃO DE RESPONSIVIDADE (FIXADO NO LAYOUT DE PC)
  * ========================================================================= */
 
-@media (min-width: 600px) {
-    /* Layouts Gerais */
-    .center-box {
-        max-width: 450px;
-        padding: 40px; 
-    }
-    .center-box-dashboard {
-        max-width: 450px; 
-        padding-top: 50px; 
-        padding-bottom: 40px; /* Mais padding embaixo */
-    }
-    .large-box {
-        max-width: 900px;
-    }
-
-    /* Dashboard */
-    .action-grid {
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Mais espaço no desktop */
-        gap: 20px;
-    }
-    .action-item {
-        padding: 20px;
-    }
-    
-    /* Formulários e Cards */
-    .tarefa-card-disponivel .tarefa-header {
-        flex-direction: row;
-        align-items: center;
-    }
-    .tarefa-card-disponivel .tarefa-nome,
-    .tarefa-card-disponivel .tarefa-valor {
-        font-size: 1.2em;
-    }
-    
-    /* Input Padrão no Desktop (volta ao padding 15px, mas já está em 15px) */
-    .input-rounded-small { padding: 15px; }
-}
+/* Removemos o media query para forçar o layout padrão em todas as telas.
+   As regras de design 'maior' já foram movidas para as classes principais. */
