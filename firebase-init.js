@@ -3,10 +3,9 @@
 /**
  * js/firebase-init.js
  * Configuração e inicialização do Firebase (Versão v8 Namespaced)
- * Otimizado para usar SOMENTE o Firestore, conforme a autenticação manual via Firestore.
+ * Otimizado para usar SOMENTE o Firestore.
  */
 
-// Sua configuração do Firebase (dados omitidos por segurança)
 const firebaseConfig = {
     apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM", // Use sua chave real
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
@@ -30,11 +29,10 @@ if (typeof firebase !== 'undefined') {
 }
 
 // 2. Define a variável global 'db' com o serviço Firestore.
-// A inicialização de 'firebase.auth()' foi removida para evitar o TypeError.
+// A inicialização de 'firebase.auth()' foi removida.
 let db;
 if (typeof app !== 'undefined' && typeof firebase.firestore !== 'undefined') {
     db = firebase.firestore();
 } else {
-    // Esta mensagem deve aparecer se o script for carregado na ordem errada.
     console.error("ERRO CRÍTICO: O Firestore (db) falhou ao inicializar. O script 'firebase-firestore.js' está carregado?");
 }

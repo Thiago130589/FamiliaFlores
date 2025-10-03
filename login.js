@@ -1,16 +1,12 @@
 // Arquivo: login.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica se a variável 'db' do Firestore foi definida
     if (typeof db === 'undefined') {
         console.error("ERRO CRÍTICO: O Firestore ('db') não está definido. Verifique o carregamento dos scripts no login.html e o firebase-init.js.");
-        // Permite a execução para exibir a mensagem de erro no formulário
     }
 
-    // Limpa o localStorage ao carregar a página de login para evitar loops
     localStorage.removeItem('usuarioLogado'); 
 
-    // Garante que 'db' esteja definido ou seja null para evitar o ReferenceError
     const firestore = typeof db !== 'undefined' ? db : null;
     const USERS_COLLECTION = 'users';
 
@@ -21,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (firestore) {
                 loginUser();
             } else {
-                showMessage("Erro de inicialização: Banco de dados indisponível. Verifique o console.", true);
+                showMessage("Erro de inicialização: Banco de dados indisponível.", true);
             }
         });
     }
@@ -29,10 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const showMessage = (message, isError = true) => {
         const messageEl = document.getElementById('login-message');
         messageEl.textContent = message;
-        
         messageEl.style.color = isError ? 'var(--danger-color)' : 'var(--success-color)';
         messageEl.style.borderColor = isError ? 'var(--danger-color)' : 'var(--success-color)';
-        
         messageEl.classList.remove('hidden-start');
     };
 
@@ -48,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 1. BUSCA O USUÁRIO pelo username
+            // 1. BUSCA O USUÁRIO
             const snapshot = await firestore.collection(USERS_COLLECTION)
                 .where('username', '==', username)
                 .limit(1)
@@ -62,8 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userDoc = snapshot.docs[0];
             const userData = userDoc.data();
             
-            // 2. VERIFICAÇÃO DE SENHA (AGORA SEM CRIPTOGRAFIA)
-            // Compara a senha digitada (password) com a senha salva no DB (userData.password)
+            // 2. VERIFICAÇÃO DE SENHA (SEM CRIPTOGRAFIA)
             if (userData.password !== password) {
                 showMessage('Nome de usuário ou senha incorretos.');
                 return;
@@ -84,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             showMessage('Login bem-sucedido! Redirecionando...', false);
 
-            // 4. Redireciona para o Dashboard
+            // 4. Redireciona
             setTimeout(() => {
                 window.location.href = 'index.html'; 
             }, 500); 
