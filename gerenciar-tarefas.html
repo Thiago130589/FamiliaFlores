@@ -31,10 +31,10 @@
     <div id="excluir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('excluir-tarefa-modal', false)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-btn" onclick="toggleModal('excluir-tarefa-modal', false)">&times;</span>
-            <h2 class="modal-title">Excluir Tarefa</h2>
-            <p class="info-message-danger center-text">A exclusão é permanente e em qualquer coleção.</p>
+            <h2 class="modal-title">Excluir Tarefa (Qualquer Status)</h2>
+            <p class="info-message-danger center-text">A exclusão é permanente.</p>
             <form id="form-excluir-tarefa">
-                <select id="select-tarefa-excluir" required>
+                <select id="select-tarefa-excluir" required style="width: 100%; margin-bottom: 15px;">
                     <option value="">Carregando Tarefas...</option>
                 </select>
                 <button type="submit" class="btn-rounded btn-danger wide-button">Excluir Permanentemente</button>
@@ -46,12 +46,12 @@
         <h1 class="main-title main-title-danger">Gerenciar Tarefas</h1>
         <hr class="divider">
 
-        <div id="admin-alerts"></div>
+        <div id="admin-alerts" style="margin-bottom: 20px;"></div>
 
         <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px; flex-wrap: wrap;">
             <button class="btn-rounded btn-success" onclick="openCriarTarefaModal()">Criar Tarefa</button>
             <a href="tarefas-disponiveis.html" class="btn-rounded btn-primary">Atribuir/Pegar Tarefa</a>
-            <button class="btn-rounded btn-danger-outline" onclick="openExcluirTarefaModal()">Excluir Tarefa</button>
+            <button class="btn-rounded btn-danger" onclick="openExcluirTarefaModal()">Excluir Tarefa</button>
         </div>
         
         <hr class="divider">
@@ -63,9 +63,9 @@
         
         <hr class="divider">
 
-        <div id="aprovacao-section" class="admin-section" style="display: block;">
+        <div id="aprovacao-section" class="admin-section">
             <h2 class="section-title">Tarefas Enviadas para Aprovação</h2>
-            <p class="info-message">Tarefas concluídas pelos usuários, aguardando sua análise (Status: Pendente).</p>
+            <p class="info-message">Tarefas concluídas pelos usuários, aguardando sua análise e aprovação (Status: Pendente).</p>
             <div id="tarefas-pendentes-aprovacao-lista" class="historico-lista">
                 <p class="empty-message">Carregando...</p>
             </div>
@@ -98,6 +98,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             if (!checkAdminAccess()) return;
+            // A função loadTarefasPendentes() permanece aqui para carregar a lista inicial.
             loadTarefasPendentes(); 
         });
         
@@ -112,9 +113,9 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // 1. Query Atribuídas (EmAndamento, Pendente)
+                // 1. Query Atribuídas (EmAndamento, Pendente, Aprovada)
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                    .where('status', 'in', ['EmAndamento', 'Pendente'])
+                    .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataAtribuicao', 'desc'); 
                     
                 // 2. Query Disponíveis
@@ -122,16 +123,16 @@
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc'); 
                     
-                // 3. Query Concluídas (Aprovada, Paga - Histórico Recente)
-                const queryConcluidas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
-                    .where('status', 'in', ['Aprovada', 'Paga'])
-                    .orderBy('dataAprovacao', 'desc')
+                // 3. Query Pagas (Histórico)
+                const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
+                    .where('status', '==', 'Paga')
+                    .orderBy('dataPagamento', 'desc')
                     .limit(20); 
 
-                const [snapshotAtribuidas, snapshotDisponiveis, snapshotConcluidas] = await Promise.all([
+                const [snapshotAtribuidas, snapshotDisponiveis, snapshotPagas] = await Promise.all([
                     queryAtribuidas.get(), 
                     queryDisponiveis.get(), 
-                    queryConcluidas.get()
+                    queryPagas.get()
                 ]);
                 
                 allTasksList = [];
@@ -151,8 +152,8 @@
                     optionsHtml += `<option value="${doc.id}|${TAREFAS_DISPONIVEIS_COLLECTION}">${t.nome} (Status: ${t.status} - Disponível)</option>`;
                 });
 
-                // Adiciona Concluídas
-                snapshotConcluidas.forEach(doc => {
+                // Adiciona Pagas
+                snapshotPagas.forEach(doc => {
                     const t = doc.data();
                     const collectionName = TAREFAS_CONCLUIDAS_COLLECTION;
                     allTasksList.push({ id: doc.id, ...t, collection: collectionName });
@@ -165,8 +166,7 @@
                 // Se a consulta falhar por falta de índice, o erro é exibido aqui
                 console.error("Erro ao carregar todas as tarefas para exclusão (VERIFIQUE ÍNDICES):", error);
                 selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas. Verifique os índices.</option>';
-                // Corrigido para chamar exibirAlertaGlobal com o id correto
-                if(typeof exibirAlertaGlobal === 'function') {
+                 if(typeof exibirAlertaGlobal === 'function') {
                     exibirAlertaGlobal('admin-alerts', `Erro ao carregar tarefas para exclusão: ${error.message}.`, 'danger');
                 } else {
                     console.error('Função exibirAlertaGlobal não definida.');
@@ -216,7 +216,7 @@
                 loadTarefasPendentes(); 
             } catch (error) {
                 console.error("Erro ao criar tarefa:", error);
-                if(typeof exibirAlertaGlobal === 'function') {
+                 if(typeof exibirAlertaGlobal === 'function') {
                     exibirAlertaGlobal('admin-alerts', "Erro ao criar tarefa. Verifique o console.", 'danger');
                 }
             }
@@ -291,34 +291,40 @@
 
                     // Tratamento de aspas para passar a string corretamente no onclick
                     const usuarioSeguro = (t.atribuidaPara || 'N/A').replace(/'/g, "\\'");
-                    
-                    // Estrutura compacta (.tarefa-card-aprovacao)
+
+
+                    // Estrutura do card anterior, usando classes de estilo para remover inline styles (exceto os essenciais)
                     html += `
-                        <div class="tarefa-card-aprovacao">
-                            <div class="tarefa-info-left">
-                                <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
-                                <br>
-                                <span style="color: var(--primary-dark); font-size: 0.95rem; font-weight: bold;">Usuário: ${t.atribuidaPara || 'N/A'}</span>
-                                <br>
-                                <span class="positive-text" style="font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(valor)}</span>
-                                <br>
-                                <span style="color: var(--text-light); font-size: 0.85rem;">Conclusão: ${t.dataConclusao || 'N/A'}</span>
+                        <div class="tarefa-card admin-card" style="border-left-color: var(--warning-color);">
+                            <div class="tarefa-header-admin">
+                                <div class="tarefa-nome-admin">${t.nome}</div>
                             </div>
-                            <div class="tarefa-acoes-right">
-                                <button class="btn-admin-action btn-success" 
+                            
+                            <div class="tarefa-status-line tarefa-info-status-danger">
+                                <span>Status:</span>
+                                <span class="status-pending">${t.status}</span>
+                            </div>
+
+                            <div class="tarefa-details-admin">
+                                <div class="tarefa-info-admin">Usuário: <span style="font-weight: bold; color: #1976d2;">${t.atribuidaPara || 'N/A'}</span></div>
+                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
+                                <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                <button class="btn-rounded btn-success" 
                                         onclick="aprovarTarefa('${taskId}', '${usuarioSeguro}')">
-                                    Aprovar
+                                    APROVAR (Mover para Concluídas)
                                 </button>
-                                <button class="btn-admin-action btn-danger-outline" 
+                                <button class="btn-rounded btn-danger-outline" 
                                         onclick="rejeitarTarefa('${taskId}', '${usuarioSeguro}')">
-                                    Rejeitar
+                                    Rejeitar (Mover para Disponíveis)
                                 </button>
                             </div>
                         </div>
                     `;
                 });
 
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">🎉 Nenhuma tarefa pendente de aprovação! 🎉</p>';
+                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa pendente de aprovação.</p>';
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas pendentes (Verifique o índice):", error);
@@ -330,7 +336,7 @@
          * Aprova a tarefa, movendo-a de tarefasAtribuidas para tarefasConcluidas.
          */
         async function aprovarTarefa(taskId, usuarioNome) {
-            if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? A tarefa será movida para Concluídas (Status: Aprovada).`)) {
+            if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? A tarefa será movida para Concluídas.`)) {
                 return;
             }
 
@@ -377,7 +383,7 @@
          * Rejeita a tarefa, movendo-a de tarefasAtribuidas para tarefasDisponiveis.
          */
         async function rejeitarTarefa(taskId, usuarioNome) {
-            if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? A tarefa será devolvida para Disponíveis (Status: Disponível).`)) {
+            if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? A tarefa será devolvida para Disponíveis.`)) {
                 return;
             }
 

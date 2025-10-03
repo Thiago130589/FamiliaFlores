@@ -20,6 +20,7 @@
     --error-color: #dc3545; /* Vermelho para multas/erros/rejeitar/excluir */
     --warning-color: #ffc107; /* Amarelo para pendente/atenção */
     --info-color: #17a2b8; /* Ciano para informação/atribuição */
+    --danger-color: #dc3545; /* Alias para error-color */
 
     /* Neutros */
     --text-color: #333;
@@ -108,6 +109,7 @@ body {
     color: var(--error-color);
     font-size: 0.9em;
     font-weight: 500;
+    text-align: center; 
 }
 
 .empty-message {
@@ -185,7 +187,7 @@ body {
     color: white;
 }
 
-/* NOVO: Botão com Borda (Outline) de Perigo */
+/* Botão com Borda (Outline) de Perigo (Usado no "Rejeitar") */
 .btn-danger-outline {
     background-color: transparent;
     color: var(--error-color);
@@ -196,46 +198,20 @@ body {
     color: white;
 }
 
-
 .wide-button {
     width: 100%;
     margin-top: 10px;
 }
 
-/* Grupo de Ações - Usado em Index, Login, Cadastro */
-.centered-actions-group {
-    text-align: center; 
-    margin: 15px 0;
-}
-
-.centered-actions-group .wide-button {
-    width: 100%;
-    max-width: 300px; 
-    margin: 10px auto; 
-    display: block; 
-}
-
-/* Novo: Botões de Ação de Admin/Lista (menores e compactos) */
-.btn-admin-action {
-    padding: 6px 14px;
-    font-size: 0.85em;
-    font-weight: bold;
-    border: none;
-    border-radius: 25px; /* Mantendo o arredondamento */
-    cursor: pointer;
-    transition: background-color 0.2s;
-    flex-shrink: 0;
-}
-
-/* NOVO: Botões de Tabulação Admin */
+/* Botões de Tabulação Admin (Usado no topo do gerenciar-tarefas.html) */
 .btn-admin-tab {
     padding: 8px 15px;
-    border-radius: 8px; /* Mais quadrado, menos arredondado que o principal */
+    border-radius: 8px; 
     background-color: #e9ecef; /* Cinza claro */
     color: var(--text-color);
     font-size: 0.9em;
     font-weight: normal;
-    flex-grow: 1; /* Para que ocupem espaço igual */
+    flex-grow: 1; 
     border: 1px solid #ccc;
 }
 .btn-admin-tab:hover {
@@ -284,118 +260,256 @@ textarea {
     min-height: 80px;
 }
 
-/* Estilo para o dropdown de exclusão (dentro do modal) */
-#select-tarefa-excluir {
-    margin-bottom: 15px;
-    /* Sobrescrito pelo estilo geral acima */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+.checkbox-group label {
+    margin-top: 0;
+    margin-left: 10px;
+    font-weight: normal;
+}
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 5px;
 }
 
+/* Para o form de admin (Criar Tarefa, Multa) */
+.admin-form .input-group {
+    display: flex;
+    gap: 10px;
+}
+.admin-form .input-group input,
+.admin-form .input-group select {
+    flex-grow: 1;
+}
 
 /* =========================================================================
  * 6. ESPECÍFICO DO DASHBOARD (INDEX.HTML)
  * ========================================================================= */
 
-/* --- PERFIL E CABEÇALHO --- */
-/* ... (sem alterações nesta seção) ... */
+/* 6.1 Perfil e Saldo */
+.user-profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.username {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+.admin-badge {
+    background-color: var(--error-color);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 10px;
+}
+.user-info {
+    font-size: 1em;
+    color: var(--text-light);
+    margin-bottom: 15px;
+}
+
+.saldo-box {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: var(--list-item-bg-color);
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+.saldo-label {
+    font-size: 1em;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+.saldo-valor {
+    font-size: 2.5em;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* 6.2 Grid de Ações */
+.action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+.action-item {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: var(--box-bg-color);
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+    text-decoration: none; /* Garante que 'a' tag se comporte como item */
+    color: var(--text-color);
+}
+.action-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon {
+    font-size: 2em;
+    margin-bottom: 5px;
+}
+.action-label {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+/* Cores específicas para os ícones */
+.icon-tarefas { color: var(--primary-color); }
+.icon-historico { color: var(--info-color); }
+.icon-admin { color: var(--error-color); }
+.icon-recompensa { color: var(--success-color); }
+
+/* 6.3 Seções de Informação (Recentes/Pendentes) */
+.dashboard-section {
+    margin-top: 25px;
+}
 
 /* =========================================================================
- * 7. ESPECÍFICO DE LISTAS E CARDS (TAREFAS, ADMIN)
+ * 7. ESPECÍFICO DE LISTAS E CARDS (TAREFAS, ADMIN) - DETALHADO RESTAURADO
  * ========================================================================= */
 
-/* Estilo Base para qualquer lista de itens */
-.tarefas-lista-compacta,
-.admin-list,
-.historico-lista { /* Adicionado para a seção do admin */
+.historico-lista { 
     padding-top: 5px;
 }
 
-.list-card {
-    display: flex;
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    background-color: var(--list-item-bg-color); /* Fundo sutil */
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border-left: 5px solid var(--primary-color); /* Cor de destaque genérica */
-    transition: transform 0.2s;
-}
-
-/* Cartão para Tarefas Disponíveis/Minhas Tarefas (Borda verde) */
-.tarefa-item-compacta {
-    /* Usa .list-card, apenas sobrescreve a cor da borda */
-    border-left: 5px solid var(--success-color); 
-}
-
-.tarefa-details-list {
-    /* Detalhes empilhados no celular */
-    display: flex;
-    flex-direction: column; 
-    flex-grow: 1; 
-    padding-right: 15px;
-}
-
-.tarefa-nome-compacta {
-    font-size: 1.1em;
-    font-weight: 700;
-    color: var(--primary-dark);
-    margin-bottom: 5px;
-}
-/* ... (resto dos estilos de lista compacta) ... */
-
-/* Estilo para a Lista de Aprovação de Tarefas (tarefas-pendentes.html e gerenciar-tarefas.html) */
-.tarefa-card-aprovacao {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--list-item-bg-color);
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    border-left: 5px solid var(--warning-color); /* Laranja para "Pendente" */
-    flex-wrap: wrap; 
-}
-
-.tarefa-info-left {
-    text-align: left;
-    flex-grow: 1;
-    min-width: 250px; 
-}
-
-.tarefa-acoes-right {
-    display: flex;
-    gap: 8px; /* Espaço entre os botões Aprovar e Rejeitar */
-    margin-top: 5px; 
-    flex-shrink: 0;
-}
-
-/* Adicionei alguns sub-estilos para o card de admin (Se o HTML ainda usar) */
+/* Estilo para o card genérico de tarefa */
 .tarefa-card {
-    /* Estilo genérico, mas mantido para o caso de uso no seu script */
     background-color: var(--list-item-bg-color);
     padding: 15px;
     margin-bottom: 10px;
     border-radius: 6px;
     border-left: 5px solid var(--primary-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Estilo para o card em tarefas-disponiveis (Botão Pego/Atribuir) */
+.tarefa-card-disponivel {
+    border-left-color: var(--primary-color);
+}
+.tarefa-card-disponivel .tarefa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+.tarefa-card-disponivel .tarefa-nome {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--primary-dark);
+    flex-grow: 1;
+}
+.tarefa-card-disponivel .tarefa-valor {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--success-color);
+    margin-left: 10px;
+    white-space: nowrap; /* Evita quebra de linha */
+}
+.tarefa-card-disponivel .tarefa-descricao {
+    font-size: 0.9em;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+.tarefa-card-disponivel .tarefa-prazo {
+    font-size: 0.85em;
+    color: var(--error-color);
+    font-weight: bold;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Card para Tarefas Atribuídas/Concluídas do Usuário */
+.tarefa-card-atribuida {
+    border-left-color: var(--info-color);
+}
+.tarefa-card-atribuida.aprovada {
+    border-left-color: var(--success-color);
+}
+.tarefa-card-atribuida.pendente {
+    border-left-color: var(--warning-color);
+}
+
+.tarefa-card-atribuida .tarefa-info-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5px;
+}
+.tarefa-card-atribuida .tarefa-info-status .status-text {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+.tarefa-card-atribuida .status-EmAndamento { color: var(--info-color); }
+.tarefa-card-atribuida .status-Pendente { color: var(--warning-color); }
+.tarefa-card-atribuida .status-Aprovada { color: var(--success-color); }
+.tarefa-card-atribuida .status-Paga { color: var(--success-color); }
+.tarefa-card-atribuida .status-Rejeitada { color: var(--error-color); }
+
+
+/* Estilo detalhado para o card de admin (Padrão Original do gerenciar-tarefas.html) */
+.tarefa-card.admin-card {
+    /* O border-left-color será sobrescrito via inline ou JS conforme o status */
+    background-color: var(--box-bg-color); /* Fundo mais branco para destaque */
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 .tarefa-header-admin {
     margin-bottom: 10px;
 }
 .tarefa-nome-admin {
-    font-size: 1.2em;
+    font-size: 1.3em;
     font-weight: bold;
     color: var(--primary-dark);
 }
 .tarefa-details-admin {
     margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
 }
 .tarefa-info-admin {
     font-size: 0.9em;
     color: var(--text-light);
     margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between; /* Para alinhar valor/data à direita */
 }
+
+/* Linha de status (Status: PENDENTE) */
 .tarefa-status-line {
     display: flex;
     gap: 5px;
@@ -404,8 +518,26 @@ textarea {
     margin-bottom: 8px;
     color: var(--text-light);
 }
+.tarefa-info-status-danger {
+    color: var(--error-color);
+}
 .status-pending {
     color: var(--warning-color);
+}
+
+/* Botões de Ação na Área Admin */
+.tarefa-card.admin-card > div:last-child {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap; /* Permite que os botões quebrem a linha */
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+.tarefa-card.admin-card > div:last-child button {
+    flex-grow: 1;
+    min-width: 120px;
+    white-space: normal; /* Permite a quebra de texto em botões longos */
 }
 
 
@@ -429,10 +561,107 @@ textarea {
 .hidden-start {
     display: none;
 }
-/* ... (resto dos estilos de modal) ... */
+.modal-content {
+    background-color: var(--box-bg-color);
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 450px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--error-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+.modal-title {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 15px;
+}
+.modal-subtitle {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+.modal-info-line {
+    font-size: 1em;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    padding-left: 10px;
+    border-left: 3px solid var(--info-color);
+}
+.modal-info-line span {
+    font-weight: bold;
+}
 
 /* =========================================================================
- * 9. RESPONSIVIDADE E AJUSTES DE TELA (Desktop/Tablet)
+ * 9. ESPECÍFICO DE RECOMPENSAS (RECOMPENSAS.HTML)
+ * ========================================================================= */
+.recompensa-card {
+    background-color: var(--box-bg-color);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #eee;
+}
+.recompensa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.recompensa-nome {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--success-color);
+}
+.recompensa-valor {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--error-color); /* Valor é um custo (negativo) */
+    white-space: nowrap;
+}
+.recompensa-descricao {
+    font-size: 0.9em;
+    color: var(--text-light);
+    margin-bottom: 15px;
+}
+
+.recompensa-btn-area {
+    display: flex;
+    justify-content: flex-end;
+}
+/* Estilo para quando a recompensa não pode ser resgatada */
+.btn-disabled {
+    background-color: #ccc !important;
+    color: #666 !important;
+    cursor: not-allowed;
+    border: none;
+}
+.btn-disabled:hover {
+    background-color: #ccc !important;
+}
+
+
+/* =========================================================================
+ * 10. RESPONSIVIDADE E AJUSTES DE TELA (Desktop/Tablet)
  * ========================================================================= */
 
 /* Ajustes para telas maiores que 600px (Tablet/Desktop) */
@@ -441,30 +670,107 @@ textarea {
         align-items: center; /* Centraliza o conteúdo verticalmente no desktop */
     }
 
-    /* 9.1 Ajuste da caixa branca */
+    /* 10.1 Ajuste da caixa branca */
     .center-box {
         max-width: 450px; /* Volta para o tamanho ideal de desktop/tablet */
-        padding: 40px; /* Reduz um pouco o padding para 40px */
+        padding: 40px; 
     }
     
     .large-box {
         max-width: 800px;
     }
 
-    /* 9.2 Ajuste de lista (Tarefas Disponíveis/Atribuídas) */
-    /* ... (Estilos de lista compacta) ... */
+    /* 10.2 Ajuste do Grid de Ações */
+    .action-grid {
+        grid-template-columns: 1fr 1fr 1fr; /* 3 colunas para desktop */
+        gap: 20px;
+    }
+    .action-item {
+        padding: 20px;
+    }
     
-    /* 9.3 Ajuste da lista de Aprovação */
-    .tarefa-card-aprovacao {
-        /* Desfaz o flex-wrap em telas maiores */
-        flex-wrap: nowrap;
+    /* 10.3 Ajuste de Listas (Tarefas e Histórico) */
+    /* Deixa o card mais condensado e em linha */
+    .tarefa-card-disponivel .tarefa-header {
+        flex-direction: row;
+        align-items: center;
     }
-    .tarefa-info-left {
-        /* Garante que o texto ocupe o espaço necessário antes dos botões */
-        min-width: unset;
-        max-width: calc(100% - 200px); /* Ajustado para dar mais espaço, considerando dois botões */
+    .tarefa-card-disponivel .tarefa-nome {
+        font-size: 1.2em;
     }
-    .tarefa-acoes-right {
-        margin-top: 0; /* Remove a margem vertical desnecessária no desktop */
+    .tarefa-card-disponivel .tarefa-valor {
+        font-size: 1.2em;
+    }
+
+    /* Ajuste para o Card de Admin Detalhado (Original) */
+    .tarefa-card.admin-card {
+        display: grid;
+        grid-template-columns: 3fr 1fr; /* Nome/Detalhes à esquerda, Status/Ações à direita */
+        gap: 15px;
+        align-items: center;
+    }
+    .tarefa-card.admin-card > div:first-child { 
+        /* Mantém o header e os detalhes na primeira coluna */
+    }
+    
+    .tarefa-card.admin-card > div:last-child {
+        /* Ações e status na segunda coluna */
+        grid-column: 2;
+        grid-row: 1 / span 2; 
+        display: flex;
+        flex-direction: column;
+        justify-content: center; 
+        align-items: stretch;
+        border-top: none;
+        padding-top: 0;
+        gap: 10px;
+    }
+    .tarefa-details-admin {
+        border-top: none; 
+        padding-top: 0;
+    }
+    .tarefa-status-line {
+        justify-content: flex-end; /* Alinha o status à direita */
+        margin-bottom: 10px;
     }
 }
+
+/* =========================================================================
+ * 11. LOGIN/CADASTRO E ESTILOS DE PÁGINA ESPECÍFICA (Exemplo: Login)
+ * ========================================================================= */
+.login-header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+.login-header .main-title {
+    color: var(--primary-dark);
+}
+.login-link {
+    display: block;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: var(--text-light);
+    text-decoration: none;
+}
+.login-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* Ajuste para telas grandes no login */
+@media (min-width: 600px) {
+    .login-form {
+        gap: 15px;
+    }
+    input[type="text"],
+    input[type="password"] {
+        padding: 15px;
+    }
+}
+
+
+/* =========================================================================
+ * 12. BARRA DE NAVEGAÇÃO E UTILS (Se aplicável)
+ * ========================================================================= */
+ /* (Estilos de NavBar removidos pois o layout é de tela única centrada) */
