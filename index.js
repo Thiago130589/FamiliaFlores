@@ -1,7 +1,7 @@
 /**
  * js/index.js
  * Gerenciador da página Dashboard.
- * Depende de script.js (para getUsuarioLogado e logout)
+ * Depende de script.js (para getUsuarioLogado, logout e formatarMoeda)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,13 +25,21 @@ function displayUserData(user) {
     // Nome
     const nomeElement = document.getElementById('user-name'); 
     if (nomeElement) {
-        nomeElement.textContent = user.nome || user.username;
+        nomeElement.textContent = user.nome || user.username || 'Usuário';
+    }
+    
+    // Username (Placeholder para email ou apelido)
+    const usernameElement = document.getElementById('user-username'); 
+    if (usernameElement) {
+        // Assume-se que o campo é o 'username' (apelido)
+        usernameElement.textContent = `@${user.username || 'anonimo'}`;
     }
     
     // Saldo/Pontuação (Assumindo que o campo é 'pontuacao' ou 0)
     const saldoElement = document.getElementById('user-saldo');
     // Usa a função formatarMoeda do script.js
     if (saldoElement && typeof formatarMoeda === 'function') {
+        // Se a pontuação for undefined, usa 0
         saldoElement.textContent = formatarMoeda(user.pontuacao || 0); 
     }
     
@@ -40,11 +48,11 @@ function displayUserData(user) {
     if (perfilBadge) {
         if (user.isAdmin) {
             perfilBadge.textContent = 'ADMIN';
-            // Adiciona classe para estilização (ex: fundo vermelho)
             perfilBadge.classList.add('admin-badge'); 
         } else {
             perfilBadge.textContent = 'USUÁRIO';
-            perfilBadge.classList.remove('admin-badge');
+            // Remove a classe admin-badge caso tenha sido aplicada (boa prática)
+            perfilBadge.classList.remove('admin-badge'); 
         }
     }
     
@@ -61,13 +69,11 @@ function displayUserData(user) {
 function handleAdminAccess(user) {
     const adminSection = document.getElementById('admin-section'); 
 
-    // O 'hidden' deve ser uma classe CSS que define display: none;
-    if (user.isAdmin) {
-        if (adminSection) {
+    // A classe 'hidden' é crucial para mostrar/esconder a seção
+    if (adminSection) {
+        if (user.isAdmin) {
             adminSection.classList.remove('hidden');
-        }
-    } else {
-        if (adminSection) {
+        } else {
             adminSection.classList.add('hidden');
         }
     }

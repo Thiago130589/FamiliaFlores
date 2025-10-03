@@ -15,31 +15,33 @@
     <script src="script.js"></script> <script src="index.js" defer></script> 
 </head>
 <body class="body-dashboard">
-    <header class="main-header">
-        <h1 class="main-title">Task Master</h1>
-        <button onclick="logout()" class="btn-logout">Sair</button>
-    </header>
-
     <main class="dashboard-container">
+        
         <section class="user-profile-card">
+            
+            <button onclick="logout()" class="btn-logout-card">Sair</button>
+            
             <div class="user-photo-container">
                 <img id="user-photo" src="assets/default-avatar.png" alt="Foto de Perfil" class="user-photo">
             </div>
 
             <div class="user-details">
                 <h2 id="user-name">Carregando...</h2> 
+                
                 <span id="user-perfil-badge" class="profile-badge"></span>
+                
+                <p id="user-username">@carregando</p> 
             </div>
             
-            <hr class="divider">
+            <hr class="divider-thin">
 
             <div class="user-balance">
                 <p>Seu Saldo Atual</p>
                 <h3 id="user-saldo">R$ 0,00</h3>
             </div>
         </section>
-
-        <section class="action-grid">
+        
+        <section class="action-grid-card">
             <h2 class="section-title">Ações Rápidas</h2>
             
             <a href="minhas-tarefas.html" class="action-item">
