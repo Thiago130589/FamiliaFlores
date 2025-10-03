@@ -1,76 +1,89 @@
 ﻿<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Task Master</title>
+    <title>Dashboard - Task Master</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css"> 
     
-    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script> 
+    <script src="script.js"></script> <script src="index.js" defer></script> 
+</head>
+<body class="body-dashboard">
+    <header class="main-header">
+        <h1 class="main-title">Task Master</h1>
+        <button onclick="logout()" class="btn-logout">Sair</button>
+    </header>
 
-    </head>
-<body>
-
-    <div class="center-box">
-        <div class="user-profile">
-            <div class="profile-icon">J</div>
-            <h1 class="username">João Silva <span class="admin-badge">ADMIN</span></h1>
-            <p class="user-info">joao.silva@app.com</p>
-            
-            <div class="saldo-box">
-                <p class="saldo-label">Seu Saldo Atual</p>
-                <p class="saldo-valor saldo-positivo">R$ 450,00</p>
+    <main class="dashboard-container">
+        <section class="user-profile-card">
+            <div class="user-photo-container">
+                <img id="user-photo" src="assets/default-avatar.png" alt="Foto de Perfil" class="user-photo">
             </div>
-        </div>
 
-        <h2 class="section-title">Ações Rápidas</h2>
-        <div class="action-grid">
-            <a href="tarefas.html" class="action-item">
-                <i class="fas fa-list-check action-icon icon-tarefas"></i>
+            <div class="user-details">
+                <h2 id="user-name">Carregando...</h2> 
+                <span id="user-perfil-badge" class="profile-badge"></span>
+            </div>
+            
+            <hr class="divider">
+
+            <div class="user-balance">
+                <p>Seu Saldo Atual</p>
+                <h3 id="user-saldo">R$ 0,00</h3>
+            </div>
+        </section>
+
+        <section class="action-grid">
+            <h2 class="section-title">Ações Rápidas</h2>
+            
+            <a href="minhas-tarefas.html" class="action-item">
+                <i class="icon icon-tasks"></i>
                 <span>Ver Tarefas</span>
             </a>
-            <a href="historico.html" class="action-item">
-                <i class="fas fa-history action-icon icon-historico"></i>
+            
+            <a href="historico-tarefas.html" class="action-item">
+                <i class="icon icon-history"></i>
                 <span>Histórico</span>
             </a>
-            <a href="recompensas.html" class="action-item">
-                <i class="fas fa-gift action-icon icon-recompensa"></i>
+            
+            <a href="trocar-premios.html" class="action-item">
+                <i class="icon icon-prizes"></i>
                 <span>Trocar Prêmios</span>
             </a>
-            <a href="gerenciar-tarefas.html" class="action-item">
-                <i class="fas fa-user-shield action-icon icon-admin"></i>
-                <span>Painel Admin</span>
-            </a>
-        </div>
-
-        <div class="dashboard-section">
-            <h2 class="section-title">Tarefas Pendentes</h2>
-            <p class="info-message">Tarefas que você precisa entregar.</p>
-
-            <div class="tarefa-card tarefa-card-atribuida pendente">
-                <h3 class="tarefa-nome">Lavar a Louça</h3>
-                <p class="tarefa-descricao">Louça do almoço e jantar de ontem.</p>
-                <div class="tarefa-info-status">
-                    <span class="status-text status-Pendente">Pendente de Entrega</span>
-                    <span class="positive-text">R$ 20,00</span>
-                </div>
-            </div>
-
-            <div class="tarefa-card tarefa-card-atribuida">
-                <h3 class="tarefa-nome">Estudar CSS</h3>
-                <p class="tarefa-descricao">Terminar o módulo de Flexbox e Grid.</p>
-                <div class="tarefa-info-status">
-                    <span class="status-text status-EmAndamento">Em Andamento</span>
-                    <span class="positive-text">R$ 50,00</span>
-                </div>
-            </div>
             
-        </div>
-        
-        <div class="divider"></div>
-        <a href="login.html" class="btn-rounded btn-danger wide-button">Sair</a>
-    </div>
+            <a href="minha-carteira.html" class="action-item">
+                <i class="icon icon-wallet"></i>
+                <span>Minha Carteira</span>
+            </a>
+        </section>
 
+        <section id="admin-section" class="admin-panel hidden">
+            <h2 class="section-title admin-title">Funções Administrativas</h2>
+            <div class="action-grid admin-grid">
+                
+                <a href="gerenciar-tarefas.html" class="action-item admin-item">
+                    <i class="icon icon-manage-tasks"></i>
+                    <span>Gerenciar Tarefas</span>
+                </a>
+                
+                <a href="gerenciar-perfis.html" class="action-item admin-item">
+                    <i class="icon icon-manage-users"></i>
+                    <span>Gerenciar Usuários</span>
+                </a>
+
+                <a href="painel-admin.html" class="action-item admin-item">
+                    <i class="icon icon-settings"></i>
+                    <span>Painel Geral</span>
+                </a>
+            </div>
+        </section>
+        
+    </main>
 </body>
 </html>
