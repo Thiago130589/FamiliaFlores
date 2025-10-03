@@ -60,7 +60,7 @@
          */
         function unmaskMoney(maskedValue) {
             if (!maskedValue) return 0;
-            // 1. Remove "R$ "
+            // 1. Remove "R$" e espaços
             // 2. Substitui o separador de milhares (.) por vazio
             // 3. Substitui o separador decimal (,) por ponto
             const unmasked = maskedValue
@@ -110,8 +110,8 @@
                 <a href="#" id="btn-criar-tarefa" class="admin-action-item">
                     <i class="fas fa-plus-circle"></i> Criar Nova Tarefa
                 </a>
-                <a href="#" class="admin-action-item">
-                    <i class="fas fa-check-double"></i> Aprovar/Rejeitar Tarefas
+                <a href="gerenciar-tarefas.html" class="admin-action-item"> 
+                    <i class="fas fa-check-double"></i> Gestão de Tarefas
                 </a>
             </div>
         </div>
@@ -157,11 +157,11 @@
                 <div class="form-group">
                     <label for="tarefa-valor">Valor (Recompensa)</label>
                     <input type="text" 
-                           id="tarefa-valor" 
-                           class="input-rounded" 
-                           placeholder="Ex: 5,00" 
-                           oninput="maskMoney(this)" 
-                           required>
+                            id="tarefa-valor" 
+                            class="input-rounded" 
+                            placeholder="Ex: 5,00" 
+                            oninput="maskMoney(this)" 
+                            required>
                 </div>
 
                 <div class="form-group">
@@ -197,6 +197,8 @@
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
         // --- Funções de Utilitário ---
+        // Funções como checkAdminAccess, getUsuarioLogado são definidas no script.js, 
+        // mas as cópias locais são mantidas para o modal funcionar se o script.js não carregar totalmente
         function checkAdminAccess() {
              const userInfo = JSON.parse(localStorage.getItem('usuarioLogado'));
              if (!userInfo || userInfo.isAdmin !== true) {
