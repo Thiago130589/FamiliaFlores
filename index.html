@@ -14,15 +14,16 @@
     <script src="firebase-init.js"></script> 
     <script src="script.js"></script> <script src="index.js" defer></script> 
 </head>
-<body class="body-dashboard">
-    <main class="dashboard-container">
+<body class="body-register">
+    
+    <div class="center-box center-box-dashboard">
         
-        <section class="user-profile-card">
-            
-            <button onclick="logout()" class="btn-logout-card">Sair</button>
+        <button onclick="logout()" class="btn-logout-card">Sair</button>
+        
+        <section class="user-profile-card-content">
             
             <div class="user-photo-container">
-                <img id="user-photo" src="assets/default-avatar.png" alt="Foto de Perfil" class="user-photo">
+                <img id="user-photo" src="" alt="Foto de Perfil" class="user-photo">
             </div>
 
             <div class="user-details">
@@ -86,6 +87,5 @@
             </div>
         </section>
         
-    </main>
-</body>
+    </div> </body>
 </html>
