@@ -4,8 +4,6 @@
  * Depende de script.js (para getUsuarioLogado, logout e formatarMoeda)
  */
 
-// Placeholder SVG simples (temporário) para evitar erro 404 se não houver foto Base64
-// 'U' de "Usuário"
 const DEFAULT_AVATAR_PATH = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#32c74d"/><text x="50" y="65" font-family="Arial, sans-serif" font-size="50" fill="#ffffff" text-anchor="middle">U</text></svg>';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return; 
     }
 
-    // ADICIONEI ESTE LOG PARA VOCÊ VERIFICAR NO CONSOLE O VALOR DA FOTO
+    // LOG PARA DEBUGAR A FOTO: Verifique este log no console (F12)
     console.log("Dados do Usuário Logado (Verifique o campo 'foto'):", usuarioLogado);
 
     displayUserData(usuarioLogado);
@@ -24,8 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function displayUserData(user) {
-    // ... [Códigos para nome, username, saldo, perfil (isAdmin)] ...
-
     // 1. Nome
     const nomeElement = document.getElementById('user-name'); 
     if (nomeElement) {
@@ -60,14 +56,11 @@ function displayUserData(user) {
     const photoElement = document.getElementById('user-photo');
     if (photoElement) {
         if (user.foto && user.foto.startsWith('data:')) {
-            // Se for Base64 válido, usa o Base64
             photoElement.src = user.foto; 
         } else {
-            // Se for nulo ou inválido, usa o placeholder SVG
             photoElement.src = DEFAULT_AVATAR_PATH;
         }
-        
-        // CORREÇÃO DE VISUALIZAÇÃO: Garante que a imagem é exibida, caso o CSS estivesse escondendo
+        // Garante que a imagem é exibida, caso o CSS estivesse escondendo
         photoElement.style.display = 'block'; 
     }
 }

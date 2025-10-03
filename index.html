@@ -16,59 +16,59 @@
     
     <script src="index.js" defer></script> 
 </head>
-<body class="body-register">
+<body class="body-login"> 
     
     <div class="center-box center-box-dashboard">
         
         <button onclick="logout()" class="btn-logout-card">Sair</button>
         
-        <section class="user-profile-card-content profile-flex-layout"> 
-            
+        <div class="user-profile-header">
             <div class="user-details-text">
                 <h2 id="user-name">Carregando...</h2> 
                 
                 <span id="user-perfil-badge" class="profile-badge"></span>
                 
                 <p id="user-username">@carregando</p> 
-                
-                <hr class="divider-thin">
-
-                <div class="user-balance">
-                    <p>Seu Saldo Atual</p>
-                    <h3 id="user-saldo">R$ 0,00</h3>
-                </div>
             </div>
             
-            <div class="user-photo-container" id="photo-container">
+            <div class="user-photo-container">
                 <img id="user-photo" src="" alt="Foto de Perfil" class="user-photo-style"> 
             </div>
-            
-        </section>
+        </div>
+
+        <hr class="divider-thin">
+
+        <div class="user-balance">
+            <p>Seu Saldo Atual</p>
+            <h3 id="user-saldo">R$ 0,00</h3>
+        </div>
         
         <hr class="divider"> 
 
         <section class="action-grid-card">
             <h2 class="section-title">Ações Rápidas</h2>
             
-            <a href="minhas-tarefas.html" class="action-item">
-                <i class="icon icon-tasks"></i>
-                <span>Ver Tarefas</span>
-            </a>
-            
-            <a href="historico-tarefas.html" class="action-item">
-                <i class="icon icon-history"></i>
-                <span>Histórico</span>
-            </a>
-            
-            <a href="trocar-premios.html" class="action-item">
-                <i class="icon icon-prizes"></i>
-                <span>Trocar Prêmios</span>
-            </a>
-            
-            <a href="minha-carteira.html" class="action-item">
-                <i class="icon icon-wallet"></i>
-                <span>Minha Carteira</span>
-            </a>
+            <div class="action-grid">
+                <a href="minhas-tarefas.html" class="action-item">
+                    <i class="icon icon-tasks"></i>
+                    <span>Ver Tarefas</span>
+                </a>
+                
+                <a href="historico-tarefas.html" class="action-item">
+                    <i class="icon icon-history"></i>
+                    <span>Histórico</span>
+                </a>
+                
+                <a href="trocar-premios.html" class="action-item">
+                    <i class="icon icon-prizes"></i>
+                    <span>Trocar Prêmios</span>
+                </a>
+                
+                <a href="minha-carteira.html" class="action-item">
+                    <i class="icon icon-wallet"></i>
+                    <span>Minha Carteira</span>
+                </a>
+            </div>
         </section>
 
         <section id="admin-section" class="admin-panel hidden">

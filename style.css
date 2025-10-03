@@ -29,7 +29,7 @@
     --text-light: #6c757d;
     
     /* Cores de Fundo de Caixas (Containers) */
-    --box-bg-color-login: #ffffff; 
+  	--box-bg-color-login: #ffffff; 
     --box-bg-color-cadastro: #e6ffe6; 
     --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
 
@@ -103,6 +103,12 @@ body {
     padding: 30px; 
 }
 
+/* Tamanho para o card do Dashboard */
+.center-box-dashboard {
+    max-width: 450px; /* Mantém o tamanho da imagem inicial */
+    padding-top: 50px; /* Espaço para a foto no topo */
+}
+
 
 /* =========================================================================
  * 3. TIPOGRAFIA E UTILITÁRIOS
@@ -143,7 +149,7 @@ body {
 .saldo-positivo, .positive-text { color: var(--success-color); }
 
 .center-text { text-align: center; } 
-.hidden-start { display: none; }
+.hidden { display: none !important; } /* Corrigi para usar !important para sobrescrever */
 
 /* Separadores */
 .divider { border: none; height: 1px; background-color: #e0e0e0; margin: 15px 0; }
@@ -211,6 +217,7 @@ body {
     font-size: 14px;
     padding: 5px 10px;
     transition: color 0.3s;
+    z-index: 10; /* Garante que fique acima da foto */
 }
 
 .btn-logout-card:hover {
@@ -244,44 +251,53 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 6. ESPECÍFICO DO DASHBOARD (index.html) - CORRIGIDO PARA LAYOUT FLEX
+ * 6. ESPECÍFICO DO DASHBOARD (index.html) - CORRIGIDO PARA LAYOUT ANTERIOR COM FOTO NA DIREITA
  * ========================================================================= */
 
-/* 6.1 Layout Flexível: Detalhes do Usuário (Texto à esquerda, Foto à direita) */
-.profile-flex-layout {
+/* Cabeçalho do perfil para conter nome e foto */
+.user-profile-header {
     display: flex;
-    justify-content: space-between; /* Espaço entre os dois lados */
-    align-items: flex-start; /* Alinha o conteúdo ao topo */
-    gap: 20px; 
-    padding: 10px 0;
-    margin-bottom: 10px;
+    align-items: flex-start; /* Alinha o texto e a foto ao topo */
+    margin-bottom: 20px;
+    position: relative; /* Para a foto ser posicionada absolutamente dentro dele */
+    padding-right: 100px; /* Deixa espaço para a foto */
+}
+
+/* Container da foto (posicionamento) */
+.user-photo-container {
+    position: absolute;
+    top: -30px; /* Move para cima do topo do .center-box-dashboard */
+    right: 0; /* Alinha à direita */
+    width: 90px;
+    height: 90px;
+    z-index: 5; /* Garante que a foto fique acima de outros elementos */
+    /* background-color: red; /* DEBUG: Veja a área do container */
 }
 
 /* Estilo para a imagem (CRÍTICO: Torna a imagem redonda e visível) */
 .user-photo-style {
-    width: 90px;
-    height: 90px;
+    width: 100%; /* Ocupa 100% do seu container (90px) */
+    height: 100%; /* Ocupa 100% do seu container (90px) */
     border-radius: 50%; /* Torna redonda */
     object-fit: cover; /* Garante que a imagem se encaixe sem distorcer */
-    flex-shrink: 0; /* Impede que a foto encolha */
     border: 3px solid var(--primary-color); /* Borda */
     background-color: #f0f0f0; /* Fundo para placeholder */
-}
-
-/* Antiga seção 6.1 (user-profile) substituída pelas novas classes: */
-.user-details-text {
-    flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
-}
-.user-photo-container {
-    padding-top: 5px; /* Pequeno ajuste de alinhamento vertical */
+    display: block; /* Garante que a imagem não seja inline e possa ter width/height */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Elementos de Texto do Perfil */
+.user-details-text {
+    flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+    text-align: left; /* Alinha o texto à esquerda */
+}
+
 #user-name {
     font-size: 1.8em;
     font-weight: bold;
     color: var(--text-color);
     margin-bottom: 5px;
+    line-height: 1.2;
 }
 #user-username { 
     font-size: 1em; 
@@ -301,7 +317,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Saldo (Ajustado para o novo layout) */
 .user-balance {
-    text-align: left;
+    text-align: left; /* Alinha o saldo à esquerda */
     margin-top: 15px;
 }
 .user-balance p {
@@ -309,7 +325,7 @@ textarea { resize: vertical; min-height: 80px; }
     font-size: 0.9em;
 }
 #user-saldo {
-    font-size: 2.2em; /* Tamanho reduzido para caber melhor no layout flex */
+    font-size: 2.5em; /* Tamanho original do saldo */
     font-weight: bold;
     color: var(--success-color); 
     line-height: 1.2;
@@ -411,7 +427,8 @@ textarea { resize: vertical; min-height: 80px; }
         padding: 40px; 
     }
     .center-box-dashboard {
-        max-width: 550px; /* Mais espaço no desktop para o layout flex */
+        max-width: 450px; /* Mantém o tamanho da imagem inicial */
+        padding-top: 50px; /* Garante que o conteúdo não seja coberto pela foto */
     }
     .large-box {
         max-width: 900px;
@@ -419,7 +436,7 @@ textarea { resize: vertical; min-height: 80px; }
 
     /* Dashboard */
     .action-grid {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Mais espaço no desktop */
         gap: 20px;
     }
     .action-item {
