@@ -25,7 +25,7 @@
     /* Neutros */
     --text-color: #333;
     --text-light: #6c757d;
-    --box-bg-color: #ffffff;
+    --box-bg-color: #e6ffe6; /* ALTERADO: Verde Claro */
     --list-item-bg-color: #f7f7f7; /* Fundo sutil para itens de lista */
     --shadow-color: rgba(0, 0, 0, 0.1);
 }
