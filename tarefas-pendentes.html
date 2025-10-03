@@ -9,44 +9,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script> 
     <script src="js/script.js"></script>
-    <style>
-        /* Estilos CSS simplificados para a lista sem o modal */
-        .tarefa-card-aprovacao {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f7f7f7;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            border-left: 5px solid var(--warning-color); /* Laranja para "Pendente" */
-            flex-wrap: wrap; /* Permite quebrar linha em telas menores */
-        }
-        .tarefa-info-left {
-            text-align: left;
-            flex-grow: 1;
-            min-width: 250px; /* Garante espaço mínimo para as informações */
-        }
-        .tarefa-acoes-right {
-            display: flex;
-            gap: 10px; /* Espaço entre os botões */
-            margin-top: 5px; /* Margem para melhor visualização em quebra de linha */
-        }
-        .tarefa-acoes-right button {
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            white-space: nowrap; /* Evita quebra de linha no texto do botão */
-        }
-        .empty-message, .error-message {
-            text-align: center;
-            color: #888;
-            padding: 20px;
-        }
-    </style>
-</head>
+    </head>
 <body>
     
-    <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
+    <div class="center-box large-box" style="align-items: center; position: relative;">
         <h1 style="margin: 0; color: var(--warning-color); font-size: 2.2rem;">Aprovação de Tarefas (Pendentes)</h1>
         <p style="color: #888; text-align: center; margin-top: 5px;">Aqui você gerencia todas as tarefas aguardando sua análise e aprovação.</p>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
@@ -61,7 +27,6 @@
     </div>
 
     <script>
-    // Inicialização do Firestore e variáveis globais
     const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
     const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
     const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
@@ -84,10 +49,6 @@
         if (!userInfo) return { nome: null, isAdmin: false };
         return userInfo;
     }
-
-    // A função openAcoesModal foi removida/não será usada.
-    // Os botões vão chamar aprovarConclusao e rejeitarConclusao diretamente.
-
 
     async function renderTarefasPendentes() {
         const lista = document.getElementById('tarefas-pendentes-lista');
@@ -133,7 +94,7 @@
                 const nomeSeguro = nomeTarefa.replace(/'/g, "\\'");
                 const usuarioSeguro = usuario.replace(/'/g, "\\'");
                 
-                // Botões de Ação Diretos
+                // Botões de Ação Diretos - Usando a nova classe btn-admin-action
                 return `
                     <div class="tarefa-card-aprovacao">
                         <div class="tarefa-info-left">
@@ -146,11 +107,11 @@
                             <span style="color: #888; font-size: 0.85rem;">Conclusão: ${dataConclusao}</span>
                         </div>
                         <div class="tarefa-acoes-right">
-                            <button class="btn-rounded btn-success" 
+                            <button class="btn-admin-action btn-success" 
                                     onclick="aprovarConclusao('${t.id}', '${usuarioSeguro}')">
                                 Aprovar
                             </button>
-                            <button class="btn-rounded btn-danger" 
+                            <button class="btn-admin-action btn-danger" 
                                     onclick="rejeitarConclusao('${t.id}', '${usuarioSeguro}')">
                                 Rejeitar
                             </button>
@@ -235,7 +196,6 @@
 
             // 1. Preparar dados e criar novo documento na coleção de Disponíveis
             // Desestrutura para remover campos específicos de atribuição e conclusão
-            // NOTA: O ID do documento deve ser mantido ou a lógica deve ser adaptada
             const { atribuidaPara, dataAtribuicao, dataConclusao, ...disponivelData } = taskData;
             disponivelData.status = 'Disponível';
             disponivelData.dataRejeicao = new Date().toISOString().split('T')[0];
