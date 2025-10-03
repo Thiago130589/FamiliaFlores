@@ -15,6 +15,62 @@
     
     <script src="script.js" defer></script> 
     
+    <script>
+        // Funções de Máscara de Dinheiro
+        
+        /**
+         * Aplica a máscara de moeda (R$) em um campo de input.
+         * Aceita apenas números e formata em Reais (R$).
+         * @param {HTMLInputElement} input O elemento input a ser formatado.
+         */
+        function maskMoney(input) {
+            let value = input.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+            if (value.length === 0) {
+                input.value = '';
+                return;
+            }
+
+            // Garante pelo menos dois zeros (0,00)
+            while (value.length < 3) {
+                value = '0' + value;
+            }
+
+            // Separa os centavos (últimos 2 dígitos)
+            let cents = value.slice(-2);
+            let integer = value.slice(0, -2);
+
+            // Formata a parte inteira (milhares)
+            integer = integer.replace(/^0+/, ''); // Remove zeros à esquerda, exceto se for só '0'
+
+            if (integer.length === 0) {
+                integer = '0';
+            } else {
+                // Adiciona o separador de milhares (ponto)
+                integer = integer.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            }
+
+            // Constrói a string final no formato R$ 9.999,99
+            input.value = `R$ ${integer},${cents}`;
+        }
+        
+        /**
+         * Converte a string formatada em R$ para um número float.
+         * @param {string} maskedValue O valor formatado (Ex: R$ 1.234,56).
+         * @returns {number} O valor numérico.
+         */
+        function unmaskMoney(maskedValue) {
+            if (!maskedValue) return 0;
+            // 1. Remove "R$ "
+            // 2. Substitui o separador de milhares (.) por vazio
+            // 3. Substitui o separador decimal (,) por ponto
+            const unmasked = maskedValue
+                .replace('R$', '')
+                .trim()
+                .replace(/\./g, '')
+                .replace(',', '.');
+            return parseFloat(unmasked);
+        }
+    </script>
 </head>
 <body>
     <div class="center-box center-box-admin">
@@ -81,6 +137,9 @@
 
     <div id="modal-criar-tarefa" class="modal-overlay hidden-start">
         <div class="modal-content">
+            <button type="button" class="modal-close-icon" onclick="closeModal('modal-criar-tarefa')" title="Fechar (ESC)">
+                <i class="fas fa-times"></i>
+            </button>
             <h2 class="modal-title">Criar Nova Tarefa</h2>
             
             <form id="form-criar-tarefa">
@@ -97,7 +156,12 @@
                 
                 <div class="form-group">
                     <label for="tarefa-valor">Valor (Recompensa)</label>
-                    <input type="number" step="0.01" id="tarefa-valor" class="input-rounded" placeholder="Ex: 5.00" required>
+                    <input type="text" 
+                           id="tarefa-valor" 
+                           class="input-rounded" 
+                           placeholder="Ex: 5,00" 
+                           oninput="maskMoney(this)" 
+                           required>
                 </div>
 
                 <div class="form-group">
@@ -132,15 +196,13 @@
         // Inicializa o Firestore
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        // --- Funções de Utilitário (Assumindo que estão no script.js, mas redefinidas para garantir) ---
+        // --- Funções de Utilitário ---
         function checkAdminAccess() {
-             // Esta função é importante e deve estar robusta no seu script.js, mas a lógica básica é mantida aqui.
-            const userInfo = JSON.parse(localStorage.getItem('usuarioLogado'));
-            if (!userInfo || userInfo.isAdmin !== true) {
-                // Se a função real não existir no script.js, usa este fallback
-                return false; 
-            }
-            return true;
+             const userInfo = JSON.parse(localStorage.getItem('usuarioLogado'));
+             if (!userInfo || userInfo.isAdmin !== true) {
+                 return false; 
+             }
+             return true;
         }
 
         function getUsuarioLogado() {
@@ -154,12 +216,23 @@
         function openModal(modalId) {
             if (!checkAdminAccess()) return;
             document.getElementById(modalId).classList.remove('hidden-start');
+            // Adiciona listener para fechar com ESC
+            document.addEventListener('keydown', handleEscKey);
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden-start');
             // Limpa o formulário ao fechar o modal
             document.getElementById('form-criar-tarefa').reset();
+            // Remove listener do ESC
+            document.removeEventListener('keydown', handleEscKey);
+        }
+        
+        // NOVO: Função para fechar o modal com a tecla ESC
+        function handleEscKey(event) {
+            if (event.key === 'Escape') {
+                closeModal('modal-criar-tarefa');
+            }
         }
 
         // --- Funções de População de Dados ---
@@ -209,13 +282,17 @@
             
             const nome = document.getElementById('tarefa-nome').value.trim();
             const descricao = document.getElementById('tarefa-descricao').value.trim();
-            const valor = parseFloat(document.getElementById('tarefa-valor').value);
+            
+            // ALTERADO: Usa unmaskMoney para obter o valor float sem a formatação R$
+            const valorInput = document.getElementById('tarefa-valor').value;
+            const valor = unmaskMoney(valorInput); // Converte "R$ 5,00" para 5.00
+            
             const dataLimite = document.getElementById('tarefa-data-limite').value;
             const horaLimite = document.getElementById('tarefa-hora-limite').value;
             const atribuicao = document.getElementById('tarefa-atribuicao').value;
             
             if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
-                alert("Por favor, preencha todos os campos corretamente.");
+                alert("Por favor, preencha todos os campos corretamente. Verifique se o valor é positivo.");
                 return;
             }
             
@@ -242,7 +319,6 @@
                 
                 alert(`Tarefa "${nome}" criada com sucesso! ${isDisponivel ? 'Ela está disponível para todos.' : `Atribuída diretamente a ${atribuicao}.`}`);
                 closeModal('modal-criar-tarefa');
-                // Se houver uma função para recarregar tarefas na tela principal do admin, chame-a aqui.
                 
             } catch (error) {
                 console.error("Erro ao criar tarefa:", error);
@@ -266,10 +342,19 @@
             // Envia o formulário
             document.getElementById('form-criar-tarefa').addEventListener('submit', createNewTask);
             
+            // NOVO: Fecha o modal se o usuário clicar fora (no overlay)
+            const modalOverlay = document.getElementById('modal-criar-tarefa');
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    closeModal('modal-criar-tarefa');
+                }
+            });
+
             // Lógica de logout (apenas para garantir se não estiver no script.js)
             if (document.getElementById('logout-button')) {
                 document.getElementById('logout-button').addEventListener('click', () => {
                     localStorage.removeItem('usuarioLogado');
+                    // Redireciona para a tela de login
                     window.location.href = 'login.html'; 
                 });
             }
