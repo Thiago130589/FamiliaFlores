@@ -4,8 +4,8 @@
  * Depende de script.js (para getUsuarioLogado, logout e formatarMoeda)
  */
 
-// Se você não tem um arquivo 'default-avatar.png' na raiz, use um placeholder universal.
-const DEFAULT_AVATAR_PATH = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#ccc"/><text x="50" y="60" font-family="Arial" font-size="40" fill="#fff" text-anchor="middle">?</text></svg>';
+// Placeholder SVG simples para evitar erro 404 se não houver foto Base64
+const DEFAULT_AVATAR_PATH = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#2d6a4f"/><text x="50" y="65" font-family="Arial, sans-serif" font-size="50" fill="#ffffff" text-anchor="middle">U</text></svg>';
 
 document.addEventListener('DOMContentLoaded', () => {
     const usuarioLogado = getUsuarioLogado();
@@ -50,14 +50,14 @@ function displayUserData(user) {
         }
     }
     
-    // 5. Foto (CORREÇÃO DA FOTO AQUI)
+    // 5. Foto (CARREGAMENTO DO BASE64)
     const photoElement = document.getElementById('user-photo');
     if (photoElement) {
-        if (user.foto) {
-            // Se houver Base64, usa o Base64
+        if (user.foto && user.foto.startsWith('data:')) {
+            // Se for Base64 válido, usa o Base64
             photoElement.src = user.foto; 
         } else {
-            // Se não houver Base64, usa o placeholder (evita 404)
+            // Se for nulo, undefined, ou Base64 inválido, usa o placeholder SVG
             photoElement.src = DEFAULT_AVATAR_PATH;
         }
     }
