@@ -28,23 +28,6 @@
         </div>
     </div>
 
-    <div id="atribuir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('atribuir-tarefa-modal', false)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <span class="close-btn" onclick="toggleModal('atribuir-tarefa-modal', false)">&times;</span>
-            <h2>Atribuir Tarefa Disponível</h2>
-            <p class="info-message">Selecione uma tarefa e um usuário para atribuir (Status: EmAndamento).</p>
-            <form id="form-atribuir-tarefa">
-                <select id="select-tarefa-disponivel" required style="width: 100%; margin-bottom: 10px;">
-                    <option value="">Carregando Tarefas...</option>
-                </select>
-                <select id="select-usuario-atribuicao" required style="width: 100%; margin-bottom: 15px;">
-                    <option value="">Carregando Usuários...</option>
-                </select>
-                <button type="submit" class="btn-rounded btn-primary">Atribuir Tarefa</button>
-            </form>
-        </div>
-    </div>
-
     <div id="excluir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('excluir-tarefa-modal', false)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-btn" onclick="toggleModal('excluir-tarefa-modal', false)">&times;</span>
@@ -67,7 +50,7 @@
 
         <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px;">
             <button class="btn-rounded btn-success" onclick="openCriarTarefaModal()">Criar Tarefa</button>
-            <button class="btn-rounded btn-primary" onclick="openAtribuirTarefaModal()">Atribuir Tarefa</button>
+            <a href="tarefas-disponiveis.html" class="btn-rounded btn-primary">Atribuir/Pegar Tarefa</a>
             <button class="btn-rounded btn-danger" onclick="openExcluirTarefaModal()">Excluir Tarefa</button>
         </div>
         
@@ -94,22 +77,16 @@
     </div>
 
     <script>
-        // firestore é definido globalmente em firebase-init.js
+        // firestore e db são definidos em firebase-init.js
         const firestore = db;
         
-        // COLEÇÕES DEFINIDAS:
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
         const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
         
-        let userList = []; 
-        let allTasksList = []; // Para o modal de exclusão
+        let allTasksList = []; 
 
-        // Funções de utilidade (Assumindo que estão em script.js ou definidas globalmente)
-        // toggleModal, exibirAlertaGlobal, formatarMoeda, getUsuarioLogado
-
-        // --- 1. Funções de Controle de UI/Acesso ---
-        
+        // Função de Verificação de Acesso Admin
         function checkAdminAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || !userInfo.isAdmin) {
@@ -119,91 +96,15 @@
             return userInfo.nome;
         }
 
-        // Carrega usuários e tarefas ao iniciar
         window.addEventListener('DOMContentLoaded', () => {
             if (!checkAdminAccess()) return;
-            // Não é necessário chamar loadUsersForAssignment() aqui se a chamarmos de dentro do openAtribuirTarefaModal()
-            // loadUsersForAssignment(); 
-            loadTarefasPendentes(); // Inicia na seção de aprovação
+            loadTarefasPendentes(); 
         });
         
-        // --- 2. Funções de Modais ---
-
-        async function loadUsersForAssignment() {
-            try {
-                // Busca todos os usuários, a coleção é 'users'
-                const snapshot = await firestore.collection('users').get();
-                
-                // Mapeia todos os documentos. Filtra administradores.
-                userList = snapshot.docs
-                    .map(doc => doc.data())
-                    .filter(user => user.isAdmin !== true); 
-                
-                // Log de depuração. Verifique o console do navegador!
-                console.log("Usuários carregados e filtrados:", userList);
-                    
-            } catch(e) {
-                console.error("Erro ao carregar usuários (Verifique Regras de Segurança/Permissões):", e);
-                // Exibe alerta para o admin sobre o erro de carregamento
-                exibirAlertaGlobal('admin-alerts', "Erro ao carregar usuários. Verifique as Regras de Segurança do Firestore.", 'danger');
-            }
-        }
+        // --- Funções de Modais e Exclusão ---
         
         function openCriarTarefaModal() {
             toggleModal('criar-tarefa-modal', true);
-        }
-
-        async function openAtribuirTarefaModal() {
-            const selectUsuario = document.getElementById('select-usuario-atribuicao');
-            const selectTarefa = document.getElementById('select-tarefa-disponivel');
-
-            selectUsuario.innerHTML = '<option value="">Carregando Usuários...</option>';
-            selectTarefa.innerHTML = '<option value="">Carregando Tarefas...</option>';
-
-            // Garante que a lista de usuários seja carregada antes de continuar
-            await loadUsersForAssignment(); 
-            
-            // 1. Popular lista de Usuários
-            let userOptions = '<option value="">Selecione o Usuário</option>';
-            if (userList.length === 0) {
-                userOptions = '<option value="" disabled>Nenhum Usuário Encontrado</option>';
-            } else {
-                userList.forEach(user => {
-                    // Adiciona apenas se o campo 'nome' existir.
-                    if (user.nome) {
-                        userOptions += `<option value="${user.nome}">${user.nome}</option>`;
-                    }
-                });
-            }
-            selectUsuario.innerHTML = userOptions;
-
-
-            // 2. Popular Tarefas disponíveis
-            try {
-                // Query: status == 'Disponível', dataCriacao 'desc' (Requer índice: status, dataCriacao)
-                const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
-                    .where('status', '==', 'Disponível')
-                    .orderBy('dataCriacao', 'desc');
-                const snapshot = await query.get();
-                
-                let optionsHtml = '<option value="">Selecione a Tarefa</option>';
-                if (snapshot.empty) {
-                    optionsHtml = '<option value="" disabled>Nenhuma Tarefa Disponível (Crie uma!) </option>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const t = doc.data();
-                        optionsHtml += `<option value="${doc.id}">${t.nome} (R$${t.valor})</option>`;
-                    });
-                }
-
-                selectTarefa.innerHTML = optionsHtml;
-            } catch (error) {
-                selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
-                console.error("Erro ao carregar tarefas disponíveis (Verifique o índice):", error);
-            }
-            
-            // ABRIR O MODAL SOMENTE APÓS O CARREGAMENTO
-            toggleModal('atribuir-tarefa-modal', true);
         }
 
         async function openExcluirTarefaModal() {
@@ -211,17 +112,17 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // Query Atribuídas: status IN, dataCriacao 'desc' (Requer índice: status, dataCriacao)
+                // Query Atribuídas 
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataCriacao', 'desc');
                     
-                // Query Disponíveis: status ==, dataCriacao 'desc' (Requer índice: status, dataCriacao)
+                // Query Disponíveis
                 const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
                     
-                // Query Pagas: status ==, dataPagamento 'desc' (Requer índice: status, dataPagamento)
+                // Query Pagas
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
@@ -269,7 +170,7 @@
             toggleModal('excluir-tarefa-modal', true);
         }
 
-        // --- 3. Funções de Submissão de Forms (Modais) ---
+        // --- Funções de Submissão de Forms (Modais) ---
 
         // A. CRIAR TAREFA
         document.getElementById('form-criar-tarefa').addEventListener('submit', async function(e) {
@@ -288,14 +189,13 @@
             }
 
             try {
-                // Salva na coleção TAREFAS_DISPONIVEIS_COLLECTION
                 await firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).add({
                     nome: nome,
                     valor: valor,
                     dataPrazo: dataPrazo, 
                     horarioPrazo: horarioPrazo,
                     descricao: descricao,
-                    status: 'Disponível', // Status inicial
+                    status: 'Disponível', 
                     criadaPor: userName,
                     dataCriacao: new Date().toISOString().split('T')[0]
                 });
@@ -303,69 +203,14 @@
                 toggleModal('criar-tarefa-modal', false);
                 exibirAlertaGlobal('admin-alerts', `Tarefa "${nome}" criada com sucesso! (Status: Disponível)`, 'success');
                 this.reset();
-                loadTarefasPendentes(); // Recarrega a lista principal
+                loadTarefasPendentes(); 
             } catch (error) {
                 console.error("Erro ao criar tarefa:", error);
                 exibirAlertaGlobal('admin-alerts', "Erro ao criar tarefa. Verifique o console.", 'danger');
             }
         });
 
-        // B. ATRIBUIR TAREFA
-        document.getElementById('form-atribuir-tarefa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const taskId = document.getElementById('select-tarefa-disponivel').value;
-            const selectedUser = document.getElementById('select-usuario-atribuicao').value;
-            
-            if (!taskId || !selectedUser) {
-                exibirAlertaGlobal('admin-alerts', "Selecione uma tarefa e um usuário válidos.", 'danger');
-                return;
-            }
-            
-            // A tarefa está na coleção de disponíveis, mas será movida para a de atribuídas.
-            const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
-            const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc();
-
-            if (!confirm(`Confirmar atribuição da tarefa a ${selectedUser}? A tarefa será MOVIDA para a lista "EmAndamento" do usuário.`)) {
-                return;
-            }
-
-            try {
-                // Usamos uma Transação para garantir que a tarefa não seja duplicada.
-                await firestore.runTransaction(async (transaction) => {
-                    const taskDoc = await transaction.get(availableRef);
-                    
-                    if (!taskDoc.exists) {
-                        throw new Error("Tarefa não encontrada na lista de disponíveis.");
-                    }
-
-                    const taskData = taskDoc.data();
-                    
-                    // 1. Exclui da lista de disponíveis
-                    transaction.delete(availableRef);
-
-                    // 2. Cria na lista de atribuídas com os dados do usuário
-                    const assignedData = {
-                        ...taskData,
-                        status: 'EmAndamento', 
-                        atribuidaPara: selectedUser,
-                        dataAtribuicao: new Date().toISOString().split('T')[0]
-                    };
-                    
-                    transaction.set(assignedRef, assignedData);
-                });
-
-                toggleModal('atribuir-tarefa-modal', false);
-                exibirAlertaGlobal('admin-alerts', `Tarefa atribuída com sucesso a ${selectedUser}! (Status: EmAndamento)`, 'success');
-                this.reset();
-                loadTarefasPendentes(); // Recarrega a lista principal
-            } catch (error) {
-                console.error("Erro ao atribuir tarefa:", error);
-                exibirAlertaGlobal('admin-alerts', `Erro ao atribuir tarefa: ${error.message || 'Tente novamente.'}`, 'danger');
-            }
-        });
-
-        // C. EXCLUIR TAREFA
+        // B. EXCLUIR TAREFA
         document.getElementById('form-excluir-tarefa').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -393,7 +238,7 @@
                 toggleModal('excluir-tarefa-modal', false);
                 exibirAlertaGlobal('admin-alerts', `Tarefa "${task.nome}" excluída com sucesso da coleção ${collectionName}.`, 'success');
                 this.reset();
-                loadTarefasPendentes(); // Recarrega a lista principal
+                loadTarefasPendentes(); 
             } catch (error) {
                 console.error("Erro ao excluir tarefa:", error);
                 exibirAlertaGlobal('admin-alerts', "Erro ao excluir tarefa. Tente novamente.", 'danger');
@@ -401,7 +246,7 @@
         });
 
 
-        // --- 4. Funções de Carregamento de Lista e Ações (Aprovação/Rejeição) ---
+        // --- Funções de Carregamento de Lista e Ações (Aprovação/Rejeição) ---
 
         // Aprovação (Status "Pendente")
         async function loadTarefasPendentes() {
@@ -491,7 +336,6 @@
                 const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
                 // Exclui dataConclusao para indicar que a tarefa foi rejeitada e voltou a EmAndamento
-                // É necessário ter o Firebase Auth ou App inicializado para usar firebase.firestore.FieldValue.delete()
                 await taskRef.update({
                     status: 'EmAndamento', 
                     dataConclusao: firebase.firestore.FieldValue.delete() 
