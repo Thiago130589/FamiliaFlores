@@ -10,31 +10,7 @@
     <script src="js/firebase-init.js"></script> 
     <script src="js/script.js"></script>
     <style>
-        /* Estilos básicos para o modal (popup) */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 300px;
-            text-align: center;
-        }
-        .modal-button-group button {
-            width: 100%;
-            margin-bottom: 10px;
-        }
+        /* Estilos CSS simplificados para a lista sem o modal */
         .tarefa-card-aprovacao {
             display: flex;
             justify-content: space-between;
@@ -44,26 +20,31 @@
             margin-bottom: 10px;
             border-radius: 6px;
             border-left: 5px solid var(--warning-color); /* Laranja para "Pendente" */
+            flex-wrap: wrap; /* Permite quebrar linha em telas menores */
         }
         .tarefa-info-left {
             text-align: left;
             flex-grow: 1;
+            min-width: 250px; /* Garante espaço mínimo para as informações */
+        }
+        .tarefa-acoes-right {
+            display: flex;
+            gap: 10px; /* Espaço entre os botões */
+            margin-top: 5px; /* Margem para melhor visualização em quebra de linha */
+        }
+        .tarefa-acoes-right button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            white-space: nowrap; /* Evita quebra de linha no texto do botão */
+        }
+        .empty-message, .error-message {
+            text-align: center;
+            color: #888;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
-    
-    <div id="acoes-modal" class="modal-overlay hidden-start" onclick="toggleModal('acoes-modal', false)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <span class="close-btn" onclick="toggleModal('acoes-modal', false)">&times;</span>
-            <h3 id="modal-tarefa-nome">Ações da Tarefa</h3>
-            <p id="modal-tarefa-usuario" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;"></p>
-            <div class="modal-button-group">
-                <button class="btn-rounded btn-success" id="btn-aprovar-conclusao">APROVAR (Mover para Concluídas)</button>
-                <button class="btn-rounded btn-danger" id="btn-rejeitar-conclusao">REJEITAR (Mover para Disponíveis)</button>
-            </div>
-        </div>
-    </div>
     
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
         <h1 style="margin: 0; color: var(--warning-color); font-size: 2.2rem;">Aprovação de Tarefas (Pendentes)</h1>
@@ -71,7 +52,7 @@
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         
         <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
-            <p style="color: #888; text-align: center;">Carregando tarefas...</p>
+            <p class="empty-message">Carregando tarefas...</p>
         </div>
 
         <a href="gerenciar-tarefas.html" class="btn-rounded btn-secondary-text wide-button" style="margin: 32px auto 0 auto; display: block;">
@@ -80,6 +61,7 @@
     </div>
 
     <script>
+    // Inicialização do Firestore e variáveis globais
     const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
     const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
     const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
@@ -88,7 +70,7 @@
     let usuarioAtual = null;
     let isAdmin = false;
 
-    // Função para mostrar/esconder o modal (assumindo que já existe em script.js)
+    // Função dummy para toggleModal (mantida por segurança, embora não seja mais usada diretamente)
     function toggleModal(id, show) {
         const modal = document.getElementById(id);
         if (modal) {
@@ -98,29 +80,13 @@
     
     // Função para obter o nome do usuário E verificar se é Admin (assumindo que existe em script.js)
     function getUsuarioInfo() {
-        // Assume que getUsuarioLogado() é robusto e retorna { nome, isAdmin }
         const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : { nome: null, isAdmin: false };
         if (!userInfo) return { nome: null, isAdmin: false };
         return userInfo;
     }
 
-    // Função para abrir o modal de ações
-    function openAcoesModal(tarefaId, tarefaNome, usuario, valor) {
-        document.getElementById('modal-tarefa-nome').textContent = tarefaNome;
-        document.getElementById('modal-tarefa-usuario').textContent = `Usuário: ${usuario} | Valor: ${formatarMoeda(valor)}`;
-        
-        // Configurar botões com os dados corretos
-        document.getElementById('btn-aprovar-conclusao').onclick = () => {
-            aprovarConclusao(tarefaId, usuario);
-            toggleModal('acoes-modal', false);
-        };
-        document.getElementById('btn-rejeitar-conclusao').onclick = () => {
-            rejeitarConclusao(tarefaId, usuario);
-            toggleModal('acoes-modal', false);
-        };
-        
-        toggleModal('acoes-modal', true);
-    }
+    // A função openAcoesModal foi removida/não será usada.
+    // Os botões vão chamar aprovarConclusao e rejeitarConclusao diretamente.
 
 
     async function renderTarefasPendentes() {
@@ -157,33 +123,38 @@
             }
             
             lista.innerHTML = tarefas.map((t) => {
-                // Datas de Abertura (Criação)
-                const dataCriacao = t.dataCriacao || 'N/A'; 
-                
-                // Datas de Fechamento (Conclusão - quando o usuário clicou em 'Concluir')
+                // Informações da Tarefa
+                const nomeTarefa = t.nome || 'Tarefa sem nome';
+                const usuario = t.atribuidaPara || 'N/A';
+                const valor = parseFloat(t.valor || 0);
                 const dataConclusao = t.dataConclusao || 'N/A';
                 
-                const valor = parseFloat(t.valor || 0);
-
                 // Tratamento de aspas para passar a string corretamente no onclick
-                const nomeSeguro = t.nome ? t.nome.replace(/'/g, "\\'") : '';
-                const usuarioSeguro = t.atribuidaPara ? t.atribuidaPara.replace(/'/g, "\\'") : 'N/A';
-
+                const nomeSeguro = nomeTarefa.replace(/'/g, "\\'");
+                const usuarioSeguro = usuario.replace(/'/g, "\\'");
+                
+                // Botões de Ação Diretos
                 return `
                     <div class="tarefa-card-aprovacao">
                         <div class="tarefa-info-left">
-                            <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 500;">${t.nome}</span>
+                            <span style="color: var(--primary-color); font-size: 1.1rem; font-weight: 500;">${nomeTarefa}</span>
                             <br>
-                            <span style="color: #1976d2; font-size: 0.95rem; font-weight: bold;">Usuário: ${t.atribuidaPara || 'N/A'}</span>
+                            <span style="color: #1976d2; font-size: 0.95rem; font-weight: bold;">Usuário: ${usuario}</span>
                             <br>
                             <span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(valor)}</span>
                             <br>
-                            <span style="color: #888; font-size: 0.85rem;">Criação: ${dataCriacao} | Conclusão: ${dataConclusao}</span>
+                            <span style="color: #888; font-size: 0.85rem;">Conclusão: ${dataConclusao}</span>
                         </div>
-                        <button class="btn-rounded btn-admin-tab" 
-                                onclick="openAcoesModal('${t.id}', '${nomeSeguro}', '${usuarioSeguro}', ${valor})">
-                            Ações
-                        </button>
+                        <div class="tarefa-acoes-right">
+                            <button class="btn-rounded btn-success" 
+                                    onclick="aprovarConclusao('${t.id}', '${usuarioSeguro}')">
+                                Aprovar
+                            </button>
+                            <button class="btn-rounded btn-danger" 
+                                    onclick="rejeitarConclusao('${t.id}', '${usuarioSeguro}')">
+                                Rejeitar
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -208,7 +179,9 @@
             const taskDoc = await taskRef.get();
 
             if (!taskDoc.exists) {
-                throw new Error("Tarefa não encontrada na coleção de tarefas atribuídas.");
+                alert("Erro: Tarefa não encontrada na coleção de tarefas atribuídas. Recarregue a página.");
+                renderTarefasPendentes();
+                return;
             }
 
             const taskData = taskDoc.data();
@@ -252,7 +225,9 @@
             const taskDoc = await taskRef.get();
 
             if (!taskDoc.exists) {
-                throw new Error("Tarefa não encontrada na coleção de tarefas atribuídas.");
+                alert("Erro: Tarefa não encontrada na coleção de tarefas atribuídas. Recarregue a página.");
+                renderTarefasPendentes();
+                return;
             }
 
             const taskData = taskDoc.data();
@@ -260,6 +235,7 @@
 
             // 1. Preparar dados e criar novo documento na coleção de Disponíveis
             // Desestrutura para remover campos específicos de atribuição e conclusão
+            // NOTA: O ID do documento deve ser mantido ou a lógica deve ser adaptada
             const { atribuidaPara, dataAtribuicao, dataConclusao, ...disponivelData } = taskData;
             disponivelData.status = 'Disponível';
             disponivelData.dataRejeicao = new Date().toISOString().split('T')[0];
