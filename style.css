@@ -9,13 +9,13 @@
  * ========================================================================= */
 :root {
     /* Cores Principais */
-    --primary-color: #007bff;
+    --primary-color: #007bff; /* Azul primário */
     --primary-light: #52a7ff;
-    --primary-dark: #0056b3;
+    --primary-dark: #0056b3; /* Azul escuro principal (NOVO FUNDO) */
     
     /* Fundo Padrão (Usado no Login) */
-    --background-color-login: #1a76ff; 
-    --background-color-default: #ffffff; /* Fundo Padrão para Dashboard/Conteúdo */
+    --background-color-login: #0056b3; /* Mantido como base para login/corpo */
+    --background-color-default: #ffffff; /* Fundo Padrão para Dashboard/Conteúdo (Caixa Branca) */
     
     /* Cores de Feedback */
     --success-color: #28a745;
@@ -31,14 +31,14 @@
     /* Cores de Fundo de Caixas (Containers) */
     --box-bg-color-login: #ffffff; 
     --box-bg-color-cadastro: #e6ffe6; 
-    --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
+    --box-bg-color-default: #ffffff; /* TODAS AS CAIXAS FICARÃO BRANCAS */
 
     --list-item-bg-color: #f7f7f7;
     --shadow-color: rgba(0, 0, 0, 0.2);
     
-    /* Botões */
-    --button-primary-bg: #6c757d;
-    --button-primary-dark: #5a6268;
+    /* Botões (AJUSTADO PARA AZUL PRIMÁRIO) */
+    --button-primary-bg: var(--primary-color); 
+    --button-primary-dark: var(--primary-dark);
 }
 
 * {
@@ -52,9 +52,9 @@
  * 2. LAYOUT UNIVERSAL: CENTRALIZAÇÃO (Layout Padrão para TODAS AS TELAS)
  * ========================================================================= */
 
-/* Body Padrão (Fundo Branco/Dashboard) */
+/* Body Padrão (Fundo Azul Escuro para TODAS as telas) */
 body {
-    background-color: var(--background-color-default);
+    background-color: var(--primary-dark); /* AJUSTADO PARA AZUL ESCURO */
     color: var(--text-color);
     line-height: 1.6;
     min-height: 100vh;
@@ -67,16 +67,16 @@ body {
     overflow-x: auto; 
 }
 
-/* Sobrescreve para a tela de Login (Fundo Azul) */
+/* Sobrescreve para a tela de Login (Fundo Azul) - Mantido, mas usa a mesma cor agora */
 .body-login {
-    background-color: var(--background-color-login);
+    background-color: var(--primary-dark);
     padding: 0; 
 }
 
 
-/* Base da caixa centralizada */
+/* Base da caixa centralizada (TODAS BRANCAS) */
 .center-box {
-    background-color: var(--box-bg-color-default); 
+    background-color: var(--background-color-default); /* AJUSTADO PARA BRANCO */
     border-radius: 20px;
     padding: 40px; 
     box-shadow: 0 4px 12px var(--shadow-color);
@@ -90,16 +90,14 @@ body {
     margin: 20px auto; 
 }
 
-/* Classe Específica para a caixa de Login */
+/* Classes Específicas de Caixa (Também brancas agora) */
 .center-box-login {
-    background-color: var(--box-bg-color-login);
+    background-color: var(--box-bg-color-login); /* Branco */
     padding: 40px; 
     max-width: 400px; 
 }
-
-/* Classe Específica para a caixa de Cadastro */
 .center-box-cadastro {
-    background-color: var(--box-bg-color-cadastro);
+    background-color: var(--box-bg-color-default); /* Branco */
     border-radius: 20px;
     padding: 30px;
     max-width: 500px; 
@@ -107,7 +105,7 @@ body {
 
 /* Adaptação da caixa grande para outras telas (admin e gerenciar-carteira) */
 .center-box-admin { 
-    max-width: 900px; /* Aumenta o tamanho para o Painel Admin */
+    max-width: 900px; 
     padding: 30px; 
 }
 .large-box {
@@ -130,7 +128,7 @@ body {
 .main-title {
     font-size: 2.2em; 
     font-weight: bold; 
-    color: var(--primary-color);
+    color: var(--primary-dark); /* Títulos escuros para contraste no fundo branco */
     text-align: center;
     margin-bottom: 10px;
 }
@@ -181,16 +179,21 @@ body {
     transition: background-color 0.3s, opacity 0.3s; 
     font-size: 1em; 
     display: block; 
+    /* Adicionando sombra leve aos botões */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); 
+}
+.btn-rounded:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 .btn-rounded-large { /* Botões maiores para Login */
     padding: 15px 25px;
     font-size: 1.1em;
 }
 
-.btn-primary { background-color: var(--button-primary-bg); color: white; }
-.btn-primary:hover { background-color: var(--button-primary-dark); }
-.btn-secondary { background-color: #6c757d; color: white; }
-.btn-secondary:hover { background-color: #5a6268; }
+/* TODOS OS BOTÕES DE AÇÃO PRINCIPAL SERÃO AZUIS COM LETRA BRANCA */
+.btn-primary, .btn-secondary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover, .btn-secondary:hover { background-color: var(--primary-dark); }
+
 .btn-success { background-color: var(--success-color); color: white; }
 .btn-success:hover { background-color: #1e7e34; }
 .btn-danger { background-color: var(--error-color); color: white; }
@@ -221,7 +224,7 @@ body {
     right: 15px;
     background: none;
     border: none;
-    color: var(--text-light);
+    color: var(--error-color); /* Usando erro/vermelho para sair */
     cursor: pointer;
     font-size: 14px;
     padding: 5px 10px;
@@ -229,7 +232,7 @@ body {
     z-index: 10; 
 }
 .btn-logout-card:hover {
-    color: var(--primary-color);
+    color: var(--danger-color);
     text-decoration: underline;
 }
 
@@ -419,14 +422,14 @@ textarea { resize: vertical; min-height: 80px; }
     margin-top: 20px;
 }
 
-/* ESTILO FINAL DO BOTÃO DE AÇÃO */
+/* ESTILO FINAL DO BOTÃO DE AÇÃO (Padrão Azul) */
 .action-item {
     padding: 15px 10px; 
     border-radius: 8px; 
     text-align: center; 
     font-size: 0.95em; 
     
-    background-color: var(--primary-color); 
+    background-color: var(--primary-color); /* AJUSTADO PARA AZUL */
     color: white; 
     border: none; 
     
@@ -592,6 +595,7 @@ textarea { resize: vertical; min-height: 80px; }
 .tarefa-card-atribuida { border-left-color: var(--info-color); }
 .tarefa-card-atribuida.aprovada { border-left-color: var(--success-color); }
 .tarefa-card-atribuida.pendente { border-left-color: var(--warning-color); }
+.tarefa-card-atribuida.rejeitada { border-left-color: var(--error-color); }
 .tarefa-card-atribuida .tarefa-info-status { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
 .tarefa-card-atribuida .tarefa-nome { font-size: 1.3em; font-weight: bold; color: var(--text-color); }
 .tarefa-card-atribuida .tarefa-descricao { font-size: 0.9em; color: var(--text-light); margin-bottom: 10px; }
@@ -622,7 +626,7 @@ textarea { resize: vertical; min-height: 80px; }
     justify-content: center; align-items: center; z-index: 1000;
 }
 .modal-content {
-    background-color: var(--box-bg-color-login); padding: 30px;
+    background-color: var(--box-bg-color-login); padding: 30px; /* Fundo branco */
     border-radius: 10px; width: 90%; max-width: 450px;
     position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
@@ -631,7 +635,7 @@ textarea { resize: vertical; min-height: 80px; }
     font-weight: bold; color: #aaa; cursor: pointer;
 }
 .close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
-.modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
+.modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-dark); text-align: center; margin-bottom: 15px; }
 
 /* Estilos Específicos do Modal */
 .modal-info-visible {
