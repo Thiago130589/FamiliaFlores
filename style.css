@@ -105,10 +105,14 @@ body {
     max-width: 500px; 
 }
 
-/* Adaptação da caixa grande para outras telas (admin) */
+/* Adaptação da caixa grande para outras telas (admin e gerenciar-carteira) */
 .center-box-admin { 
     max-width: 900px; /* Aumenta o tamanho para o Painel Admin */
     padding: 30px; 
+}
+.large-box {
+    max-width: 900px;
+    padding: 30px;
 }
 
 /* Tamanho para o card do Dashboard */
@@ -191,6 +195,8 @@ body {
 .btn-success:hover { background-color: #1e7e34; }
 .btn-danger { background-color: var(--error-color); color: white; }
 .btn-danger:hover { background-color: #bd2130; }
+.btn-warning { background-color: var(--warning-color); color: var(--text-color); }
+.btn-warning:hover { background-color: #e0a800; }
 
 .wide-button { width: 100%; margin-top: 10px; }
 
@@ -509,7 +515,7 @@ textarea { resize: vertical; min-height: 80px; }
 
 
 /* =========================================================================
- * 8. LISTAS E CARDS (Tarefas e Recompensas)
+ * 8. LISTAS, CARDS E ESTILOS DE ADMIN-CARTEIRA (gerenciar-carteira.html)
  * ========================================================================= */
  
 /* Card Geral de Tarefa */
@@ -519,7 +525,70 @@ textarea { resize: vertical; min-height: 80px; }
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column;
 }
 
-/* Tarefas Atribuídas/Concluídas */
+/* 8.1. Estilos da Lista de Transações/Usuários (Reutilizando conceitos) */
+.transaction-list {
+    list-style: none;
+    padding: 0;
+}
+
+.transaction-item {
+    background-color: var(--list-item-bg-color); 
+    padding: 15px;
+    margin-bottom: 10px; 
+    border-radius: 8px; 
+    border-left: 5px solid var(--primary-color); /* Linha de cor padrão */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); 
+    display: flex; 
+    flex-direction: column;
+}
+
+.transaction-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.transaction-description {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-color);
+    flex-grow: 1;
+}
+
+.transaction-amount {
+    font-size: 1.2em;
+    font-weight: bold;
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+/* 8.2. Estilos de Ação (Ajuste de Saldo/Multa) */
+.admin-action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px; /* Espaço entre o saldo e os botões */
+}
+
+/* Reutilizando o estilo de botão arredondado, mas com foco menor (task-action-button) */
+.task-action-button {
+    padding: 10px 8px;
+    font-size: 0.9em;
+    border-radius: 20px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity 0.3s;
+    text-decoration: none; 
+    display: block; 
+}
+.task-action-button:hover {
+    opacity: 0.8;
+}
+
+/* 8.3. Estilos de Lista de Tarefas (Recompensa/Histórico) */
+/* (Mantidas as classes originais para tarefas/histórico) */
 .tarefa-card-atribuida { border-left-color: var(--info-color); }
 .tarefa-card-atribuida.aprovada { border-left-color: var(--success-color); }
 .tarefa-card-atribuida.pendente { border-left-color: var(--warning-color); }
@@ -563,3 +632,20 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
 .modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
+
+/* Estilos Específicos do Modal */
+.modal-info-visible {
+    font-size: 1.1em;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    border: 1px dashed var(--primary-color);
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+.modal-button-margin {
+    margin-top: 20px !important;
+}
+.modal-close-button {
+    margin-top: 5px !important;
+}

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Carteira</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="js/firebase-init.js"></script>
@@ -22,11 +24,11 @@
         </div>
 
         <a href="historico-multas.html" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">
-            Ver e Remover Histórico de Multas
+            <i class="fas fa-file-invoice-dollar"></i> Ver e Remover Histórico de Multas
         </a>
         
-        <a href="admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">
-            Voltar ao Dashboard
+        <a href="painel-admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">
+            <i class="fas fa-arrow-left"></i> Voltar ao Painel Admin
         </a>
     </div>
 
@@ -75,12 +77,28 @@
 
     <script>
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        let currentEditingUser = null; // Armazena o nome do usuário sendo editado
+        let currentEditingUser = null; // Armazena o ID do documento (username) do usuário sendo editado
 
         // --- Funções de Utilitário ---
+        // (Assumindo que getUsuarioLogado e formatarMoeda estão no script.js ou firebase-init.js)
+
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        // Exemplo simples, se não estiver em outro lugar
+        function formatarMoeda(valor) {
+            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
         function checkAdminAccess() {
             const userInfo = getUsuarioLogado();
-            if (!userInfo || !userInfo.isAdmin) {
+            // Verifica se o usuário está logado E se é administrador
+            if (!userInfo || userInfo.isAdmin !== true) {
                 alert("Acesso negado. Apenas administradores.");
                 window.location.href = 'index.html';
                 return false;
@@ -115,14 +133,18 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
 
             try {
+                // Buscando a coleção 'users'. Se o campo 'saldo' não existir, 'pontuacao' é um bom fallback, 
+                // mas usaremos 'saldo' conforme a sua lógica de transação.
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
 
                 usersSnapshot.forEach(doc => {
-                    const userName = doc.id;
+                    // O ID do documento é o username, que é o que você quer editar
+                    const userName = doc.id; 
                     const userData = doc.data();
-                    const saldo = userData.saldo || 0;
+                    // Garante que o campo correto é 'saldo' e que seja um número, com fallback para 0
+                    const saldo = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     
                     foundUsers = true;
                     
@@ -130,17 +152,17 @@
                     const formattedSaldo = formatarMoeda(saldo);
 
                     html += `
-                        <li class="transaction-item admin-card" style="border-left-color: ${saldo >= 0 ? 'var(--success-color)' : 'var(--danger-color)'};">
+                        <li class="transaction-item" style="border-left-color: ${saldo >= 0 ? 'var(--success-color)' : 'var(--danger-color)'};">
                             <div class="transaction-details">
-                                <span class="transaction-description">${userName}</span>
+                                <span class="transaction-description">${userData.nome || userName} (@${userName})</span>
                                 <span class="transaction-amount ${saldoClass}" style="font-weight: bold;">${formattedSaldo}</span>
                             </div>
-                            <div class="admin-action-grid" style="grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0;">
+                            <div class="admin-action-grid">
                                 <button class="btn-rounded btn-warning task-action-button" onclick="openModal('modal-ajustar-saldo', '${userName}', ${saldo})">
-                                    Ajustar Saldo
+                                    <i class="fas fa-pencil-alt"></i> Ajustar Saldo
                                 </button>
                                 <button class="btn-rounded btn-danger task-action-button" onclick="openModal('modal-aplicar-multa', '${userName}', 0)">
-                                    Aplicar Multa
+                                    <i class="fas fa-gavel"></i> Aplicar Multa
                                 </button>
                             </div>
                         </li>
@@ -157,7 +179,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar saldos:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos.</p>';
+                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos. Verifique o console.</p>';
             }
         }
 
@@ -182,6 +204,7 @@
             closeModal('modal-ajustar-saldo'); 
 
             try {
+                // Usa o ID do documento (username)
                 const userRef = firestore.collection('users').doc(currentEditingUser);
 
                 await firestore.runTransaction(async (transaction) => {
@@ -192,8 +215,11 @@
                     }
                     
                     const userData = docUser.data();
-                    const novoSaldo = (userData.saldo || 0) + valorAjuste;
+                    // Garante que o campo inicial seja 'saldo' ou 'pontuacao' se 'saldo' não existir
+                    const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
+                    const novoSaldo = saldoInicial + valorAjuste;
                     
+                    // Atualiza o campo 'saldo' (criando-o se necessário)
                     transaction.update(userRef, { saldo: novoSaldo });
                 });
 
@@ -227,7 +253,8 @@
 
             try {
                 const userRef = firestore.collection('users').doc(currentEditingUser);
-                const multaRef = firestore.collection('multas').doc(); // Cria novo ID
+                const multaRef = firestore.collection('multas').doc(); 
+                const adminUser = getUsuarioLogado();
 
                 await firestore.runTransaction(async (transaction) => {
                     const docUser = await transaction.get(userRef);
@@ -237,8 +264,9 @@
                     }
                     
                     const userData = docUser.data();
+                    const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     // O valor é subtraído
-                    const novoSaldo = (userData.saldo || 0) - valorMulta; 
+                    const novoSaldo = saldoInicial - valorMulta; 
                     
                     // 1. Atualiza o saldo (subtrai)
                     transaction.update(userRef, { saldo: novoSaldo });
@@ -246,10 +274,11 @@
                     // 2. Registra a multa na coleção 'multas'
                     transaction.set(multaRef, {
                         usuario: currentEditingUser,
+                        nomeUsuario: userData.nome || currentEditingUser,
                         valor: valorMulta,
                         motivo: motivoMulta,
-                        dataMulta: new Date().toISOString().split('T')[0], // Data de hoje
-                        aplicadaPor: getUsuarioLogado().nome || 'Admin'
+                        dataMulta: firebase.firestore.FieldValue.serverTimestamp(), // Usa timestamp do servidor para melhor ordenação
+                        aplicadaPor: adminUser.nome || adminUser.username || 'Admin'
                     });
                 });
 
@@ -262,7 +291,18 @@
             }
         }
 
-
+        // Garante que o logout funcione nos modais e na tela
+        if (document.getElementById('logout-button')) {
+            document.getElementById('logout-button').addEventListener('click', () => {
+                if (typeof logoutUser === 'function') {
+                    logoutUser();
+                } else {
+                    localStorage.removeItem('usuarioLogado');
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+        
         window.addEventListener('DOMContentLoaded', renderUsuariosSaldos);
     </script>
 </body>
