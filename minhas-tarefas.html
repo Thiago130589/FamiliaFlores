@@ -4,16 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Tarefas em Andamento</title>
-    <link rel="stylesheet" href="css/style.css"> 
+    <link rel="stylesheet" href="style.css"> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    
+    <script src="firebase-init.js"></script>
+    <script src="script.js"></script>
 </head>
 <body>
     <div class="center-box large-box">
-        <h1 class="main-title" style="color: var(--info-color);">Minhas Tarefas (Em Andamento)</h1>
-        <p class="info-message" style="text-align: center;">Tarefas atribuídas a você. Marque como concluída para enviar ao administrador.</p>
+        <h1 class="main-title" style="color: var(--info-color);"><i class="fas fa-list-check"></i> Minhas Tarefas (Em Andamento)</h1>
+        <p class="info-message" style="text-align: center;">Tarefas atribuídas a você. Use o botão verde para enviar para aprovação.</p>
         <hr class="divider">
         
         <div id="tarefas-alerts"></div>
@@ -23,42 +25,42 @@
         </div>
 
         <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
-            Voltar ao Dashboard
+            <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
         </a>
     </div>
 
     <script>
-        // firestore já está definido como 'db' em js/firebase-init.js
+        // firestore já está definido como 'db' em firebase-init.js
         const firestore = db;
+        // Definimos as coleções para garantir a consistência
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
+        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis';
 
         /**
-         * Verifica o acesso e retorna o nome do usuário logado.
-         * Usa a função getUsuarioLogado de js/script.js.
+         * Verifica o acesso e retorna o objeto do usuário logado (com UID).
          */
         function checkAccess() {
-            const userInfo = getUsuarioLogado();
-            if (!userInfo || !userInfo.nome) {
-                // Se não logado, getUsuarioLogado já lida com o redirecionamento
-                return false;
+            const userInfo = getUsuarioLogado(); // Assume que esta função faz o redirecionamento se não logado
+            if (!userInfo || !userInfo.uid) {
+                // Se não logado, a função getUsuarioLogado (do script.js) deve lidar com o redirecionamento
+                return null;
             }
-            return userInfo.nome;
+            return userInfo; // Retorna o objeto completo do usuário
         }
 
         async function renderMinhasTarefas() {
-            const userName = checkAccess();
-            if (!userName) return;
+            const userInfo = checkAccess();
+            if (!userInfo) return;
 
             const listaEl = document.getElementById('tarefas-lista');
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             
             try {
-                // Busca tarefas com status "EmAndamento" e que estão atribuídas ao usuário
-                // REQUER ÍNDICE COMPOSTO: atribuidaPara (asc), status (asc), dataAtribuicao (asc)
+                // CORREÇÃO CRÍTICA: Busca pelo usuarioUID, não pelo nome.
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                    .where('atribuidaPara', '==', userName)
+                    .where('usuarioUID', '==', userInfo.uid) // Usa o UID único
                     .where('status', '==', 'EmAndamento') 
-                    .orderBy('dataAtribuicao', 'asc');
+                    .orderBy('dataAtribuicao', 'asc'); // Ordena pela mais antiga
 
                 const snapshot = await query.get();
                 let html = '';
@@ -73,28 +75,63 @@
                     const dataPrazo = t.dataPrazo || 'N/A';
                     const horarioPrazo = t.horarioPrazo || 'N/A';
                     
+                    // --- Lógica de Alerta de Prazo ---
+                    let prazoStatus = '';
+                    let cardColor = 'var(--info-color)'; // Cor padrão: Azul (Em Andamento)
+                    let deadlineText = '';
+                    
+                    if (t.prazo) {
+                        const deadline = new Date(t.prazo);
+                        const now = new Date();
+                        
+                        if (deadline < now) {
+                            // Se o prazo JÁ PASSOU
+                            prazoStatus = '<span class="status-danger">ATRASADA</span>';
+                            cardColor = 'var(--danger-color)';
+                        } else {
+                            // Calcula quantos dias/horas faltam
+                            const diff = deadline.getTime() - now.getTime();
+                            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            
+                            if (days === 0 && hours < 24) {
+                                deadlineText = `Restam: ${hours}h`;
+                                prazoStatus = '<span class="status-warning">QUASE NO PRAZO</span>';
+                                cardColor = 'var(--warning-color)';
+                            } else {
+                                deadlineText = `Restam: ${days}d ${hours}h`;
+                            }
+                        }
+                    } else {
+                        deadlineText = 'N/A';
+                    }
+                    
                     const buttonHtml = `
                         <button class="btn-rounded btn-success wide-button" 
-                                onclick="markAsConcluida('${taskId}', '${t.nome}')">
-                            Marcar como Concluída (Enviar para Aprovação)
+                                onclick="markAsConcluida('${taskId}', '${t.nome}')" style="margin-bottom: 5px;">
+                            <i class="fas fa-check-circle"></i> Marcar como Concluída
+                        </button>
+                        <button class="btn-rounded btn-danger-outline wide-button" 
+                                onclick="cancelarTarefa('${taskId}', '${t.nome}', '${t.valor}')">
+                            <i class="fas fa-times-circle"></i> Cancelar / Devolver
                         </button>
                     `;
                     
                     html += `
-                        <div class="tarefa-card admin-card" style="border-left-color: var(--info-color);">
+                        <div class="tarefa-card admin-card" style="border-left-color: ${cardColor};">
                             <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
+                                <div class="tarefa-nome-admin">${t.nome} ${prazoStatus}</div>
+                                <div class="tarefa-valor positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</div>
                             </div>
                             
                             <div class="tarefa-status-line tarefa-info-status-info" style="margin-bottom: 10px;">
-                                <span>Status:</span>
-                                <span class="status-in-progress">Em Andamento</span> 
+                                <span class="status-in-progress">Status: Em Andamento</span>
                             </div>
 
                             <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Valor: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(valor)}</span></div>
-                                <div class="tarefa-info-admin">Atribuída em: ${t.dataAtribuicao || 'N/A'}</div>
                                 <div class="tarefa-info-admin">Prazo Limite: ${dataPrazo} ${horarioPrazo}</div>
+                                <div class="tarefa-info-admin" style="font-weight: bold;">${deadlineText}</div>
+                                <div class="tarefa-descricao-admin">${t.descricao}</div>
                             </div>
                             <div style="margin-top: 15px;">
                                 ${buttonHtml}
@@ -109,14 +146,14 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas:", error);
-                // Usa a função global
-                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar suas tarefas. Verifique o console.', 'danger');
+                // Assume que exibirAlertaGlobal está em script.js
+                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar suas tarefas. Verifique se criou os índices compostos necessários no Firestore.', 'danger');
             }
         }
 
-        // Muda o status para "Pendente"
+        // 1. Envia para Aprovação (Status: Pendente)
         async function markAsConcluida(taskId, taskName) {
-            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação do administrador.`)) {
+            if (!confirm(`Confirmar que a tarefa "${taskName}" foi concluída? Ela será enviada para aprovação do administrador e sairá desta lista.`)) {
                 return;
             }
 
@@ -124,19 +161,68 @@
                 const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
                 
                 await taskRef.update({
-                    status: 'Pendente', // NOVO STATUS: "Pendente" (Aguarda Admin)
-                    // Salva a data de conclusão
+                    status: 'Pendente', 
                     dataConclusao: new Date().toISOString().split('T')[0] 
                 });
 
                 exibirAlertaGlobal('tarefas-alerts', `Tarefa "${taskName}" marcada como concluída e enviada para aprovação!`, 'success');
-                renderMinhasTarefas(); // Recarrega a lista
+                renderMinhasTarefas(); 
                 
             } catch (error) {
                 console.error("Erro ao marcar tarefa como concluída:", error);
                 exibirAlertaGlobal('tarefas-alerts', `Erro ao atualizar a tarefa. Tente novamente.`, 'danger');
             }
         }
+        
+        // 2. Cancela/Devolve a Tarefa (Move para Disponíveis)
+        async function cancelarTarefa(taskId, taskName, valor) {
+            if (!confirm(`Tem certeza que deseja DEVOLVER a tarefa "${taskName}" (${formatarMoeda(valor)})? Ela voltará para a lista de tarefas disponíveis.`)) {
+                return;
+            }
+
+            const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+            // Cria uma nova referência na coleção de disponíveis, usando um novo ID (boa prática)
+            const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc();
+
+            try {
+                // Garante que a operação seja atômica
+                await firestore.runTransaction(async (transaction) => {
+                    const taskDoc = await transaction.get(assignedRef);
+                    
+                    if (!taskDoc.exists || taskDoc.data().status !== 'EmAndamento') {
+                        throw new Error("Tarefa não pode ser cancelada (não existe ou o status não é 'Em Andamento').");
+                    }
+                    
+                    const taskData = taskDoc.data();
+                    
+                    // 1. Exclui da lista de atribuídas
+                    transaction.delete(assignedRef);
+
+                    // 2. Cria na lista de disponíveis
+                    const availableData = {
+                        ...taskData,
+                        status: 'Disponível', 
+                        atribuidaPara: null, 
+                        usuarioUID: null,
+                        dataAtribuicao: null, // Limpa dados de atribuição anterior
+                        dataDevolucao: new Date().toISOString().split('T')[0]
+                    };
+                    
+                    // O método set em um novo documento (obtido por .doc()) cria o documento.
+                    transaction.set(availableRef, availableData);
+                });
+
+                exibirAlertaGlobal('tarefas-alerts', `Tarefa "${taskName}" cancelada e devolvida com sucesso.`, 'warning');
+                renderMinhasTarefas(); // Recarrega a lista
+            } catch (error) {
+                console.error("Erro ao cancelar tarefa:", error);
+                const msg = error.message.includes("não pode ser cancelada") 
+                    ? "Esta tarefa não está mais no status 'Em Andamento' e não pode ser cancelada."
+                    : `Erro desconhecido ao tentar cancelar. ${error.message}`;
+                exibirAlertaGlobal('tarefas-alerts', `Erro: ${msg}`, 'danger');
+            }
+        }
+
 
         window.addEventListener('DOMContentLoaded', renderMinhasTarefas);
     </script>

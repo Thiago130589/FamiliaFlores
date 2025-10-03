@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarefas Disponíveis</title>
+    
     <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -18,7 +20,7 @@
     <div id="atribuir-tarefa-modal" class="modal-overlay hidden-start" onclick="toggleModal('atribuir-tarefa-modal', false)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-btn" onclick="toggleModal('atribuir-tarefa-modal', false)">&times;</span>
-            <h2 class="modal-title" id="modal-titulo-tarefa">Atribuir: [Nome da Tarefa]</h2>
+            <h2 class="modal-title" id="modal-titulo-tarefa"><i class="fas fa-user-plus"></i> Atribuir: [Nome da Tarefa]</h2>
             <p class="info-message">Selecione um usuário para atribuir esta tarefa (Status: EmAndamento).</p>
             <form id="form-atribuir-tarefa-direta">
                 <input type="hidden" id="atribuir-task-id"> 
@@ -32,8 +34,10 @@
     </div>
     
     <div class="center-box large-box">
-        <h1 class="main-title">Tarefas Disponíveis</h1>
-        <a href="index.html" class="btn-voltar">Voltar ao Dashboard</a>
+        <h1 class="main-title"><i class="fas fa-list-ul"></i> Tarefas Disponíveis</h1>
+        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-bottom: 20px;">
+            <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+        </a>
         <hr class="divider">
         
         <p class="info-message">Pegue uma tarefa para começar a ganhar pontos (e dinheiro).</p>
@@ -43,7 +47,6 @@
         <div id="tarefas-disponiveis-lista" class="historico-lista">
             <p class="empty-message">Carregando tarefas...</p>
         </div>
-
     </div>
 
     <script>
@@ -52,15 +55,18 @@
         
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
-        
-        let userList = []; 
+        const USERS_COLLECTION = 'users';
+
+        // Pega as informações do usuário uma única vez na inicialização
         const userInfo = getUsuarioLogado();
         const isAdmin = userInfo && userInfo.isAdmin === true;
+        let userList = []; 
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Se o usuário não estiver logado, redireciona para o login (Boa Prática de Segurança)
+            // Se o usuário não estiver logado, redireciona para o login (A função getUsuarioLogado em script.js deve fazer isso)
             if (!userInfo) {
-                window.location.href = 'login.html'; 
+                // Se a função getUsuarioLogado não redirecionar, este script pode falhar.
+                // Mas confiamos no fluxo atual. Apenas paramos a execução.
                 return;
             }
             if (isAdmin) {
@@ -73,19 +79,33 @@
         // Função do Admin para carregar a lista de usuários (apenas membros, não admin)
         async function loadUsersForAssignment() {
             try {
-                // Busca todos os usuários
-                const snapshot = await firestore.collection('users').get();
+                const snapshot = await firestore.collection(USERS_COLLECTION).get();
                 
                 userList = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() })) // Mapeia para incluir UID e dados
-                    .filter(user => user.nome); // Filtra quem não tem nome (apenas para garantir dados mínimos)
+                    .map(doc => ({ 
+                        uid: doc.id, 
+                        nome: doc.data().nome,
+                        isAdmin: doc.data().isAdmin || false
+                    }))
+                    .filter(user => user.nome); // Garante que tem nome
                 
-                console.log("Usuários carregados (Para atribuição):", userList);
-                    
+                // Popula o select do modal de atribuição
+                const selectUsuario = document.getElementById('select-usuario-atribuicao');
+                let userOptions = '<option value="">Selecione o Usuário</option>';
+                
+                userList.forEach(user => {
+                    // Ignora outros admins (a menos que queira atribuir para outro admin)
+                    if (user.isAdmin === false || user.uid === userInfo.uid) {
+                        const nameDisplay = user.nome + (user.isAdmin ? ' (Admin)' : '');
+                        // O valor é o UID, e o data-nome é o nome para a mensagem de sucesso
+                        userOptions += `<option value="${user.uid}" data-nome="${user.nome}">${nameDisplay}</option>`;
+                    }
+                });
+                selectUsuario.innerHTML = userOptions;
+                
             } catch(e) {
-                console.error("Erro ao carregar usuários (Verifique Regras de Segurança/Permissões):", e);
-                // Exibe o erro de permissão para o Admin, se falhar
-                exibirAlertaGlobal('user-alerts', "Erro ao carregar lista de usuários para atribuição. Verifique as regras de segurança (coleção 'users').", 'danger');
+                console.error("Erro ao carregar usuários:", e);
+                exibirAlertaGlobal('user-alerts', "Erro ao carregar lista de usuários para atribuição.", 'danger');
             }
         }
 
@@ -96,22 +116,8 @@
             document.getElementById('modal-titulo-tarefa').textContent = `Atribuir: ${taskName}`;
             document.getElementById('atribuir-task-id').value = taskId;
             
-            const selectUsuario = document.getElementById('select-usuario-atribuicao');
-            
-            let userOptions = '<option value="">Selecione o Usuário</option>';
-            if (userList.length === 0) {
-                userOptions = '<option value="" disabled>Nenhum Usuário Encontrado</option>';
-            } else {
-                userList.forEach(user => {
-                    // Adiciona todos os usuários com nome (membros e outros admins)
-                    const isCurrentUser = user.id === userInfo.uid;
-                    const nameDisplay = user.nome + (isCurrentUser ? ' (Admin/Eu)' : (user.isAdmin ? ' (Admin)' : ''));
-                    // Passa o UID como valor para ser usado na atribuição
-                    userOptions += `<option value="${user.id}" data-nome="${user.nome}">${nameDisplay}</option>`;
-                });
-            }
-            
-            selectUsuario.innerHTML = userOptions;
+            // Certifica-se que o select está resetado e visível
+            document.getElementById('select-usuario-atribuicao').value = "";
             toggleModal('atribuir-tarefa-modal', true);
         }
 
@@ -135,10 +141,10 @@
             await processarAtribuicao(taskId, selectedUserNome, selectedUserUID, true); 
         });
 
-        // Funções de Carregamento
+        // Funções de Carregamento da Lista
         async function loadTarefasDisponiveis() {
             const listaEl = document.getElementById('tarefas-disponiveis-lista');
-            listaEl.innerHTML = '<p class="empty-message">Buscando tarefas disponíveis...</p>';
+            listaEl.innerHTML = '<p class="empty-message"><i class="fas fa-spinner fa-spin"></i> Buscando tarefas disponíveis...</p>';
             
             try {
                 // Query para buscar tarefas disponíveis, ordenadas por data de criação
@@ -162,15 +168,15 @@
                         actionButton = `
                             <button class="btn-rounded btn-primary wide-button" 
                                     onclick="openAtribuirModal('${taskId}', '${t.nome}')">
-                                ATRIBUIR (Admin)
+                                <i class="fas fa-user-plus"></i> ATRIBUIR (Admin)
                             </button>
                         `;
                     } else {
-                            // Membro: Botão Pegar
+                        // Membro: Botão Pegar
                         actionButton = `
                             <button class="btn-rounded btn-success wide-button" 
                                     onclick="pegarTarefa('${taskId}', '${t.nome}')">
-                                Pegar Tarefa
+                                <i class="fas fa-clipboard-check"></i> Pegar Tarefa
                             </button>
                         `;
                     }
@@ -183,30 +189,31 @@
                             </div>
                             
                             <div class="tarefa-descricao">${t.descricao}</div>
-                            <div class="tarefa-prazo">Prazo: ${t.dataPrazo || 'N/A'} às ${t.horarioPrazo || 'N/A'}</div>
+                            <div class="tarefa-prazo"><i class="fas fa-clock"></i> Prazo: ${t.dataPrazo || 'N/A'} às ${t.horarioPrazo || 'N/A'}</div>
                             
                             ${actionButton}
                         </div>
                     `;
                 });
 
-                listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Parabéns! Nenhuma tarefa está disponível no momento.</p>';
+                listaEl.innerHTML = foundTasks 
+                    ? html 
+                    : '<p class="empty-message"><i class="fas fa-check-circle"></i> Parabéns! Nenhuma tarefa está disponível no momento.</p>';
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas disponíveis:", error);
-                // Exibe a mensagem de erro que o Firebase sugere
-                listaEl.innerHTML = `<p class="error-message">Erro ao carregar tarefas. Verifique se o índice composto para (status == 'Disponível', dataCriacao desc) no Firestore foi criado. ${error.message}</p>`;
+                listaEl.innerHTML = `<p class="error-message"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar tarefas. Verifique se o índice composto para **(status == 'Disponível', dataCriacao desc)** no Firestore foi criado. (${error.message})</p>`;
             }
         }
 
         // Função de atribuição para membros
         async function pegarTarefa(taskId, taskNome) {
             if (!userInfo || !userInfo.nome || !userInfo.uid) {
-                exibirAlertaGlobal('user-alerts', "Você precisa estar logado para pegar tarefas.", 'danger');
+                exibirAlertaGlobal('user-alerts', "Erro de login. Tente sair e entrar novamente.", 'danger');
                 return;
             }
 
-            if (!confirm(`Deseja realmente pegar a tarefa "${taskNome}"? Ela será movida para sua lista "Em Andamento".`)) {
+            if (!confirm(`Deseja realmente pegar a tarefa "${taskNome}"? Ela será movida para sua lista "Minhas Tarefas (Em Andamento)".`)) {
                 return;
             }
             
@@ -217,11 +224,12 @@
         // Função centralizada para executar a transação de atribuição (pegar ou atribuir)
         async function processarAtribuicao(taskId, usuarioNome, usuarioUID, isFromAdminModal) {
             const availableRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc(taskId);
-            const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc();
+            // Cria um novo documento na coleção 'tarefasAtribuidas' (novo ID)
+            const assignedRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(); 
 
             try {
-                // Remove o alerta anterior de erro de atribuição, se houver
                 removerAlertaGlobal('user-alerts');
+                let taskNameInTransaction = '';
 
                 await firestore.runTransaction(async (transaction) => {
                     const taskDoc = await transaction.get(availableRef);
@@ -231,17 +239,19 @@
                     }
 
                     const taskData = taskDoc.data();
+                    taskNameInTransaction = taskData.nome;
                     
-                    // 1. Exclui da lista de disponíveis
+                    // 1. Exclui o documento da lista de disponíveis
                     transaction.delete(availableRef);
 
-                    // 2. Cria na lista de atribuídas
+                    // 2. Cria o novo documento na lista de atribuídas
                     const assignedData = {
                         ...taskData,
                         status: 'EmAndamento', 
                         atribuidaPara: usuarioNome, 
                         usuarioUID: usuarioUID, // CRUCIAL: Salva o UID do usuário
-                        dataAtribuicao: new Date().toISOString().split('T')[0]
+                        dataAtribuicao: new Date().toISOString().split('T')[0],
+                        dataAtribuicaoTimestamp: firebase.firestore.FieldValue.serverTimestamp() // Adiciona Timestamp para ordenação
                     };
                     
                     transaction.set(assignedRef, assignedData);
@@ -250,16 +260,15 @@
                 if (isFromAdminModal) {
                     toggleModal('atribuir-tarefa-modal', false);
                 }
-                exibirAlertaGlobal('user-alerts', `Tarefa atribuída com sucesso a ${usuarioNome}! Está agora na lista "Em Andamento".`, 'success');
+                exibirAlertaGlobal('user-alerts', `Tarefa "${taskNameInTransaction}" atribuída com sucesso a **${usuarioNome}**!`, 'success');
                 loadTarefasDisponiveis(); // Recarrega a lista
             } catch (error) {
                 console.error("Erro ao atribuir tarefa:", error);
-                // Mensagem de erro mais amigável
                 const msg = error.message.includes("já foi atribuída") 
-                    ? "A tarefa foi atribuída a outro usuário ou não está mais disponível."
-                    : `Erro desconhecido. ${error.message}`;
+                    ? "A tarefa foi atribuída a outro usuário (alguém foi mais rápido!) ou não está mais disponível."
+                    : `Erro desconhecido ao processar atribuição. ${error.message}`;
 
-                exibirAlertaGlobal('user-alerts', `Erro ao atribuir tarefa: ${msg}`, 'danger');
+                exibirAlertaGlobal('user-alerts', `Erro ao pegar/atribuir tarefa: ${msg}`, 'danger');
             }
         }
     </script>
