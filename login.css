@@ -1,6 +1,6 @@
 /*
  * login.css - Estilos específicos para a tela de Login
- * Inclui: Base, Variáveis, Reset Básico e o Layout de Centralização Responsiva.
+ * Usa o padrão de variáveis do projeto e inclui o Layout de Centralização Responsiva.
  */
 
 /* =========================================================================
@@ -12,20 +12,20 @@
     --primary-light: #52a7ff;
     --primary-dark: #0056b3;
     
-    /* Fundo da Tela em AZUL (Solicitado) */
+    /* Fundo da Tela em AZUL */
     --background-color: #1a76ff; 
     
     /* Cores de Feedback */
     --success-color: #28a745;
     --error-color: #dc3545;
-    --info-color: #17a2b8;
+    --danger-color: #dc3545; /* Mantendo o padrão de multas */
 
     /* Neutros */
     --text-color: #333;
     --text-light: #6c757d;
-    --box-bg-color: #ffffff; /* Caixa em BRANCO (Solicitado) */
-    --button-secondary-bg: #6c757d; /* Cinza para o botão */
-    --button-secondary-dark: #5a6268;
+    --box-bg-color: #ffffff; /* Caixa em BRANCO */
+    --button-primary-bg: #6c757d; /* Cinza para o botão principal (Ação de Login) */
+    --button-primary-dark: #5a6268;
     --shadow-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -55,11 +55,11 @@ body {
 
 .center-box {
     background-color: var(--box-bg-color); /* BRANCO */
-    border-radius: 15px; /* Mais arredondado */
-    padding: 40px; /* Mais padding para parecer maior */
-    box-shadow: 0 8px 25px var(--shadow-color); /* Sombra mais forte */
+    border-radius: 15px;
+    padding: 40px; 
+    box-shadow: 0 8px 25px var(--shadow-color);
     width: 100%; 
-    max-width: 400px; /* Um pouco maior */
+    max-width: 400px;
 }
 
 /* =========================================================================
@@ -96,7 +96,7 @@ label {
 }
 
 .input-rounded {
-    padding: 15px; /* Input maior */
+    padding: 15px;
     border: 1px solid #ccc; 
     border-radius: 8px;
     font-size: 1em; 
@@ -108,7 +108,7 @@ label {
  * ========================================================================= */
 
 .btn-rounded {
-    padding: 15px 25px; /* Botão maior */
+    padding: 15px 25px;
     border: none;
     border-radius: 25px;
     cursor: pointer;
@@ -120,13 +120,13 @@ label {
     display: block;
 }
 
-/* Botão Primário agora é CINZA (Solicitado) */
+/* Botão Primário agora é CINZA (Usando as novas variáveis) */
 .btn-primary { 
-    background-color: var(--button-secondary-bg); /* Cinza */
+    background-color: var(--button-primary-bg); /* Cinza */
     color: white; 
 }
 .btn-primary:hover { 
-    background-color: var(--button-secondary-dark); /* Cinza Escuro */
+    background-color: var(--button-primary-dark); /* Cinza Escuro */
 }
 
 .wide-button { 
@@ -147,7 +147,7 @@ label {
 }
 
 .error-message { 
-    color: var(--error-color); 
+    color: var(--danger-color); /* Usando danger-color */
     font-weight: bold; 
     text-align: center; 
     padding: 10px;
