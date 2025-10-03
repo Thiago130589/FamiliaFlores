@@ -1,7 +1,6 @@
 // O 'db' é uma variável global definida em firebase-init.js (Firestore)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // É uma boa prática verificar se 'db' está disponível
     if (typeof db === 'undefined') {
         console.error("ERRO: A variável 'db' do Firestore não está definida. Verifique firebase-init.js e o carregamento dos scripts.");
         return;
@@ -23,10 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('login-password').value.trim();
         const messageEl = document.getElementById('login-message');
 
-        // Resetar a mensagem de erro
         messageEl.classList.add('hidden-start');
         messageEl.textContent = '';
-        messageEl.style.color = ''; // Limpar cor de sucesso
+        messageEl.style.color = '';
 
         if (!username || !password) {
             messageEl.textContent = 'Por favor, preencha todos os campos.';
@@ -35,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 1. Busca o documento do usuário pelo nome de usuário (que é o ID do documento)
             const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get(); 
 
             if (!userDoc.exists) {
@@ -46,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userData = userDoc.data();
 
-            // 2. Verifica a senha: CORREÇÃO DA CHAVE 'password' (estava 'senha')
+            // 2. Verifica a senha: AGORA usando 'userData.password'
             if (userData.password !== password) {
                 messageEl.textContent = 'Nome de usuário ou senha incorretos.';
                 messageEl.classList.remove('hidden-start');
@@ -56,21 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. Login bem-sucedido
             console.log("Login realizado com sucesso:", userData.nome);
             
-            // Salvar o objeto JSON na chave 'usuarioLogado' para ser lido pelo script.js
+            // CORREÇÃO AQUI: Salvar todos os dados de perfil, incluindo isAdmin
             const userToSave = {
-                username: username, // O apelido
-                nome: userData.nome,  // Nome completo
-                // Adicione outros dados necessários para a sessão, como avatar, perfil, etc.
+                username: username,
+                nome: userData.nome,
+                // Garantir que os campos cruciais para o sistema sejam salvos:
+                isAdmin: userData.isAdmin || false, // CRÍTICO: Para verificação de administrador
+                perfil: userData.perfil || 'usuario',
+                pontuacao: userData.pontuacao || 0,
+                // Adicione outros campos necessários...
             };
             
-            // Salva o objeto como JSON
             localStorage.setItem('usuarioLogado', JSON.stringify(userToSave));
             
             messageEl.textContent = 'Login bem-sucedido! Redirecionando...';
             messageEl.style.color = 'var(--success-color)';
             messageEl.classList.remove('hidden-start');
 
-            // Redireciona para o Dashboard
             setTimeout(() => {
                 window.location.href = 'index.html'; 
             }, 1000);
@@ -79,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Erro no login:", error);
             let errorMessage = "Erro na comunicação com o servidor. Verifique o console.";
             
-            // Mensagem de erro para regras de segurança
             if (error.message && (error.message.includes('permission denied') || error.message.includes('insufficient permissions'))) {
                  errorMessage = "Erro de permissão no Firebase. Verifique suas regras de segurança.";
             }
