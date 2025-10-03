@@ -77,7 +77,7 @@
         
         <hr class="divider">
         
-        <p class="empty-message">A listagem e aprovação de tarefas está oculta. Use os botões acima para realizar ações.</p>
+        <p class="empty-message">A listagem está oculta. Use os botões acima para realizar ações ou navegar.</p>
 
         <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
             Voltar ao Dashboard
@@ -117,17 +117,15 @@
             toggleModal('criar-tarefa-modal', true);
         }
         
-        // Adicionada novamente (apesar de o botão não estar visível, pode ser útil)
+        async function openExcluirTarefaModal() {
+            await loadAllTasksForExclusion();
+            toggleModal('excluir-tarefa-modal', true);
+        }
+
         async function openAtribuirTarefaModal() {
             await loadUsersForAssignment();
             await loadAvailableTasksForAssignment(); 
             toggleModal('atribuir-tarefa-modal', true);
-        }
-
-        async function openExcluirTarefaModal() {
-            // Essa função precisa carregar dados
-            await loadAllTasksForExclusion();
-            toggleModal('excluir-tarefa-modal', true);
         }
 
         // --- Funções de Carregamento para Modais (Obrigatórias) ---
