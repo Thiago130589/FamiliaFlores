@@ -1,381 +1,376 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Administração | Plataforma</title>
-    
-    <link rel="stylesheet" href="style.css"> 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="firebase-init.js"></script>
-    
-    <script src="script.js" defer></script> 
-    
-    <script>
-        // --- Funções de Máscara de Dinheiro (Mantidas) ---
-        
-        /**
-         * Aplica a máscara de moeda (R$) em um campo de input.
-         * @param {HTMLInputElement} input O elemento input a ser formatado.
-         */
-        function maskMoney(input) {
-            let value = input.value.replace(/\D/g, ''); 
-            if (value.length === 0) {
-                input.value = '';
-                return;
-            }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração | Plataforma</title>
+    
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script>
+    
+    <script src="script.js" defer></script> 
+    
+    <script>
+        // --- Funções de Máscara de Dinheiro (Mantidas) ---
+        
+        /**
+         * Aplica a máscara de moeda (R$) em um campo de input.
+         * @param {HTMLInputElement} input O elemento input a ser formatado.
+         */
+        function maskMoney(input) {
+            let value = input.value.replace(/\D/g, ''); 
+            if (value.length === 0) {
+                input.value = '';
+                return;
+            }
 
-            while (value.length < 3) {
-                value = '0' + value;
-            }
+            while (value.length < 3) {
+                value = '0' + value;
+            }
 
-            let cents = value.slice(-2);
-            let integer = value.slice(0, -2);
+            let cents = value.slice(-2);
+            let integer = value.slice(0, -2);
 
-            integer = integer.replace(/^0+/, ''); 
+            integer = integer.replace(/^0+/, ''); 
 
-            if (integer.length === 0) {
-                integer = '0';
-            } else {
-                integer = integer.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-            }
+            if (integer.length === 0) {
+                integer = '0';
+            } else {
+                integer = integer.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            }
 
-            input.value = `R$ ${integer},${cents}`;
-        }
-        
-        /**
-         * Converte a string formatada em R$ para um número float.
-         * @param {string} maskedValue O valor formatado (Ex: R$ 1.234,56).
-         * @returns {number} O valor numérico.
-         */
-        function unmaskMoney(maskedValue) {
-            if (!maskedValue) return 0;
-            const unmasked = maskedValue
-                .replace('R$', '')
-                .trim()
-                .replace(/\./g, '')
-                .replace(',', '.');
-            return parseFloat(unmasked);
-        }
-    </script>
+            input.value = `R$ ${integer},${cents}`;
+        }
+        
+        /**
+         * Converte a string formatada em R$ para um número float.
+         * @param {string} maskedValue O valor formatado (Ex: R$ 1.234,56).
+         * @returns {number} O valor numérico.
+         */
+        function unmaskMoney(maskedValue) {
+            if (!maskedValue) return 0;
+            const unmasked = maskedValue
+                .replace('R$', '')
+                .trim()
+                .replace(/\./g, '')
+                .replace(',', '.');
+            return parseFloat(unmasked);
+        }
+    </script>
 </head>
 <body>
-    <div class="center-box center-box-admin">
-        <header class="admin-header">
-            <h1><i class="fas fa-user-shield"></i> Painel de Administração</h1>
-            <p>Gerencie usuários, tarefas e recompensas da plataforma.</p>
-        </header>
+    <div class="center-box center-box-admin">
+        <header class="admin-header">
+            <h1><i class="fas fa-user-shield"></i> Painel de Administração</h1>
+            <p>Gerencie usuários, tarefas e recompensas da plataforma.</p>
+        </header>
 
-        <a href="index.html" class="btn-voltar"><i class="fas fa-arrow-left"></i> Voltar ao Dashboard</a>
+        <a href="index.html" class="btn-voltar"><i class="fas fa-arrow-left"></i> Voltar ao Dashboard</a>
 
-        <hr class="divider">
+        <hr class="divider">
 
-        <div class="admin-section">
-            <h2><i class="fas fa-users"></i> Gestão de Usuários</h2>
-            <div class="admin-grid">
-                
-                <a href="cadastrar-usuario.html" class="admin-action-item">
-                    <i class="fas fa-user-plus"></i> Adicionar Usuário
-                </a>
-                
-                <a href="gerenciar-carteira.html" class="admin-action-item">
-                    <i class="fas fa-money-check-alt"></i> Banco
-                </a>
-                
-                <a href="remover-usuario.html" class="admin-action-item">
-                    <i class="fas fa-user-times"></i> Remover Usuário
-                </a>
-                
-            </div>
-        </div>
+        <div class="admin-section">
+            <h2><i class="fas fa-users"></i> Gestão de Usuários</h2>
+            <div class="admin-grid">
+                
+                <a href="cadastrar-usuario.html" class="admin-action-item">
+                    <i class="fas fa-user-plus"></i> Adicionar Usuário
+                </a>
+                
+                <a href="gerenciar-carteira.html" class="admin-action-item">
+                    <i class="fas fa-money-check-alt"></i> Banco
+                </a>
+                
+                <a href="remover-usuario.html" class="admin-action-item">
+                    <i class="fas fa-user-times"></i> Remover Usuário
+                </a>
+                
+            </div>
+        </div>
 
-        <hr class="divider">
+        <hr class="divider">
 
-        <div class="admin-section">
-            <h2><i class="fas fa-list-check"></i> Gestão de Tarefas</h2>
-            <div class="admin-grid">
-                <a href="#" id="btn-criar-tarefa" class="admin-action-item">
-                    <i class="fas fa-plus-circle"></i> Criar Nova Tarefa
-                </a>
-                <a href="gerenciar-tarefas.html" class="admin-action-item"> 
-                    <i class="fas fa-check-double"></i> Gestão de Tarefas
-                </a>
-            </div>
-        </div>
+        <div class="admin-section">
+            <h2><i class="fas fa-list-check"></i> Gestão de Tarefas</h2>
+            <div class="admin-grid">
+                <a href="#" id="btn-criar-tarefa" class="admin-action-item">
+                    <i class="fas fa-plus-circle"></i> Criar Nova Tarefa
+                </a>
+                <a href="gerenciar-tarefas.html" class="admin-action-item"> 
+                    <i class="fas fa-check-double"></i> Gestão de Tarefas
+                </a>
+            </div>
+        </div>
 
-        <hr class="divider">
+        <hr class="divider">
 
-        <div class="admin-section">
-            <h2><i class="fas fa-gift"></i> Gestão de Recompensas</h2>
-            <div class="admin-grid">
-                <a href="#" class="admin-action-item">
-                    <i class="fas fa-cart-plus"></i> Gerenciar Itens
-                </a>
-                <a href="#" class="admin-action-item">
-                    <i class="fas fa-trophy"></i> Aprovar Resgates
-                </a>
-            </div>
-        </div>
+        <div class="admin-section">
+            <h2><i class="fas fa-gift"></i> Gestão de Recompensas</h2>
+            <div class="admin-grid">
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-cart-plus"></i> Gerenciar Itens
+                </a>
+                <a href="#" class="admin-action-item">
+                    <i class="fas fa-trophy"></i> Aprovar Resgates
+                </a>
+            </div>
+        </div>
 
-        <button id="logout-button" class="btn-logout-admin">
-            <i class="fas fa-sign-out-alt"></i> Sair da Conta
-        </button>
-    </div>
+        <button id="logout-button" class="btn-logout-admin">
+            <i class="fas fa-sign-out-alt"></i> Sair da Conta
+        </button>
+    </div>
 
-    <div id="modal-criar-tarefa" class="modal-overlay hidden-start">
-        <div class="modal-content">
-            <button type="button" class="modal-close-icon" onclick="closeModal('modal-criar-tarefa')" title="Fechar (ESC)">
-                <i class="fas fa-times"></i>
-            </button>
-            <h2 class="modal-title">Criar Nova Tarefa</h2>
-            
-            <form id="form-criar-tarefa">
-                
-                <div class="form-group">
-                    <label for="tarefa-nome">Nome da Tarefa</label>
-                    <input type="text" id="tarefa-nome" class="input-rounded" placeholder="Ex: Limpar a Cozinha" required>
-                </div>
+    <div id="modal-criar-tarefa" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <button type="button" class="modal-close-icon" onclick="closeModal('modal-criar-tarefa')" title="Fechar (ESC)">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="main-title"><i class="fas fa-plus-circle"></i> Criar Nova Tarefa</h2>
+            <hr class="divider">
+            
+            <form id="form-criar-tarefa">
+                
+                <div class="form-group">
+                    <label for="tarefa-nome">Nome da Tarefa</label>
+                    <input type="text" id="tarefa-nome" class="input-rounded" placeholder="Ex: Limpar a Cozinha" required>
+                </div>
 
-                <div class="form-group">
-                    <label for="tarefa-descricao">Descrição</label>
-                    <textarea id="tarefa-descricao" class="input-rounded" placeholder="Detalhes da tarefa e expectativas." required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="tarefa-valor">Valor (Recompensa)</label>
-                    <input type="text" 
-                            id="tarefa-valor" 
-                            class="input-rounded" 
-                            placeholder="Ex: 5,00" 
-                            oninput="maskMoney(this)" 
-                            required>
-                </div>
+                <div class="form-group">
+                    <label for="tarefa-descricao">Descrição</label>
+                    <textarea id="tarefa-descricao" class="input-rounded" placeholder="Detalhes da tarefa e expectativas." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tarefa-valor">Valor (Recompensa)</label>
+                    <input type="text" 
+                            id="tarefa-valor" 
+                            class="input-rounded" 
+                            placeholder="Ex: 5,00" 
+                            oninput="maskMoney(this)" 
+                            required>
+                </div>
 
-                <div class="form-group">
-                    <label for="tarefa-atribuicao">Atribuir a:</label>
-                    <select id="tarefa-atribuicao" class="input-rounded" required>
-                        <option value="disponivel">Carregando usuários...</option>
-                    </select>
-                </div>
+                <div class="form-group">
+                    <label for="tarefa-atribuicao">Atribuir a:</label>
+                    <select id="tarefa-atribuicao" class="input-rounded" required>
+                        <option value="disponivel">Carregando usuários...</option>
+                    </select>
+                </div>
 
-                <div class="admin-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="tarefa-data-limite">Data Limite</label>
-                        <input type="date" id="tarefa-data-limite" class="input-rounded" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="tarefa-hora-limite">Hora Limite</label>
-                        <input type="time" id="tarefa-hora-limite" class="input-rounded" required>
-                    </div>
-                </div>
+                <div class="admin-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="tarefa-data-limite">Data Limite</label>
+                        <input type="date" id="tarefa-data-limite" class="input-rounded" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="tarefa-hora-limite">Hora Limite</label>
+                        <input type="time" id="tarefa-hora-limite" class="input-rounded" required>
+                    </div>
+                </div>
 
-                <button type="submit" class="btn-rounded btn-success wide-button modal-button-margin">
-                    <i class="fas fa-check"></i> Criar Tarefa
-                </button>
-                <button type="button" onclick="closeModal('modal-criar-tarefa')" class="btn-rounded btn-secondary-text wide-button modal-close-button">
-                    Cancelar
-                </button>
-            </form>
-        </div>
-    </div>
-    
-    <script>
+                <button type="submit" class="btn-rounded btn-success wide-button modal-button-margin">
+                    <i class="fas fa-check"></i> Criar Tarefa
+                </button>
+                <button type="button" onclick="closeModal('modal-criar-tarefa')" class="btn-rounded btn-secondary-text wide-button modal-close-button">
+                    Cancelar
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
         // Define as coleções do Firestore para onde as tarefas devem ir
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
 
-        // Inicializa o Firestore
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Inicializa o Firestore
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        // --- Funções de Utilitário ---
-        function checkAdminAccess() {
-             const userInfo = JSON.parse(localStorage.getItem('usuarioLogado'));
-             if (!userInfo || userInfo.isAdmin !== true) {
-                 // Opcional: Redirecionar para login ou dashboard
-                 window.location.href = 'login.html'; 
-                 return false; 
-             }
-             return true;
-        }
+        // --- Funções de Utilitário ---
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function checkAdminAccess() {
+             const userInfo = getUsuarioLogado(); 
+             if (!userInfo || userInfo.isAdmin !== true) {
+                 window.location.href = 'login.html'; 
+                 return false; 
+             }
+             return true;
+        }
+        
+        function openModal(modalId) {
+            if (!checkAdminAccess()) return;
+            // Ajuste para garantir que o display seja flexível para centralização
+            document.getElementById(modalId).style.display = 'flex'; 
+            document.getElementById(modalId).classList.remove('hidden-start');
+            document.addEventListener('keydown', handleEscKey);
+        }
 
-        function getUsuarioLogado() {
-            try {
-                return JSON.parse(localStorage.getItem('usuarioLogado'));
-            } catch (e) {
-                return null;
-            }
-        }
-        
-        function openModal(modalId) {
-            if (!checkAdminAccess()) return;
-            document.getElementById(modalId).classList.remove('hidden-start');
-            document.addEventListener('keydown', handleEscKey);
-        }
+        function closeModal(modalId) {
+            const modalEl = document.getElementById(modalId);
+            modalEl.classList.add('hidden-start');
+            // Oculta completamente
+            modalEl.style.display = 'none';
+            document.getElementById('form-criar-tarefa').reset();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+        
+        function handleEscKey(event) {
+            if (event.key === 'Escape') {
+                closeModal('modal-criar-tarefa');
+            }
+        }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden-start');
-            document.getElementById('form-criar-tarefa').reset();
-            document.removeEventListener('keydown', handleEscKey);
-        }
-        
-        function handleEscKey(event) {
-            if (event.key === 'Escape') {
-                closeModal('modal-criar-tarefa');
-            }
-        }
+        // --- Funções de População de Dados ---
+        async function loadUserDropdown() {
+            const selectEl = document.getElementById('tarefa-atribuicao');
+            selectEl.innerHTML = ''; 
 
-        // --- Funções de População de Dados ---
-        async function loadUserDropdown() {
-            const selectEl = document.getElementById('tarefa-atribuicao');
-            selectEl.innerHTML = ''; 
+            // 1. Adiciona a opção padrão (Disponível)
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'disponivel';
+            defaultOption.textContent = 'Disponível para todos';
+            selectEl.appendChild(defaultOption);
 
-            // 1. Adiciona a opção padrão (Disponível)
-            const defaultOption = document.createElement('option');
-            defaultOption.value = 'disponivel';
-            defaultOption.textContent = 'Disponível para todos';
-            selectEl.appendChild(defaultOption);
-
-            try {
-                const usersSnapshot = await firestore.collection('users').orderBy('nome').get();
-                
-                usersSnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    // CRUCIAL: Aqui usamos o ID do documento (UID) para a atribuição
-                    const userUID = doc.id; 
-                    
-                    // Se houver um nome de exibição, usa. Senão, usa o UID.
-                    const userDisplayName = userData.nome || userUID;
-                    
-                    if (userData.isAdmin !== true) { // Opcional: não listar admins para atribuição
-                        const option = document.createElement('option');
-                        option.value = userUID; // Salva o UID/ID do documento
-                        option.textContent = userDisplayName + ' (Atribuir)';
-                        option.dataset.userName = userDisplayName; // Armazena o nome para uso posterior
-                        selectEl.appendChild(option);
-                    }
-                });
-            } catch (error) {
-                console.error("Erro ao carregar usuários:", error);
-                // Mensagem de erro amigável
-                selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
-            }
-        }
-
-
-        // --- Funções de Ação ---
-
-        async function createNewTask(event) {
-            event.preventDefault();
-            
-            if (!checkAdminAccess()) return;
-            
-            const adminUser = getUsuarioLogado();
-            
-            const nome = document.getElementById('tarefa-nome').value.trim();
-            const descricao = document.getElementById('tarefa-descricao').value.trim();
-            const valor = unmaskMoney(document.getElementById('tarefa-valor').value); 
-            const dataLimite = document.getElementById('tarefa-data-limite').value;
-            const horaLimite = document.getElementById('tarefa-hora-limite').value;
-            
-            const atribuicaoSelect = document.getElementById('tarefa-atribuicao');
-            const atribuicaoValue = atribuicaoSelect.value;
-            
-            if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
-                alert("Por favor, preencha todos os campos corretamente. Verifique se o valor é positivo.");
-                return;
-            }
-            
-            // Verifica a coleção de destino e define os dados de atribuição
-            const isDisponivel = (atribuicaoValue === 'disponivel');
-            
-            let collectionName;
-            let status;
-            let atribuidaPara = null;
-            let usuarioUID = null;
-            
-            if (isDisponivel) {
-                // 1. Tarefa DISPONÍVEL
-                collectionName = TAREFAS_DISPONIVEIS_COLLECTION;
-                status = 'Disponível';
-            } else {
-                // 2. Tarefa ATRIBUÍDA
-                collectionName = TAREFAS_ATRIBUIDAS_COLLECTION;
-                status = 'EmAndamento';
+            try {
+                const usersSnapshot = await firestore.collection('users').orderBy('nome').get();
                 
-                usuarioUID = atribuicaoValue; // O UID é o valor do select
-                // Busca o nome do usuário armazenado no data-userName
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const userUID = doc.id; 
+                    
+                    const userDisplayName = userData.nome || userUID;
+                    
+                    if (userData.isAdmin !== true) { 
+                        const option = document.createElement('option');
+                        option.value = userUID; 
+                        option.textContent = userDisplayName + ' (Atribuir)';
+                        option.dataset.userName = userDisplayName; 
+                        selectEl.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+                selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
+            }
+        }
+
+
+        // --- Funções de Ação ---
+
+        async function createNewTask(event) {
+            event.preventDefault();
+            
+            if (!checkAdminAccess()) return;
+            
+            const adminUser = getUsuarioLogado();
+            
+            const nome = document.getElementById('tarefa-nome').value.trim();
+            const descricao = document.getElementById('tarefa-descricao').value.trim();
+            const valor = unmaskMoney(document.getElementById('tarefa-valor').value); 
+            const dataLimite = document.getElementById('tarefa-data-limite').value;
+            const horaLimite = document.getElementById('tarefa-hora-limite').value;
+            
+            const atribuicaoSelect = document.getElementById('tarefa-atribuicao');
+            const atribuicaoValue = atribuicaoSelect.value;
+            
+            if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
+                alert("Por favor, preencha todos os campos corretamente. Verifique se o valor é positivo.");
+                return;
+            }
+            
+            // Verifica a coleção de destino e define os dados de atribuição
+            const isDisponivel = (atribuicaoValue === 'disponivel');
+            
+            let collectionName;
+            let status;
+            let atribuidaPara = null;
+            let usuarioUID = null;
+            
+            if (isDisponivel) {
+                // 1. Tarefa DISPONÍVEL
+                collectionName = TAREFAS_DISPONIVEIS_COLLECTION;
+                status = 'Disponível';
+            } else {
+                // 2. Tarefa ATRIBUÍDA
+                collectionName = TAREFAS_ATRIBUIDAS_COLLECTION;
+                status = 'EmAndamento';
+                
+                usuarioUID = atribuicaoValue; 
                 const selectedOption = atribuicaoSelect.options[atribuicaoSelect.selectedIndex];
                 atribuidaPara = selectedOption.dataset.userName || selectedOption.textContent;
-            }
+            }
 
-            const novaTarefa = {
-                nome: nome,
-                descricao: descricao,
-                valor: valor,
-                dataPrazo: dataLimite, // Armazena data e hora separadas
+            const novaTarefa = {
+                nome: nome,
+                descricao: descricao,
+                valor: valor,
+                dataPrazo: dataLimite, 
                 horarioPrazo: horaLimite,
-                prazo: `${dataLimite}T${horaLimite}`, // Manter formato ISO para consistência
-                
-                // Dados de Atribuição
+                prazo: `${dataLimite}T${horaLimite}`, 
+                
+                // Dados de Atribuição
                 status: status,
                 atribuidaPara: atribuidaPara, 
-                usuarioUID: usuarioUID, // CRUCIAL: UID do usuário (ou null se Disponível)
+                usuarioUID: usuarioUID, 
                 dataAtribuicao: isDisponivel ? null : new Date().toISOString().split('T')[0],
-                
-                // Dados de Criação
-                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
-                criadaPor: adminUser.nome || adminUser.username || 'Admin',
-            };
+                
+                // Dados de Criação
+                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+                criadaPor: adminUser.nome || adminUser.username || 'Admin',
+            };
 
-            try {
-                // CORREÇÃO CRÍTICA: Salva na coleção correta
-                await firestore.collection(collectionName).add(novaTarefa);
-                
-                alert(`Tarefa "${nome}" criada com sucesso! Status: ${status}.`);
-                closeModal('modal-criar-tarefa');
-                
-            } catch (error) {
-                console.error("Erro ao criar tarefa:", error);
-                alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
-            }
-        }
+            try {
+                await firestore.collection(collectionName).add(novaTarefa);
+                
+                alert(`Tarefa "${nome}" criada com sucesso! Status: ${status}.`);
+                closeModal('modal-criar-tarefa');
+                
+            } catch (error) {
+                console.error("Erro ao criar tarefa:", error);
+                alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
+            }
+        }
 
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Verifica acesso e carrega o dropdown ao carregar a página
-            if (checkAdminAccess()) {
-                loadUserDropdown();
-            }
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAdminAccess()) {
+                loadUserDropdown();
+            }
 
-            // Abre o modal ao clicar no botão
-            document.getElementById('btn-criar-tarefa').addEventListener('click', (e) => {
-                e.preventDefault();
-                openModal('modal-criar-tarefa');
-            });
-            
-            // Envia o formulário
-            document.getElementById('form-criar-tarefa').addEventListener('submit', createNewTask);
-            
-            // Fecha o modal se o usuário clicar fora (no overlay)
-            const modalOverlay = document.getElementById('modal-criar-tarefa');
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    closeModal('modal-criar-tarefa');
-                }
-            });
+            document.getElementById('btn-criar-tarefa').addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal('modal-criar-tarefa');
+            });
+            
+            document.getElementById('form-criar-tarefa').addEventListener('submit', createNewTask);
+            
+            const modalOverlay = document.getElementById('modal-criar-tarefa');
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) { 
+                    closeModal('modal-criar-tarefa');
+                }
+            });
 
-            // Lógica de logout
-            if (document.getElementById('logout-button')) {
-                document.getElementById('logout-button').addEventListener('click', () => {
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'login.html'; 
-                });
-            }
-        });
-    </script>
+            if (document.getElementById('logout-button')) {
+                document.getElementById('logout-button').addEventListener('click', () => {
+                    localStorage.removeItem('usuarioLogado');
+                    window.location.href = 'login.html'; 
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -109,6 +109,7 @@ body {
     padding: 30px; 
 }
 .large-box {
+    /* CORREÇÃO: Aumenta para padrão de tela de conteúdo (Carteira, Admin) */
     max-width: 900px;
     padding: 30px;
 }
@@ -534,6 +535,46 @@ textarea { resize: vertical; min-height: 80px; }
     padding: 0;
 }
 
+/* CRIAÇÃO DE ESTILOS PARA ADAPTAR A CARTEIRA.HTML */
+
+.balance-card {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.balance-card .current-balance {
+    font-size: 2.5em;
+    font-weight: bold;
+    margin: 5px 0 10px;
+}
+
+.mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.mini-card {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.mini-card .value {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+/* Fim dos estilos de balanceamento (Carteira) */
+
+
 .transaction-item {
     background-color: var(--list-item-bg-color); 
     padding: 15px;
@@ -565,6 +606,15 @@ textarea { resize: vertical; min-height: 80px; }
     white-space: nowrap;
     margin-left: 10px;
 }
+
+.amount-credit {
+    color: var(--success-color); /* Verde para entrada */
+}
+
+.amount-debit {
+    color: var(--error-color); /* Vermelho para saída */
+}
+
 
 /* 8.2. Estilos de Ação (Ajuste de Saldo/Multa) */
 .admin-action-grid {
@@ -624,17 +674,58 @@ textarea { resize: vertical; min-height: 80px; }
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0, 0, 0, 0.7); display: flex;
     justify-content: center; align-items: center; z-index: 1000;
+    
+    /* Para controle do JS/transição - Garantir visibilidade/ocultamento */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
 }
+
+/* Correção para ocultamento inicial (usado no painel-admin.html) */
+.modal-overlay.hidden-start {
+    display: none; 
+}
+
+.modal-overlay:not(.hidden-start) {
+    opacity: 1;
+    visibility: visible;
+    display: flex; 
+}
+
+
 .modal-content {
     background-color: var(--box-bg-color-login); padding: 30px; /* Fundo branco */
-    border-radius: 10px; width: 90%; max-width: 450px;
-    position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 12px; /* Aumentado para 12px para seguir o padrão das caixas */
+    width: 90%; 
+    
+    /* CORREÇÃO PARA O MODAL DE CRIAÇÃO DE TAREFAS (Tamanho fixo) */
+    max-width: 600px; /* Largura ajustada */
+    max-height: 90vh; /* Altura máxima ajustada */
+    overflow-y: auto; /* Permite scroll se o conteúdo for grande */
+    
+    position: relative; 
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
-.close-btn {
-    position: absolute; top: 10px; right: 20px; font-size: 24px;
-    font-weight: bold; color: #aaa; cursor: pointer;
+
+.modal-close-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5em; /* Aumentado para melhor toque/visual */
+    color: #999;
+    transition: color 0.2s;
 }
-.close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
+
+.modal-close-icon:hover {
+    color: var(--error-color);
+}
+
+/* Removendo a classe antiga 'close-btn' (foi substituída pela modal-close-icon) */
+.close-btn { display: none; } 
+
 .modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-dark); text-align: center; margin-bottom: 15px; }
 
 /* Estilos Específicos do Modal */
