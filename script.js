@@ -9,34 +9,23 @@ let currentUser = null;
 
 /**
  * Verifica se há um usuário logado no localStorage e redireciona se necessário.
- * Esta é a função CRÍTICA que impede o loop de login.
  */
 function checkLoginStatus() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
-    const path = window.location.pathname;
 
-    // 🔴 CORREÇÃO CRÍTICA DO LOOP: Se o usuário estiver nas telas de AUTH, não faça a verificação de redirecionamento.
-    // Isso evita que a tela de login ou cadastro se redirecionem para si mesmas.
-    if (path.includes('login.html') || path.includes('cadastrar-usuario.html')) {
-        
-        // Se estiver logado E tentar ir para login/cadastro, redireciona para o dashboard.
-        if (usuarioLogado) {
-            console.log("Usuário logado tentando acessar página de autenticação. Redirecionando para dashboard.");
-            window.location.href = 'index.html';
-        }
-        return; 
-    }
-
-    // ----------------------------------------------------------------------
-    // Lógica para as páginas PROTEGIDAS (como index.html)
-    // ----------------------------------------------------------------------
-
+    // ATENÇÃO: Se este script está sendo carregado, a página é PROTEGIDA.
+    
     if (!usuarioLogado) {
-        // Se NÃO houver dados de usuário, redireciona para a tela de login.
+        // Se NÃO houver dados de usuário, redireciona IMEDIATAMENTE para o login.
         console.log("Usuário não logado em página protegida. Redirecionando para login.");
+        
+        // CORREÇÃO: Usamos setTimeout=0 para garantir que o redirecionamento 
+        // seja a última coisa a acontecer, evitando o loop de carregamento.
         setTimeout(() => {
             window.location.href = 'login.html'; 
-        }, 10); // Pequeno delay para garantir que o script carregue
+        }, 0); 
+        
+        return;
     } else {
         // Usuário logado: Carrega os dados e inicializa o Dashboard.
         try {
@@ -44,7 +33,7 @@ function checkLoginStatus() {
             console.log("Usuário logado encontrado:", currentUser.username);
             
             // Chama a função que carrega os dados na tela (apenas para o index.html)
-            if (path.includes('index.html')) {
+            if (window.location.pathname.includes('index.html')) {
                 loadDashboardData();
             }
             

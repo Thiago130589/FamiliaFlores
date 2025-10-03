@@ -3,44 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login de Usuário</title>
+    <title>Login | Plataforma</title>
+    
     <link rel="stylesheet" href="style.css"> 
     
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script> 
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-init.js"></script>
-    <script src="script.js"></script>
+    
     <script src="login.js" defer></script> 
-</head>
-<body class="body-login">
-    <div class="center-box center-box-login">
-        <div class="login-header">
-            <h1 class="main-title main-title-success">Familia Flores</h1>
-            <p class="center-text">Acesse sua conta de tarefas e recompensas.</p>
-        </div>
-        
-        <hr class="divider">
+    
+    </head>
+<body>
+    <div class="center-box">
+        <h1>Entrar na Plataforma</h1>
 
         <form id="login-form">
-            <div class="form-group">
-                <label for="login-username">Nome de Usuário (Apelido)</label>
-                <input type="text" id="login-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
+            
+            <div class="input-group">
+                <label for="login-username">Apelido / Usuário</label>
+                <input type="text" id="login-username" name="username" required>
             </div>
 
-            <div class="form-group">
+            <div class="input-group">
                 <label for="login-password">Senha</label>
-                <input type="password" id="login-password" class="input-rounded" placeholder="Sua senha" required>
+                <input type="password" id="login-password" name="password" required>
             </div>
-            
-            <button type="submit" class="btn-rounded btn-primary btn-rounded-large wide-button">
-                Entrar
+
+            <p id="login-message" class="message-feedback hidden-start"></p>
+
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Entrar
             </button>
         </form>
 
-        <a href="cadastrar-usuario.html" class="login-link">Não tem conta? Cadastre-se aqui.</a>
+        <hr class="divider">
         
-        <p id="login-message" class="error-message hidden-start" role="alert"></p>
+        <p class="small-text">
+            Ainda não tem uma conta? 
+            <a href="cadastrar-usuario.html">Crie sua conta aqui.</a>
+        </p>
+
     </div>
+    
 </body>
 </html>
