@@ -1,7 +1,7 @@
 ﻿/*
- * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL E CORRIGIDA)
- * Garante: Layout fixo (PC-style), Fundo Verde Claro da Box, Foto visível,
- * Botões de Ação Azuis, e Botão Carteira Verde.
+ * style.css - ARQUIVO BASE UNIVERSAL (VERSÃO FINAL COM LAYOUT E BOTÕES FIXOS)
+ * Todos os estilos de layout (incluindo o grid de botões e o tamanho das caixas)
+ * são forçados a serem o padrão de PC/Tablet, garantindo consistência no celular.
  */
 
 /* =========================================================================
@@ -15,7 +15,7 @@
     
     /* Fundo Padrão (Usado no Login) */
     --background-color-login: #1a76ff; 
-    --background-color-default: #ffffff; /* Fundo Padrão para o Body (Externo) */
+    --background-color-default: #ffffff; /* Fundo Padrão para Dashboard/Conteúdo */
     
     /* Cores de Feedback */
     --success-color: #28a745;
@@ -31,7 +31,7 @@
     /* Cores de Fundo de Caixas (Containers) */
     --box-bg-color-login: #ffffff; 
     --box-bg-color-cadastro: #e6ffe6; 
-    --box-bg-color-default: #e6ffe6; /* CORREÇÃO APLICADA: Fundo verde claro para a caixa do Dashboard */
+    --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
 
     --list-item-bg-color: #f7f7f7;
     --shadow-color: rgba(0, 0, 0, 0.2);
@@ -54,7 +54,7 @@
 
 /* Body Padrão (Fundo Branco/Dashboard) */
 body {
-    background-color: var(--background-color-default); /* Fundo branco ou claro (externo) */
+    background-color: var(--background-color-default);
     color: var(--text-color);
     line-height: 1.6;
     min-height: 100vh;
@@ -74,9 +74,9 @@ body {
 }
 
 
-/* Base da caixa centralizada (Dashboard e Cards) */
+/* Base da caixa centralizada */
 .center-box {
-    background-color: var(--box-bg-color-default); /* CORREÇÃO APLICADA: Usa o verde claro */
+    background-color: var(--box-bg-color-default); 
     border-radius: 20px;
     padding: 40px; 
     box-shadow: 0 4px 12px var(--shadow-color);
@@ -90,24 +90,70 @@ body {
     margin: 20px auto; 
 }
 
-/* Classes de Caixa Específicas (mantidas) */
-.center-box-login { background-color: var(--box-bg-color-login); padding: 40px; max-width: 400px; }
-.center-box-cadastro { background-color: var(--box-bg-color-cadastro); border-radius: 20px; padding: 30px; max-width: 500px; }
-.large-box { max-width: 900px; padding: 30px; }
-.center-box-dashboard { max-width: 450px; padding-top: 50px; padding-bottom: 40px; }
+/* Classe Específica para a caixa de Login */
+.center-box-login {
+    background-color: var(--box-bg-color-login);
+    padding: 40px; 
+    max-width: 400px; 
+}
+
+/* Classe Específica para a caixa de Cadastro */
+.center-box-cadastro {
+    background-color: var(--box-bg-color-cadastro);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px; 
+}
+
+/* Adaptação da caixa grande para outras telas (admin) */
+.large-box { 
+    max-width: 900px;
+    padding: 30px; 
+}
+
+/* Tamanho para o card do Dashboard */
+.center-box-dashboard {
+    max-width: 450px; 
+    padding-top: 50px; 
+    padding-bottom: 40px; 
+}
 
 
 /* =========================================================================
  * 3. TIPOGRAFIA E UTILITÁRIOS
  * ========================================================================= */
 
-.main-title { font-size: 2.2em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 10px; }
-.section-title { font-size: 1.5em; font-weight: bold; color: var(--text-color); margin: 20px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid #eee; }
+.main-title {
+    font-size: 2.2em; 
+    font-weight: bold; 
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
+}
+.section-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
 
+/* Mensagens de Feedback */
 .info-message { font-size: 0.9em; color: var(--text-light); }
-.error-message { color: var(--danger-color); font-weight: bold; text-align: center; padding: 10px; margin-top: 15px; border: 1px solid var(--danger-color); border-radius: 5px; }
+.error-message { 
+    color: var(--danger-color); 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 10px; 
+    margin-top: 15px; 
+    border: 1px solid var(--danger-color);
+    border-radius: 5px;
+}
 .empty-message { text-align: center; color: #999; padding: 20px; font-style: italic; }
 
+
+/* Cores de Saldo/Placar */
 .saldo-negativo, .negative-text { color: var(--error-color); }
 .saldo-positivo, .positive-text { color: var(--success-color); }
 
@@ -115,6 +161,7 @@ body {
 .hidden { display: none !important; } 
 .hidden-start { display: none !important; } 
 
+/* Separadores */
 .divider { border: none; height: 1px; background-color: #e0e0e0; margin: 15px 0; }
 .divider-thin { border: none; height: 1px; background-color: #f0f0f0; margin: 10px 0; }
 
@@ -123,8 +170,18 @@ body {
  * 4. BOTÕES E LINKS (Geral)
  * ========================================================================= */
 
-.btn-rounded { padding: 12px 20px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; text-align: center; text-decoration: none; transition: background-color 0.3s, opacity 0.3s; font-size: 1em; display: block; }
-.btn-rounded-large { padding: 15px 25px; font-size: 1.1em; }
+.btn-rounded {
+    padding: 12px 20px; 
+    border: none; border-radius: 25px; cursor: pointer;
+    font-weight: bold; text-align: center; text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s; 
+    font-size: 1em; 
+    display: block; 
+}
+.btn-rounded-large { /* Botões maiores para Login */
+    padding: 15px 25px;
+    font-size: 1.1em;
+}
 
 .btn-primary { background-color: var(--button-primary-bg); color: white; }
 .btn-primary:hover { background-color: var(--button-primary-dark); }
@@ -137,15 +194,46 @@ body {
 
 .wide-button { width: 100%; margin-top: 10px; }
 
-.login-link { display: block; text-align: center; margin-top: 20px; font-size: 0.9em; color: var(--primary-color); text-decoration: none; }
+/* Link de Navegação (Voltar para Login/Cadastro) */
+.login-link { 
+    display: block; text-align: center; margin-top: 20px;
+    font-size: 0.9em; color: var(--primary-color); text-decoration: none;
+}
 .login-link:hover { color: var(--primary-dark); text-decoration: underline; }
 
-.btn-secondary-text { background-color: transparent; color: var(--primary-color); border: none; text-decoration: underline; display: block; padding: 10px 0; font-weight: normal; text-align: center; }
+/* Link Secundário (Já tem conta/Faça login) */
+.btn-secondary-text { 
+    background-color: transparent; color: var(--primary-color); 
+    border: none; text-decoration: underline; display: block;
+    padding: 10px 0; font-weight: normal; text-align: center;
+}
 
-.btn-icon { width: 48px; height: 48px; padding: 0; font-size: 1.5em; flex-shrink: 0; display: flex; justify-content: center; align-items: center; border-radius: 50%; }
+/* Botão de Ícone (Câmera) */
+.btn-icon {
+    width: 48px; height: 48px; padding: 0; font-size: 1.5em; 
+    flex-shrink: 0; display: flex; justify-content: center; 
+    align-items: center; border-radius: 50%; 
+}
 
-.btn-logout-card { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 14px; padding: 5px 10px; transition: color 0.3s; z-index: 10; }
-.btn-logout-card:hover { color: var(--primary-color); text-decoration: underline; }
+/* Botão de Sair no Card */
+.btn-logout-card {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 10px;
+    transition: color 0.3s;
+    z-index: 10; 
+}
+
+.btn-logout-card:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
 
 
 /* =========================================================================
@@ -154,7 +242,10 @@ body {
 form { display: flex; flex-direction: column; gap: 10px; }
 
 .form-group { margin-bottom: 15px; }
-label { font-weight: bold; margin-bottom: 5px; color: var(--text-color); display: block; }
+label { 
+    font-weight: bold; margin-bottom: 5px; 
+    color: var(--text-color); display: block;
+}
 
 input[type="text"], input[type="password"], input[type="number"],
 input[type="date"], input[type="time"], textarea, select, .input-rounded {
@@ -162,6 +253,7 @@ input[type="date"], input[type="time"], textarea, select, .input-rounded {
     border: 1px solid #ccc; border-radius: 8px;
     font-size: 1em; width: 100%;
 }
+.input-rounded-small { padding: 15px; } 
 
 textarea { resize: vertical; min-height: 80px; }
 .input-group { display: flex; gap: 10px; align-items: center; } 
@@ -183,14 +275,14 @@ textarea { resize: vertical; min-height: 80px; }
 /* Container da foto (posicionamento) */
 .user-photo-container {
     position: absolute;
-    top: -30px; /* GARANTE QUE A FOTO NÃO SUMA */
+    top: -30px; 
     right: 0; 
     width: 90px;
     height: 90px;
     z-index: 5; 
 }
 
-/* Estilo para a imagem */
+/* Estilo para a imagem (CRÍTICO: Torna a imagem redonda e visível) */
 .user-photo-style {
     width: 100%; 
     height: 100%; 
@@ -202,12 +294,32 @@ textarea { resize: vertical; min-height: 80px; }
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Elementos de Texto do Perfil (mantidos) */
-.user-details-text { flex-grow: 1; text-align: left; }
-#user-name { font-size: 1.8em; font-weight: bold; color: var(--text-color); margin-bottom: 5px; line-height: 1.2; }
-#user-username { font-size: 1em; color: var(--text-light); margin-bottom: 10px; display: block; }
-.profile-badge { background-color: var(--text-light); color: white; padding: 3px 8px; border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px; }
-.admin-badge { background-color: var(--error-color); }
+/* Elementos de Texto do Perfil */
+.user-details-text {
+    flex-grow: 1; 
+    text-align: left; 
+}
+
+#user-name {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+#user-username { 
+    font-size: 1em; 
+    color: var(--text-light); 
+    margin-bottom: 10px; 
+    display: block;
+}
+.profile-badge {
+    background-color: var(--text-light); color: white; padding: 3px 8px;
+    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px;
+}
+.admin-badge {
+    background-color: var(--error-color);
+}
 .user-info { font-size: 1em; color: var(--text-light); margin-bottom: 15px; }
 
 
@@ -220,14 +332,6 @@ textarea { resize: vertical; min-height: 80px; }
     color: var(--text-light);
     font-size: 0.9em;
 }
-
-/* CLASSE PARA ALINHAR SALDO E BOTÃO CARTEIRA */
-.balance-line {
-    display: flex;
-    justify-content: space-between; /* Espaça o saldo e o botão */
-    align-items: center;
-}
-
 #user-saldo {
     font-size: 2.5em; 
     font-weight: bold;
@@ -235,33 +339,15 @@ textarea { resize: vertical; min-height: 80px; }
     line-height: 1.2;
 }
 
-/* ESTILO DO BOTÃO CARTEIRA (VERDE) */
-.btn-carteira-saldo {
-    background-color: var(--success-color); 
-    color: white; 
-    border: none;
-    padding: 8px 15px; 
-    border-radius: 20px; 
-    font-size: 0.9em; 
-    font-weight: bold;
-    text-decoration: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
-    transition: background-color 0.2s, transform 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.btn-carteira-saldo:hover {
-    background-color: #1e7e34; 
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-}
-.btn-carteira-saldo i { color: white; }
-
 
 /* 6.2 Grid de Ações */
-.action-grid-card { margin-top: 20px; margin-bottom: 25px; }
+.action-grid-card {
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+
 .action-grid {
+    /* FORÇANDO GRID DE DUAS COLUNAS EM TODAS AS TELAS */
     display: grid; 
     grid-template-columns: 1fr 1fr; 
     gap: 15px; 
@@ -275,8 +361,8 @@ textarea { resize: vertical; min-height: 80px; }
     text-align: center; 
     font-size: 0.95em; 
     
-    background-color: var(--primary-color); /* FUNDO AZUL */
-    color: white; /* LETRA BRANCA */
+    background-color: var(--primary-color); 
+    color: white; 
     border: none; 
     
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2); 
@@ -285,12 +371,14 @@ textarea { resize: vertical; min-height: 80px; }
     text-decoration: none; 
     font-weight: bold;
 }
+/* Efeito de hover */
 .action-item:hover {
     transform: translateY(-2px); 
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3); 
     background-color: var(--primary-dark); 
 }
 
+/* Garante que o ícone fique branco no estado normal e no hover */
 .action-icon { 
     font-size: 2em; 
     margin-bottom: 5px; 
@@ -302,8 +390,14 @@ textarea { resize: vertical; min-height: 80px; }
  * 7. LISTAS E CARDS (Tarefas e Recompensas)
  * ========================================================================= */
 
-/* Card Geral de Tarefa (mantido) */
-.tarefa-card { background-color: var(--list-item-bg-color); padding: 15px; margin-bottom: 10px; border-radius: 6px; border-left: 5px solid var(--primary-color); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; }
+/* Card Geral de Tarefa */
+.tarefa-card {
+    background-color: var(--list-item-bg-color); padding: 15px;
+    margin-bottom: 10px; border-radius: 6px; border-left: 5px solid var(--primary-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column;
+}
+
+/* Tarefas Atribuídas/Concluídas */
 .tarefa-card-atribuida { border-left-color: var(--info-color); }
 .tarefa-card-atribuida.aprovada { border-left-color: var(--success-color); }
 .tarefa-card-atribuida.pendente { border-left-color: var(--warning-color); }
@@ -316,8 +410,12 @@ textarea { resize: vertical; min-height: 80px; }
 .tarefa-card-atribuida .status-Aprovada { color: var(--success-color); }
 .tarefa-card-atribuida .status-Rejeitada { color: var(--error-color); }
 
+/* Tarefas Disponíveis (Header e valores) */
 .tarefa-card-disponivel { border-left-color: var(--primary-color); }
-.tarefa-card-disponivel .tarefa-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.tarefa-card-disponivel .tarefa-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+}
 .tarefa-card-disponivel .tarefa-nome { font-size: 1.3em; font-weight: bold; color: var(--primary-dark); flex-grow: 1; }
 .tarefa-card-disponivel .tarefa-valor { font-size: 1.3em; font-weight: bold; color: var(--success-color); margin-left: 10px; white-space: nowrap; }
 .tarefa-card-disponivel .tarefa-descricao { font-size: 0.9em; color: var(--text-light); margin-bottom: 10px; }
@@ -327,8 +425,19 @@ textarea { resize: vertical; min-height: 80px; }
 /* =========================================================================
  * 8. MODAIS (Popups) 
  * ========================================================================= */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background-color: var(--box-bg-color-login); padding: 30px; border-radius: 10px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); }
-.close-btn { position: absolute; top: 10px; right: 20px; font-size: 24px; font-weight: bold; color: #aaa; cursor: pointer; }
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); display: flex;
+    justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-content {
+    background-color: var(--box-bg-color-login); padding: 30px;
+    border-radius: 10px; width: 90%; max-width: 450px;
+    position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.close-btn {
+    position: absolute; top: 10px; right: 20px; font-size: 24px;
+    font-weight: bold; color: #aaa; cursor: pointer;
+}
 .close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
 .modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
