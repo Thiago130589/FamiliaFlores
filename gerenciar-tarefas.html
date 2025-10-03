@@ -134,15 +134,18 @@
                 // Busca todos os usuários, a coleção é 'users'
                 const snapshot = await firestore.collection('users').get();
                 
-                // Mapeia todos os documentos. Filtra administradores se o campo existir e for 'true'.
-                // CORREÇÃO APLICADA AQUI: Apenas exclui se isAdmin for estritamente TRUE.
+                // Mapeia todos os documentos. Filtra administradores.
                 userList = snapshot.docs
                     .map(doc => doc.data())
                     .filter(user => user.isAdmin !== true); 
+                
+                // Log de depuração. Verifique o console do navegador!
+                console.log("Usuários carregados e filtrados:", userList);
                     
             } catch(e) {
-                console.error("Erro ao carregar usuários:", e);
-                // Não exibe alerta global aqui para não ser invasivo no carregamento inicial
+                console.error("Erro ao carregar usuários (Verifique Regras de Segurança/Permissões):", e);
+                // Exibe alerta para o admin sobre o erro de carregamento
+                exibirAlertaGlobal('admin-alerts', "Erro ao carregar usuários. Verifique as Regras de Segurança do Firestore.", 'danger');
             }
         }
         
@@ -166,9 +169,10 @@
                 userOptions = '<option value="" disabled>Nenhum Usuário Encontrado</option>';
             } else {
                 userList.forEach(user => {
-                    // Certifique-se de que 'nome' é o campo que contém o nome do usuário.
-                    // Assumimos que o campo para atribuir a tarefa é o 'nome'.
-                    userOptions += `<option value="${user.nome}">${user.nome}</option>`;
+                    // Adiciona apenas se o campo 'nome' existir.
+                    if (user.nome) {
+                        userOptions += `<option value="${user.nome}">${user.nome}</option>`;
+                    }
                 });
             }
             selectUsuario.innerHTML = userOptions;
@@ -176,7 +180,7 @@
 
             // 2. Popular Tarefas disponíveis
             try {
-                // Query que exige o índice: status (Crescente), dataCriacao (Decrescente)
+                // Query: status == 'Disponível', dataCriacao 'desc' (Requer índice: status, dataCriacao)
                 const query = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
@@ -195,7 +199,7 @@
                 selectTarefa.innerHTML = optionsHtml;
             } catch (error) {
                 selectTarefa.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
-                console.error("Erro ao carregar tarefas disponíveis:", error);
+                console.error("Erro ao carregar tarefas disponíveis (Verifique o índice):", error);
             }
             
             // ABRIR O MODAL SOMENTE APÓS O CARREGAMENTO
@@ -207,19 +211,17 @@
             selectExcluir.innerHTML = '<option value="">Carregando Tarefas...</option>';
 
             try {
-                // REQUER ÍNDICES para estas queries (se forem usadas separadamente):
-                // 1. tarefasAtribuidas: status IN ['EmAndamento', 'Pendente', 'Aprovada'] + orderBy('dataCriacao', 'desc')
-                // 2. tarefasDisponiveis: status == 'Disponível' + orderBy('dataCriacao', 'desc')
-                // 3. tarefasConcluidas: status == 'Paga' + orderBy('dataPagamento', 'desc')
+                // Query Atribuídas: status IN, dataCriacao 'desc' (Requer índice: status, dataCriacao)
                 const queryAtribuidas = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', 'in', ['EmAndamento', 'Pendente', 'Aprovada'])
                     .orderBy('dataCriacao', 'desc');
                     
+                // Query Disponíveis: status ==, dataCriacao 'desc' (Requer índice: status, dataCriacao)
                 const queryDisponiveis = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION)
                     .where('status', '==', 'Disponível')
                     .orderBy('dataCriacao', 'desc');
                     
-                // Limita tarefas pagas para performance - apenas as 20 mais recentes
+                // Query Pagas: status ==, dataPagamento 'desc' (Requer índice: status, dataPagamento)
                 const queryPagas = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION)
                     .where('status', '==', 'Paga')
                     .orderBy('dataPagamento', 'desc')
@@ -261,7 +263,7 @@
             } catch (error) {
                 selectExcluir.innerHTML = '<option value="">Erro ao carregar tarefas.</option>';
                 console.error("Erro ao carregar todas as tarefas:", error);
-                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas para exclusão.", 'danger');
+                exibirAlertaGlobal('admin-alerts', "Erro ao carregar tarefas para exclusão. Verifique os índices.", 'danger');
             }
 
             toggleModal('excluir-tarefa-modal', true);
@@ -407,11 +409,10 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas pendentes...</p>';
             
             try {
-                // REQUER ÍNDICE: status (Crescente), dataConclusao (Decrescente)
-                // Se der erro de índice, verifique: status (Crescente), dataConclusao (Decrescente)
+                // Query: status == 'Pendente', dataConclusao 'desc' (Requer índice: status, dataConclusao)
                 const query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
-                    .orderBy('dataConclusao', 'desc'); // Ordena pelas mais recentes
+                    .orderBy('dataConclusao', 'desc'); 
                 
                 const snapshot = await query.get();
                 let html = '';
@@ -456,8 +457,7 @@
                 listaEl.innerHTML = foundTasks ? html : '<p class="empty-message">Nenhuma tarefa pendente de aprovação.</p>';
 
             } catch (error) {
-                console.error("Erro ao carregar tarefas pendentes:", error);
-                // O erro de índice deve ser capturado aqui.
+                console.error("Erro ao carregar tarefas pendentes (Verifique o índice):", error);
                 listaEl.innerHTML = '<p class="error-message">Erro ao carregar tarefas pendentes. Verifique se o índice do Firestore está ATIVADO.</p>';
             }
         }
