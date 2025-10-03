@@ -110,12 +110,17 @@
     <script>
         // firestore já está definido como 'db' em firebase-init.js
         const firestore = db;
-        // Definimos as coleções para garantir a consistência
-        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
+        
+        // --- COLEÇÕES ATUALIZADAS ---
+        const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; // Tarefas Em Andamento, Pendentes, Pagas, Reprovadas
+        const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; // Tarefas criadas, aguardando ser pegas
+        const HISTORICO_GERAL_COLLECTION = 'historicoGeral'; // NOVA COLEÇÃO: Consolidado de todas as tarefas
         const HISTORICO_PAGAMENTOS_COLLECTION = 'historicoPagamentos'; 
         const USERS_COLLECTION = 'users';
-
-        // Variável de estado para a visão atual
+        
+        // Para o histórico, consultamos APENAS o HISTORICO_GERAL_COLLECTION
+        // REMOVEMOS: const COLLECTIONS_TO_QUERY = [...]
+        
         let currentView = 'pendentes'; 
 
         /**
@@ -172,14 +177,14 @@
                 btnPendentes.classList.add('active');
                 btnHistorico.classList.remove('active');
                 filterSection.classList.add('hidden');
-                renderTarefas(true); // renderiza pendentes
+                renderTarefas(true); // renderiza pendentes (só na coleção 'tarefasAtribuidas')
             } else {
                 btnPendentes.classList.remove('active');
                 btnHistorico.classList.add('active');
                 filterSection.classList.remove('hidden');
                 // Pega o valor do filtro atual para renderizar o histórico
                 const filtroUsuario = document.getElementById('filtro-usuario').value; 
-                renderTarefas(false, filtroUsuario); // renderiza histórico (filtrado ou todos)
+                renderTarefas(false, filtroUsuario); // renderiza histórico (agora só no historicoGeral)
             }
         }
         
@@ -190,6 +195,7 @@
             // Verifica se o prazo está vencido (prioridade alta)
             if (taskData.dataPrazo) {
                 const prazoCompleto = `${taskData.dataPrazo} ${taskData.horarioPrazo || '23:59'}`;
+                // Converte a data no formato dd/mm/yyyy hh:mm para o formato ISO yyyy-mm-dd hh:mm para comparação
                 const prazoDate = new Date(prazoCompleto.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
                 const now = new Date();
                 
@@ -205,20 +211,20 @@
                     return 'color-pendente'; // Amarelo
                 case 'Disponível':
                 case 'Criada':
-                case 'EmAndamento': // Em andamento ainda é 'ativa' ou 'disponível' para fins de cor
+                case 'EmAndamento':
                     return 'color-disponivel'; // Verde
                 case 'Paga':
                 case 'Reprovada':
-                case 'Concluída': // 'Concluída' (aprovada/aguardando pagamento) ou status final
+                case 'Concluída': // status final
                     return 'color-concluida'; // Preto/Cinza Escuro
                 default:
-                    return 'color-concluida';
+                    return 'color-disponivel'; 
             }
         }
 
 
         // --- Renderização de Tarefas ---
-        // isPendingView: true para Pendentes, false para Histórico
+        // isPendingView: true para Pendentes (Aprovação), false para Histórico (historicoGeral)
         // filtroUID: UID do usuário para histórico, ou 'todos-historico'
         async function renderTarefas(isPendingView = true, filtroUID = 'todos-historico') {
             const adminUser = checkAdminAccessAndLoad();
@@ -230,100 +236,105 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             let query;
 
-            // 1. Visão Padrão: Todas as Pendentes de Aprovação (Para o Admin agir)
+            // 1. Visão Padrão: Todas as Pendentes de Aprovação
             if (isPendingView) {
                 tituloEl.textContent = 'Tarefas Pendentes de Aprovação';
                 query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'asc');
             } 
-            // 2. Visão Histórico: TODAS as tarefas, opcionalmente filtradas por UID
+            // 2. Visão Histórico: Busca APENAS na NOVA COLEÇÃO HISTORICO_GERAL
             else {
-                let tituloNome = 'Todos os Usuários';
+                let tituloNome = 'Histórico Completo do Sistema'; 
+                
                 if (filtroUID !== 'todos-historico') {
                     const selectEl = document.getElementById('filtro-usuario');
                     tituloNome = selectEl.options[selectEl.selectedIndex].textContent.split('(')[0].trim();
                     
-                    // Filtra pelo UID
-                    query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    // Filtra pelo UID no historicoGeral
+                    query = firestore.collection(HISTORICO_GERAL_COLLECTION)
                         .where('usuarioUID', '==', filtroUID)
                         .orderBy('dataCriacao', 'desc');
                 } else {
-                    // Busca todas as tarefas no sistema
-                    tituloEl.textContent = `Histórico Completo do Sistema`;
-                    query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
+                    // Busca TODAS as tarefas no historicoGeral
+                    query = firestore.collection(HISTORICO_GERAL_COLLECTION)
                         .orderBy('dataCriacao', 'desc');
                 }
                 
                 tituloEl.textContent = `Histórico de Tarefas de: ${tituloNome}`;
             }
 
+            // --- Execução da Consulta e Renderização ---
+
+            let allTasks = [];
             try {
                 const snapshot = await query.get();
-                let html = '';
-                let foundTasks = false;
-
-                // Mapeamento de UID para Nome do Usuário (necessário para todas as visões que não filtram por um único UID)
-                const userMap = {}; 
-                if (isPendingView || filtroUID === 'todos-historico') {
-                    const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
-                    usersSnapshot.forEach(doc => {
-                        userMap[doc.id] = doc.data().nome;
-                    });
-                }
-                
-                snapshot.forEach(doc => {
-                    foundTasks = true;
-                    const taskId = doc.id;
-                    const t = doc.data();
-                    const valor = parseFloat(t.valor || 0);
-                    
-                    // Obtém o nome do usuário para a exibição
-                    const nomeAtribuido = (isPendingView || filtroUID === 'todos-historico')
-                                            ? userMap[t.usuarioUID] || t.atribuidaPara || 'Desconhecido'
-                                            : t.atribuidaPara;
-                    
-                    // Determina a classe de cor da borda/texto
-                    const colorClass = getTaskColorClass(t);
-                    
-                    // Renderização e lógica de status para Admin
-                    const { statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
-
-                    html += `
-                        <div class="tarefa-card admin-card ${colorClass}">
-                            <div class="tarefa-header-admin">
-                                <div class="tarefa-nome-admin">${t.nome}</div>
-                                <div class="tarefa-valor ${valor > 0 ? 'positive-text' : 'negative-text'}">${formatarMoeda(valor)}</div>
-                            </div>
-                            
-                            <div class="tarefa-status-line" style="margin-bottom: 5px;">
-                                <span>Status:</span>
-                                <span class="${colorClass}">${statusText}</span> 
-                            </div>
-                            
-                            <div class="tarefa-details-admin">
-                                <div class="tarefa-info-admin">Atribuído a: <b>${nomeAtribuido}</b></div>
-                                <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
-                                <div class="tarefa-info-admin">Prazo Limite: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</div>
-                                ${t.motivoReprovacao ? `<div class="tarefa-info-admin color-vencido">Motivo Reprovação: ${t.motivoReprovacao}</div>` : ''}
-                                <p class="tarefa-descricao-admin">${t.descricao}</p>
-                            </div>
-                            
-                            <div style="margin-top: 15px;">
-                                ${actionButtons}
-                            </div>
-                        </div>
-                    `;
-                });
-
-                listaEl.innerHTML = foundTasks 
-                    ? html 
-                    : '<p class="empty-message">Nenhuma tarefa encontrada neste filtro.</p>';
+                snapshot.forEach(doc => allTasks.push({ id: doc.id, ...doc.data() }));
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas:", error);
-                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar tarefas. Verifique as regras e índices do Firestore.', 'danger');
+                exibirAlertaGlobal('tarefas-alerts', `Erro ao carregar tarefas. Verifique as regras e índices do Firestore. Coleção consultada: ${isPendingView ? TAREFAS_ATRIBUIDAS_COLLECTION : HISTORICO_GERAL_COLLECTION}.`, 'danger');
             }
+            
+            let html = '';
+            let foundTasks = allTasks.length > 0;
+            
+            // Mapeamento de UID para Nome do Usuário
+            const userMap = {}; 
+            const usersSnapshot = await firestore.collection(USERS_COLLECTION).get();
+            usersSnapshot.forEach(doc => {
+                userMap[doc.id] = doc.data().nome;
+            });
+            
+            allTasks.forEach(t => {
+                const taskId = t.id;
+                const valor = parseFloat(t.valor || 0);
+                
+                // Obtém o nome do usuário, exibindo 'Não Atribuída' se não houver UID
+                const nomeAtribuido = (t.usuarioUID)
+                                        ? userMap[t.usuarioUID] || t.atribuidaPara || 'Não Atribuída'
+                                        : 'Não Atribuída';
+                
+                // Determina a classe de cor da borda/texto
+                const colorClass = getTaskColorClass(t);
+                
+                // Renderização e lógica de status para Admin
+                const { statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
+
+                // No Histórico, adicionamos a origem para visualização (embora a consulta venha de uma única coleção)
+                const colecaoOrigemDisplay = isPendingView ? TAREFAS_ATRIBUIDAS_COLLECTION : HISTORICO_GERAL_COLLECTION;
+
+                html += `
+                    <div class="tarefa-card admin-card ${colorClass}">
+                        <div class="tarefa-header-admin">
+                            <div class="tarefa-nome-admin">${t.nome}</div>
+                            <div class="tarefa-valor ${valor >= 0 ? 'positive-text' : 'negative-text'}">${formatarMoeda(valor)}</div>
+                        </div>
+                        
+                        <div class="tarefa-status-line" style="margin-bottom: 5px;">
+                            <span>Status:</span>
+                            <span class="${colorClass.replace('border-color-', 'color-')}">${statusText}</span> 
+                            <span style="font-size: 0.8em; color: #999;"> (Origem: ${colecaoOrigemDisplay})</span>
+                        </div>
+                        
+                        <div class="tarefa-details-admin">
+                            <div class="tarefa-info-admin">Atribuído a: <b>${nomeAtribuido}</b></div>
+                            <div class="tarefa-info-admin">Concluída em: ${t.dataConclusao || 'N/A'}</div>
+                            <div class="tarefa-info-admin">Prazo Limite: ${t.dataPrazo || 'N/A'} ${t.horarioPrazo || ''}</div>
+                            ${t.motivoReprovacao ? `<div class="tarefa-info-admin color-vencido">Motivo Reprovacao: ${t.motivoReprovacao}</div>` : ''}
+                            <p class="tarefa-descricao-admin">${t.descricao}</p>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listaEl.innerHTML = foundTasks 
+                ? html 
+                : '<p class="empty-message">Nenhuma tarefa encontrada neste filtro.</p>';
         }
         
         /**
@@ -333,8 +344,9 @@
             let statusText = taskData.status;
             let actionButtons = '';
             
-            // Só mostra botões de ação se estiver na visão PENDENTE
-            const showActionButtons = (isPendingView && taskData.status === 'Pendente');
+            // Só mostra botões de ação se estiver na visão PENDENTE e for da coleção TAREFAS_ATRIBUIDAS
+            const showActionButtons = (isPendingView && 
+                                       taskData.status === 'Pendente'); 
 
             switch(taskData.status) {
                 case 'Pendente':
@@ -355,7 +367,7 @@
                 case 'EmAndamento':
                     statusText = 'EM ANDAMENTO';
                     break;
-                case 'Paga': // Tarefa finalizada e creditada
+                case 'Paga': 
                     statusText = 'PAGA E CONCLUÍDA';
                     break;
                 case 'Reprovada':
@@ -372,24 +384,23 @@
         }
 
 
-        // --- Funções de Ação do Admin (Mantidas) ---
+        // --- Funções de Ação do Admin (Incluindo a atualização do historicoGeral) ---
 
-        // 1. Aprovar Tarefa: Paga o valor e registra no histórico.
+        // 1. Aprovar Tarefa: Paga o valor e atualiza o status para 'Paga' em ambas as coleções.
         async function aprovarTarefa(taskId, userUID, userName, valor) {
             if (!confirm(`Aprovar a tarefa e pagar ${formatarMoeda(valor)} para ${userName}?`)) return;
             
             try {
-                // Inicia uma transação para garantir que o saldo e o status sejam atualizados atomicamente
                 await firestore.runTransaction(async (transaction) => {
                     const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+                    const historicoRef = firestore.collection(HISTORICO_GERAL_COLLECTION).doc(taskId); // Referência no histórico
                     const userRef = firestore.collection(USERS_COLLECTION).doc(userUID); 
 
                     const taskDoc = await transaction.get(taskRef);
-                    const userDoc = await transaction.get(userRef);
-
                     if (!taskDoc.exists || taskDoc.data().status !== 'Pendente') {
                         throw new Error("Tarefa inválida ou já processada.");
                     }
+                    const userDoc = await transaction.get(userRef);
                     if (!userDoc.exists) {
                         throw new Error("Usuário não encontrado.");
                     }
@@ -397,41 +408,41 @@
                     const userData = userDoc.data();
                     const novoSaldo = (userData.saldo || 0) + valor;
 
-                    // 1. Atualiza o status da tarefa para Paga
-                    transaction.update(taskRef, {
+                    const updateData = {
                         status: 'Paga',
                         dataPagamento: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
 
-                    // 2. Atualiza o saldo do usuário
-                    transaction.update(userRef, {
-                        saldo: novoSaldo
-                    });
+                    // 1. Atualiza o status na coleção TAREFAS_ATRIBUIDAS
+                    transaction.update(taskRef, updateData);
+                    
+                    // 2. Atualiza o status na coleção HISTORICO_GERAL
+                    // Assume que o documento já existe, criado quando a tarefa foi criada
+                    transaction.update(historicoRef, updateData);
 
-                    // 3. Registra a transação no Histórico de Pagamentos (PARA FUTURAS CONSULTAS)
+                    // 3. Atualiza o saldo do usuário
+                    transaction.update(userRef, { saldo: novoSaldo });
+
+                    // 4. Registra no Histórico de Pagamentos
                     const pagamento = {
-                        tipo: 'Crédito',
-                        origem: 'Recompensa por Tarefa',
-                        descricao: taskDoc.data().nome,
-                        valor: valor,
-                        usuarioUID: userRef.id,
-                        usuarioNome: userName,
+                        tipo: 'Crédito', origem: 'Recompensa por Tarefa', descricao: taskDoc.data().nome,
+                        valor: valor, usuarioUID: userRef.id, usuarioNome: userName,
                         dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     transaction.set(firestore.collection(HISTORICO_PAGAMENTOS_COLLECTION).doc(), pagamento);
                 });
 
-                exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) na conta de ${userName}.`, 'success');
-                renderTarefas(true); // Renderiza a visão atual (Pendentes)
+                exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) em ${userName}.`, 'success');
+                switchView(currentView); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na aprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível aprovar e pagar. Detalhe: ${error.message}`, 'danger');
             }
         }
 
-        // 2. Rejeitar Tarefa: Aplica multa/penalidade e registra no histórico.
+        // 2. Rejeitar Tarefa: Aplica multa/penalidade e atualiza o status para 'Reprovada' em ambas as coleções.
         async function rejeitarTarefa(taskId, userUID, userName, valor) {
-            const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}" (Ex: Limpeza incompleta). O valor original era ${formatarMoeda(valor)}. \n\nO valor da multa será igual ao valor da tarefa.`);
+            const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}". O valor original era ${formatarMoeda(valor)}. \n\nO valor da multa será igual ao valor da tarefa.`);
             
             if (motivo === null || motivo.trim() === '') {
                 exibirAlertaGlobal('tarefas-alerts', 'Ação cancelada. É necessário um motivo para rejeitar.', 'warning');
@@ -443,17 +454,16 @@
             if (!confirm(`Confirmar REPROVAÇÃO e aplicar penalidade de ${formatarMoeda(valorMulta)} para ${userName}?`)) return;
 
             try {
-                // Inicia uma transação para garantir atomicidade
                 await firestore.runTransaction(async (transaction) => {
                     const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+                    const historicoRef = firestore.collection(HISTORICO_GERAL_COLLECTION).doc(taskId); // Referência no histórico
                     const userRef = firestore.collection(USERS_COLLECTION).doc(userUID); 
 
                     const taskDoc = await transaction.get(taskRef);
-                    const userDoc = await transaction.get(userRef);
-
                     if (!taskDoc.exists || taskDoc.data().status !== 'Pendente') {
                         throw new Error("Tarefa inválida ou já processada.");
                     }
+                    const userDoc = await transaction.get(userRef);
                     if (!userDoc.exists) {
                         throw new Error("Usuário não encontrado.");
                     }
@@ -461,34 +471,35 @@
                     const userData = userDoc.data();
                     const novoSaldo = (userData.saldo || 0) - valorMulta; // Aplica a multa (débito)
 
-                    // 1. Atualiza o status da tarefa para Reprovada
-                    transaction.update(taskRef, {
+                    const updateData = {
                         status: 'Reprovada',
                         motivoReprovacao: motivo,
                         valorMultaAplicada: valorMulta,
                         dataReprovacao: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
 
-                    // 2. Atualiza o saldo do usuário (débito)
-                    transaction.update(userRef, {
-                        saldo: novoSaldo
-                    });
+                    // 1. Atualiza o status na coleção TAREFAS_ATRIBUIDAS
+                    transaction.update(taskRef, updateData);
+                    
+                    // 2. Atualiza o status na coleção HISTORICO_GERAL
+                    transaction.update(historicoRef, updateData);
+                    
+                    // 3. Atualiza o saldo do usuário (débito)
+                    transaction.update(userRef, { saldo: novoSaldo });
 
-                    // 3. Registra a transação no Histórico de Pagamentos (Multas)
+                    // 4. Registra a transação no Histórico de Pagamentos (Multas)
                     const multa = {
-                        tipo: 'Débito',
-                        origem: 'Multa por Tarefa Reprovada',
+                        tipo: 'Débito', origem: 'Multa por Tarefa Reprovada',
                         descricao: `Reprovação: ${taskDoc.data().nome} - Motivo: ${motivo}`,
                         valor: -valorMulta, // Valor negativo para indicar débito
-                        usuarioUID: userRef.id,
-                        usuarioNome: userName,
+                        usuarioUID: userRef.id, usuarioNome: userName,
                         dataRegistro: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     transaction.set(firestore.collection(HISTORICO_PAGAMENTOS_COLLECTION).doc(), multa);
                 });
 
-                exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}. Motivo: ${motivo}`, 'danger');
-                renderTarefas(true); // Renderiza a visão atual (Pendentes)
+                exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}.`, 'danger');
+                switchView(currentView); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na reprovação da tarefa:", error);
                 exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível rejeitar a tarefa e aplicar a multa. Detalhe: ${error.message}`, 'danger');
@@ -499,11 +510,8 @@
         // --- Inicialização ---
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Verifica o acesso do Admin e carrega o dropdown
             if (checkAdminAccessAndLoad()) {
-                // Carrega o dropdown primeiro, mas não renderiza até que ele esteja pronto
                 loadUserDropdown().then(() => {
-                    // Após carregar os usuários, renderiza a visão padrão (Pendentes)
                     switchView('pendentes'); 
                 });
             }
