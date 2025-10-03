@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const userData = userDoc.data();
 
-            // 2. Verifica a senha: AGORA usando 'userData.password'
+            // 2. Verifica a senha
             if (userData.password !== password) {
                 messageEl.textContent = 'Nome de usuário ou senha incorretos.';
                 messageEl.classList.remove('hidden-start');
@@ -53,15 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // 3. Login bem-sucedido
             console.log("Login realizado com sucesso:", userData.nome);
             
-            // CORREÇÃO AQUI: Salvar todos os dados de perfil, incluindo isAdmin
+            // CORREÇÃO CRÍTICA AQUI: Salvar o campo 'foto' para o Dashboard usar
             const userToSave = {
                 username: username,
                 nome: userData.nome,
-                // Garantir que os campos cruciais para o sistema sejam salvos:
-                isAdmin: userData.isAdmin || false, // CRÍTICO: Para verificação de administrador
+                isAdmin: userData.isAdmin || false, 
                 perfil: userData.perfil || 'usuario',
                 pontuacao: userData.pontuacao || 0,
-                // Adicione outros campos necessários...
+                foto: userData.foto || null, // CAMPO FOTO ADICIONADO AQUI
             };
             
             localStorage.setItem('usuarioLogado', JSON.stringify(userToSave));

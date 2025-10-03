@@ -29,7 +29,7 @@
     --text-light: #6c757d;
     
     /* Cores de Fundo de Caixas (Containers) */
-  	--box-bg-color-login: #ffffff; 
+    --box-bg-color-login: #ffffff; 
     --box-bg-color-cadastro: #e6ffe6; 
     --box-bg-color-default: #e6ffe6; /* Cor padrão para Dashboard/Conteúdo */
 
@@ -105,8 +105,8 @@ body {
 
 /* Tamanho para o card do Dashboard */
 .center-box-dashboard {
-    max-width: 450px; /* Mantém o tamanho da imagem inicial */
-    padding-top: 50px; /* Espaço para a foto no topo */
+    max-width: 450px; /* Mantém o tamanho da imagem inicial */
+    padding-top: 50px; /* Espaço para a foto no topo */
 }
 
 
@@ -207,22 +207,22 @@ body {
 
 /* Botão de Sair no Card */
 .btn-logout-card {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: var(--text-light);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 5px 10px;
-    transition: color 0.3s;
-    z-index: 10; /* Garante que fique acima da foto */
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 10px;
+    transition: color 0.3s;
+    z-index: 10; /* Garante que fique acima da foto */
 }
 
 .btn-logout-card:hover {
-    color: var(--primary-color);
-    text-decoration: underline;
+    color: var(--primary-color);
+    text-decoration: underline;
 }
 
 
@@ -256,54 +256,54 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Cabeçalho do perfil para conter nome e foto */
 .user-profile-header {
-    display: flex;
-    align-items: flex-start; /* Alinha o texto e a foto ao topo */
-    margin-bottom: 20px;
-    position: relative; /* Para a foto ser posicionada absolutamente dentro dele */
-    padding-right: 100px; /* Deixa espaço para a foto */
+    display: flex;
+    align-items: flex-start; /* Alinha o texto e a foto ao topo */
+    margin-bottom: 20px;
+    position: relative; /* Para a foto ser posicionada absolutamente dentro dele */
+    padding-right: 100px; /* Deixa espaço para a foto */
 }
 
 /* Container da foto (posicionamento) */
 .user-photo-container {
-    position: absolute;
-    top: -30px; /* Move para cima do topo do .center-box-dashboard */
-    right: 0; /* Alinha à direita */
-    width: 90px;
-    height: 90px;
-    z-index: 5; /* Garante que a foto fique acima de outros elementos */
-    /* background-color: red; /* DEBUG: Veja a área do container */
+    position: absolute;
+    top: -30px; /* Move para cima do topo do .center-box-dashboard */
+    right: 0; /* Alinha à direita */
+    width: 90px;
+    height: 90px;
+    z-index: 5; /* Garante que a foto fique acima de outros elementos */
+    /* background-color: red; /* DEBUG: Veja a área do container */
 }
 
 /* Estilo para a imagem (CRÍTICO: Torna a imagem redonda e visível) */
 .user-photo-style {
-    width: 100%; /* Ocupa 100% do seu container (90px) */
-    height: 100%; /* Ocupa 100% do seu container (90px) */
-    border-radius: 50%; /* Torna redonda */
-    object-fit: cover; /* Garante que a imagem se encaixe sem distorcer */
-    border: 3px solid var(--primary-color); /* Borda */
-    background-color: #f0f0f0; /* Fundo para placeholder */
-    display: block; /* Garante que a imagem não seja inline e possa ter width/height */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Ocupa 100% do seu container (90px) */
+    height: 100%; /* Ocupa 100% do seu container (90px) */
+    border-radius: 50%; /* Torna redonda */
+    object-fit: cover; /* Garante que a imagem se encaixe sem distorcer */
+    border: 3px solid var(--primary-color); /* Borda */
+    background-color: #f0f0f0; /* Fundo para placeholder */
+    display: block; /* Garante que a imagem não seja inline e possa ter width/height */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Elementos de Texto do Perfil */
 .user-details-text {
-    flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
-    text-align: left; /* Alinha o texto à esquerda */
+    flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+    text-align: left; /* Alinha o texto à esquerda */
 }
 
 #user-name {
-    font-size: 1.8em;
-    font-weight: bold;
-    color: var(--text-color);
-    margin-bottom: 5px;
-    line-height: 1.2;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 5px;
+    line-height: 1.2;
 }
 #user-username { 
-    font-size: 1em; 
-    color: var(--text-light); 
-    margin-bottom: 10px; 
-    display: block;
+    font-size: 1em; 
+    color: var(--text-light); 
+    margin-bottom: 10px; 
+    display: block;
 }
 .profile-badge {
     background-color: var(--text-light); color: white; padding: 3px 8px;
@@ -317,25 +317,25 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Saldo (Ajustado para o novo layout) */
 .user-balance {
-    text-align: left; /* Alinha o saldo à esquerda */
-    margin-top: 15px;
+    text-align: left; /* Alinha o saldo à esquerda */
+    margin-top: 15px;
 }
 .user-balance p {
-    color: var(--text-light);
-    font-size: 0.9em;
+    color: var(--text-light);
+    font-size: 0.9em;
 }
 #user-saldo {
-    font-size: 2.5em; /* Tamanho original do saldo */
-    font-weight: bold;
-    color: var(--success-color); 
-    line-height: 1.2;
+    font-size: 2.5em; /* Tamanho original do saldo */
+    font-weight: bold;
+    color: var(--success-color); 
+    line-height: 1.2;
 }
 
 
 /* 6.2 Grid de Ações */
 .action-grid-card {
-    margin-top: 20px;
-    margin-bottom: 25px;
+    margin-top: 20px;
+    margin-bottom: 25px;
 }
 
 .action-grid {
@@ -426,10 +426,10 @@ textarea { resize: vertical; min-height: 80px; }
         max-width: 450px;
         padding: 40px; 
     }
-    .center-box-dashboard {
-        max-width: 450px; /* Mantém o tamanho da imagem inicial */
-        padding-top: 50px; /* Garante que o conteúdo não seja coberto pela foto */
-    }
+    .center-box-dashboard {
+        max-width: 450px; /* Mantém o tamanho da imagem inicial */
+        padding-top: 50px; /* Garante que o conteúdo não seja coberto pela foto */
+    }
     .large-box {
         max-width: 900px;
     }

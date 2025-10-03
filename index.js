@@ -4,9 +4,11 @@
  * Depende de script.js (para getUsuarioLogado, logout e formatarMoeda)
  */
 
+// Placeholder simples de um círculo cinza com a letra 'U'
 const DEFAULT_AVATAR_PATH = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#32c74d"/><text x="50" y="65" font-family="Arial, sans-serif" font-size="50" fill="#ffffff" text-anchor="middle">U</text></svg>';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // getUsuarioLogado() é definido em script.js e redireciona se não houver login
     const usuarioLogado = getUsuarioLogado();
 
     if (!usuarioLogado) {
@@ -36,6 +38,7 @@ function displayUserData(user) {
     
     // 3. Saldo/Pontuação
     const saldoElement = document.getElementById('user-saldo');
+    // Verifica se a função existe antes de chamar
     if (saldoElement && typeof formatarMoeda === 'function') {
         saldoElement.textContent = formatarMoeda(user.pontuacao || 0); 
     }
@@ -55,13 +58,19 @@ function displayUserData(user) {
     // 5. Foto (CARREGAMENTO DO BASE64)
     const photoElement = document.getElementById('user-photo');
     if (photoElement) {
-        if (user.foto && user.foto.startsWith('data:')) {
+        // Se a foto Base64 existir, usa. Caso contrário, usa o placeholder SVG.
+        if (user.foto && user.foto.startsWith('data:image/')) {
+            console.log("Foto Base64 detectada e carregada.");
             photoElement.src = user.foto; 
         } else {
+            console.log("Foto Base64 ausente ou inválida. Usando avatar padrão.");
             photoElement.src = DEFAULT_AVATAR_PATH;
         }
-        // Garante que a imagem é exibida, caso o CSS estivesse escondendo
+        
+        // Garante que a imagem é exibida - O CSS (user-photo-style) já faz a maior parte.
         photoElement.style.display = 'block'; 
+    } else {
+        console.error("Elemento #user-photo não encontrado no HTML.");
     }
 }
 
