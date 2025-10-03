@@ -59,29 +59,32 @@
             <h3 id="modal-tarefa-nome">Ações da Tarefa</h3>
             <p id="modal-tarefa-usuario" style="font-size: 0.9rem; color: #666; margin-bottom: 20px;"></p>
             <div class="modal-button-group">
-                <button class="btn-rounded btn-success" id="btn-efetuar-pagamento">Efetuar Pagamento</button>
-                <button class="btn-rounded btn-danger" id="btn-rejeitar-pagamento">Rejeitar Pagamento</button>
+                <button class="btn-rounded btn-success" id="btn-aprovar-conclusao">APROVAR (Mover para Concluídas)</button>
+                <button class="btn-rounded btn-danger" id="btn-rejeitar-conclusao">REJEITAR (Mover para Disponíveis)</button>
             </div>
         </div>
     </div>
     
     <div class="center-box" style="max-width: 900px; min-width: 400px; align-items: center; position: relative;">
         <h1 style="margin: 0; color: var(--warning-color); font-size: 2.2rem;">Aprovação de Tarefas (Pendentes)</h1>
-        <p style="color: #888; text-align: center; margin-top: 5px;">Aqui você gerencia todas as tarefas aguardando aprovação para pagamento.</p>
+        <p style="color: #888; text-align: center; margin-top: 5px;">Aqui você gerencia todas as tarefas aguardando sua análise e aprovação.</p>
         <hr style="width: 100%; margin: 24px 0; border: none; border-top: 1px solid #eee;">
         
         <div id="tarefas-pendentes-lista" style="width: 100%; min-height: 120px;">
             <p style="color: #888; text-align: center;">Carregando tarefas...</p>
         </div>
 
-        <button class="btn-rounded btn-secondary-text wide-button" onclick="window.location.href='gerenciar-tarefas.html'" style="margin: 32px auto 0 auto; display: block;">
+        <a href="gerenciar-tarefas.html" class="btn-rounded btn-secondary-text wide-button" style="margin: 32px auto 0 auto; display: block;">
             Voltar ao Gerenciamento
-        </button>
+        </a>
     </div>
 
     <script>
     const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+    const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
     const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas';
+    const TAREFAS_CONCLUIDAS_COLLECTION = 'tarefasConcluidas';
+    
     let usuarioAtual = null;
     let isAdmin = false;
 
@@ -96,7 +99,7 @@
     // Função para obter o nome do usuário E verificar se é Admin (assumindo que existe em script.js)
     function getUsuarioInfo() {
         // Assume que getUsuarioLogado() é robusto e retorna { nome, isAdmin }
-        const userInfo = getUsuarioLogado(); 
+        const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : { nome: null, isAdmin: false };
         if (!userInfo) return { nome: null, isAdmin: false };
         return userInfo;
     }
@@ -107,12 +110,12 @@
         document.getElementById('modal-tarefa-usuario').textContent = `Usuário: ${usuario} | Valor: ${formatarMoeda(valor)}`;
         
         // Configurar botões com os dados corretos
-        document.getElementById('btn-efetuar-pagamento').onclick = () => {
-            pagarTarefa(tarefaId, usuario, valor);
+        document.getElementById('btn-aprovar-conclusao').onclick = () => {
+            aprovarConclusao(tarefaId, usuario);
             toggleModal('acoes-modal', false);
         };
-        document.getElementById('btn-rejeitar-pagamento').onclick = () => {
-            rejeitarTarefa(tarefaId, usuario);
+        document.getElementById('btn-rejeitar-conclusao').onclick = () => {
+            rejeitarConclusao(tarefaId, usuario);
             toggleModal('acoes-modal', false);
         };
         
@@ -136,10 +139,10 @@
         lista.innerHTML = '<p class="empty-message">Carregando tarefas...</p>';
 
         try {
-            // CORREÇÃO: Busca por status "Pendente" de TODAS as tarefas
+            // Busca por status "Pendente"
             let query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
-                                 .where('status', '==', 'Pendente')
-                                 .orderBy('dataConclusao', 'asc'); // Ordena pela data de conclusão
+                             .where('status', '==', 'Pendente')
+                             .orderBy('dataConclusao', 'asc'); 
             
             const snapshot = await query.get();
             let tarefas = [];
@@ -162,6 +165,10 @@
                 
                 const valor = parseFloat(t.valor || 0);
 
+                // Tratamento de aspas para passar a string corretamente no onclick
+                const nomeSeguro = t.nome ? t.nome.replace(/'/g, "\\'") : '';
+                const usuarioSeguro = t.atribuidaPara ? t.atribuidaPara.replace(/'/g, "\\'") : 'N/A';
+
                 return `
                     <div class="tarefa-card-aprovacao">
                         <div class="tarefa-info-left">
@@ -171,10 +178,10 @@
                             <br>
                             <span style="color: #4CAF50; font-size: 1.1rem; font-weight: bold;">Valor: ${formatarMoeda(valor)}</span>
                             <br>
-                            <span style="color: #888; font-size: 0.85rem;">Abertura: ${dataCriacao} | Conclusão: ${dataConclusao}</span>
+                            <span style="color: #888; font-size: 0.85rem;">Criação: ${dataCriacao} | Conclusão: ${dataConclusao}</span>
                         </div>
                         <button class="btn-rounded btn-admin-tab" 
-                                onclick="openAcoesModal('${t.id}', '${t.nome.replace(/'/g, "\\'")}', '${t.atribuidaPara.replace(/'/g, "\\'")}', ${valor})">
+                                onclick="openAcoesModal('${t.id}', '${nomeSeguro}', '${usuarioSeguro}', ${valor})">
                             Ações
                         </button>
                     </div>
@@ -188,78 +195,89 @@
     }
 
     /**
-     * Ação de PAGAMENTO (Admin): 
-     * Move tarefa da coleção 'tarefasAtribuidas' (Status: Pendente) para 'tarefasConcluidas' (Status: Paga), e atualiza o saldo do usuário.
+     * Ação de APROVAÇÃO (Admin): 
+     * Move tarefa de tarefasAtribuidas (Status: Pendente) para tarefasConcluidas (Status: Aprovada).
      */
-    async function pagarTarefa(tarefaId, usuarioNome, valor) {
-        if (!confirm(`Confirmar pagamento de ${formatarMoeda(valor)} para ${usuarioNome}? A tarefa será FINALIZADA e ARQUIVADA (status "Paga").`)) {
+    async function aprovarConclusao(taskId, usuarioNome) {
+        if (!confirm(`Confirmar APROVAÇÃO da tarefa para ${usuarioNome}? A tarefa será movida para Concluídas (Status: Aprovada) e estará pronta para pagamento.`)) {
             return;
         }
 
         try {
-            const tarefaRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(tarefaId);
-            const userRef = firestore.collection('users').doc(usuarioNome); 
+            const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+            const taskDoc = await taskRef.get();
+
+            if (!taskDoc.exists) {
+                throw new Error("Tarefa não encontrada na coleção de tarefas atribuídas.");
+            }
+
+            const taskData = taskDoc.data();
+            const batch = firestore.batch();
+
+            // 1. Preparar dados e criar novo documento na coleção de Concluídas
+            const concluidaData = {
+                ...taskData,
+                status: 'Aprovada', // Novo Status: Aprovada (aguardando pagamento)
+                dataAprovacao: new Date().toISOString().split('T')[0] 
+            };
             
-            await firestore.runTransaction(async (transaction) => {
-                const docTarefa = await transaction.get(tarefaRef);
-                const docUser = await transaction.get(userRef);
+            // Cria um novo documento (novo ID) na coleção de concluídas
+            const novaConcluidaRef = firestore.collection(TAREFAS_CONCLUIDAS_COLLECTION).doc(); 
+            batch.set(novaConcluidaRef, concluidaData);
 
-                if (!docTarefa.exists) throw new Error("Tarefa não encontrada!");
-                if (!docUser.exists) throw new Error(`Usuário ${usuarioNome} não encontrado para atualizar o saldo.`);
-                
-                const tarefaData = docTarefa.data();
-                const userData = docUser.data();
-                
-                // 1. Atualiza o saldo
-                const novoSaldo = (userData.saldo || 0) + valor;
-                transaction.update(userRef, { saldo: novoSaldo });
-                
-                // 2. Prepara a tarefa para a coleção de concluídas
-                const tarefaConcluidaData = {
-                    ...tarefaData,
-                    status: 'Paga', // NOVO STATUS: "Paga"
-                    dataPagamento: new Date().toISOString().split('T')[0] 
-                };
+            // 2. Deletar o documento da coleção de Atribuídas
+            batch.delete(taskRef);
 
-                // 3. Cria a tarefa na coleção de concluídas
-                transaction.set(firestore.collection('tarefasConcluidas').doc(), tarefaConcluidaData);
-                
-                // 4. Deleta a tarefa da lista de atribuidas
-                transaction.delete(tarefaRef);
-            });
+            await batch.commit();
 
-            alert(`Pagamento de ${formatarMoeda(valor)} para ${usuarioNome} concluído com sucesso! Saldo atualizado.`);
+            alert(`Tarefa aprovada e movida para Concluídas para ${usuarioNome} (status "Aprovada").`);
             renderTarefasPendentes(); 
-            
         } catch (error) {
-            console.error("Erro na transação de pagamento:", error);
-            alert(`Erro ao processar o pagamento: ${error.message || 'Tente novamente.'}`);
+            console.error("Erro ao aprovar e mover tarefa:", error);
+            alert(`Erro ao aprovar a tarefa: ${error.message || 'Tente novamente.'}`);
         }
     }
 
     /**
-     * Ação de REJEITAR (Admin):
-     * Reverte o status da tarefa para 'EmAndamento' e a envia de volta para o usuário corrigir/refazer.
+     * Ação de REJEIÇÃO (Admin):
+     * Move tarefa de tarefasAtribuidas (Status: Pendente) para tarefasDisponiveis (Status: Disponível), limpando a atribuição.
      */
-    async function rejeitarTarefa(tarefaId, usuarioNome) {
-        if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? O status será revertido para "EmAndamento".`)) {
+    async function rejeitarConclusao(taskId, usuarioNome) {
+        if (!confirm(`Tem certeza que deseja REJEITAR esta tarefa de ${usuarioNome}? A tarefa será devolvida para Disponíveis (Status: Disponível).`)) {
             return;
         }
 
         try {
-            const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(tarefaId);
-            
-            await taskRef.update({
-                status: 'EmAndamento', 
-                // Remove a data de conclusão para que o usuário possa concluí-la novamente
-                dataConclusao: firebase.firestore.FieldValue.delete() 
-            });
+            const taskRef = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION).doc(taskId);
+            const taskDoc = await taskRef.get();
 
-            alert(`Tarefa rejeitada e devolvida para ${usuarioNome} (status "EmAndamento").`);
+            if (!taskDoc.exists) {
+                throw new Error("Tarefa não encontrada na coleção de tarefas atribuídas.");
+            }
+
+            const taskData = taskDoc.data();
+            const batch = firestore.batch();
+
+            // 1. Preparar dados e criar novo documento na coleção de Disponíveis
+            // Desestrutura para remover campos específicos de atribuição e conclusão
+            const { atribuidaPara, dataAtribuicao, dataConclusao, ...disponivelData } = taskData;
+            disponivelData.status = 'Disponível';
+            disponivelData.dataRejeicao = new Date().toISOString().split('T')[0];
+
+            // Cria um novo documento (novo ID) na coleção de disponíveis
+            const novaDisponivelRef = firestore.collection(TAREFAS_DISPONIVEIS_COLLECTION).doc();
+            batch.set(novaDisponivelRef, disponivelData);
+
+            // 2. Deletar o documento da coleção de Atribuídas
+            batch.delete(taskRef);
+
+            await batch.commit();
+
+            alert(`Tarefa rejeitada e movida para Disponíveis (status "Disponível").`);
             renderTarefasPendentes(); 
         } catch (error) {
-            console.error("Erro ao rejeitar tarefa:", error);
-            alert("Erro ao rejeitar tarefa. Tente novamente.");
+            console.error("Erro ao rejeitar e mover tarefa:", error);
+            alert(`Erro ao rejeitar a tarefa: ${error.message || 'Tente novamente.'}`);
         }
     }
 
