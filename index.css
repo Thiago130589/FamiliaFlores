@@ -1,0 +1,390 @@
+/*
+ * index.css - ARQUIVO COMPLETO
+ * Contém TODOS os estilos necessários para a página index.html (Dashboard), 
+ * incluindo a base, layout e componentes. NÃO depende de style.css.
+ */
+
+/* =========================================================================
+ * 1. GERAIS E VARIÁVEIS (ROOT, BODY, RESET)
+ * ========================================================================= */
+:root {
+    /* Cores Principais */
+    --primary-color: #007bff;
+    --primary-light: #52a7ff;
+    --primary-dark: #0056b3;
+    
+    /* Fundo */
+    --background-color: #ffffff;
+    
+    /* Cores de Feedback */
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --danger-color: #dc3545;
+
+    /* Neutros */
+    --text-color: #333;
+    --text-light: #6c757d;
+    --box-bg-color: #e6ffe6; /* Verde Claro */
+    --list-item-bg-color: #f7f7f7;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    
+    /* Centralização Completa */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+/* =========================================================================
+ * 2. LAYOUTS GLOBAIS (CAIXAS BRANCAS, CENTRALIZAÇÃO)
+ * ========================================================================= */
+
+.center-box {
+    background-color: var(--box-bg-color);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    margin: 20px auto; /* Centralização Horizontal */
+    width: 95%; 
+    max-width: 380px; 
+}
+
+.large-box {
+    max-width: 800px;
+    width: 95%;
+}
+
+.divider {
+    border: none;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 15px 0;
+}
+
+/* =========================================================================
+ * 3. TIPOGRAFIA E UTILITÁRIOS
+ * ========================================================================= */
+
+.main-title {
+    font-size: 2em;
+    font-weight: bold; 
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
+}
+.main-title-success { color: var(--success-color); }
+.main-title-danger { color: var(--error-color); }
+.main-title-error { color: var(--error-color); }
+
+.section-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.info-message {
+    font-size: 0.9em;
+    color: var(--text-light);
+}
+
+.info-message-danger {
+    color: var(--error-color);
+    font-size: 0.9em;
+    font-weight: 500;
+    text-align: center; 
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+}
+
+.error-message {
+    color: var(--error-color);
+    font-weight: bold;
+    text-align: center;
+}
+.center-text { text-align: center; } 
+
+/* Cores de Saldo/Placar */
+.saldo-negativo { color: var(--error-color); }
+.saldo-positivo { color: var(--success-color); }
+.negative-text { color: var(--error-color); }
+.positive-text { color: var(--success-color); }
+
+/* Para Alertas Globais (no topo da tela) */
+.alert {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    text-align: center;
+}
+.alert.success { background-color: #d4edda; color: var(--success-color); border: 1px solid #c3e6cb; }
+.alert.danger { background-color: #f8d7da; color: var(--error-color); border: 1px solid #f5c6cb; }
+
+/* =========================================================================
+ * 4. BOTÕES E LINKS
+ * ========================================================================= */
+
+.btn-rounded {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s;
+    font-size: 0.9em;
+    display: inline-block;
+}
+
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover { background-color: var(--primary-dark); }
+.btn-secondary { background-color: #6c757d; color: white; }
+.btn-secondary:hover { background-color: #5a6268; }
+.btn-success { background-color: var(--success-color); color: white; }
+.btn-success:hover { background-color: #1e7e34; }
+.btn-danger { background-color: var(--error-color); color: white; }
+.btn-danger:hover { background-color: #bd2130; }
+.btn-info { background-color: var(--info-color); color: white; }
+.btn-info:hover { background-color: #117a8b; }
+
+.btn-secondary-text { background-color: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); }
+.btn-secondary-text:hover { background-color: var(--primary-color); color: white; }
+
+.btn-danger-outline { background-color: transparent; color: var(--error-color); border: 2px solid var(--error-color); }
+.btn-danger-outline:hover { background-color: var(--error-color); color: white; }
+
+.wide-button { width: 100%; margin-top: 10px; }
+
+.btn-admin-tab {
+    padding: 8px 15px;
+    border-radius: 8px; 
+    background-color: #e9ecef;
+    color: var(--text-color);
+    font-size: 0.9em;
+    font-weight: normal;
+    flex-grow: 1; 
+    border: 1px solid #ccc;
+}
+.btn-admin-tab:hover { background-color: #dee2e6; }
+.btn-admin-tab.active-tab { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-dark); }
+
+/* =========================================================================
+ * 5. FORMULÁRIOS E INPUTS
+ * ========================================================================= */
+form { display: flex; flex-direction: column; gap: 10px; }
+label { font-weight: bold; margin-top: 10px; color: var(--text-color); }
+
+input[type="text"], input[type="password"], input[type="number"],
+input[type="date"], input[type="time"], textarea, select {
+    padding: 12px; border: 1px solid #ccc; border-radius: 8px;
+    font-size: 1em; width: 100%;
+}
+textarea { resize: vertical; min-height: 80px; }
+.checkbox-group { display: flex; align-items: center; margin-top: 10px; }
+.checkbox-group label { margin-top: 0; margin-left: 10px; font-weight: normal; }
+.checkbox-group input[type="checkbox"] { width: auto; margin-right: 5px; }
+
+/* Para o form de admin (Layout interno do formulário - universal) */
+.admin-form .input-group { display: flex; gap: 10px; }
+.admin-form .input-group input, .admin-form .input-group select { flex-grow: 1; }
+
+/* =========================================================================
+ * 6. ESPECÍFICO DO DASHBOARD (index.html)
+ * ========================================================================= */
+
+/* 6.1 Perfil e Saldo */
+.user-profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-icon {
+    width: 80px; height: 80px; border-radius: 50%;
+    background-color: var(--primary-color); color: white;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 2em; font-weight: bold; margin-bottom: 10px;
+}
+
+.username { font-size: 1.8em; font-weight: bold; color: var(--text-color); margin-bottom: 5px; }
+.admin-badge {
+    background-color: var(--error-color); color: white; padding: 3px 8px;
+    border-radius: 5px; font-size: 0.8em; font-weight: bold; margin-left: 10px;
+}
+.user-info { font-size: 1em; color: var(--text-light); margin-bottom: 15px; }
+
+.saldo-box {
+    text-align: center; padding: 15px; border-radius: 10px;
+    background-color: var(--list-item-bg-color); border: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+.saldo-label { font-size: 1em; color: var(--text-light); margin-bottom: 5px; }
+.saldo-valor { font-size: 2.5em; font-weight: bold; line-height: 1; }
+
+/* 6.2 Grid de Ações */
+.action-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
+}
+.action-item {
+    text-align: center; padding: 15px; border-radius: 10px;
+    background-color: var(--box-bg-color); border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); transition: transform 0.2s;
+    text-decoration: none; color: var(--text-color);
+}
+.action-item:hover {
+    transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon { font-size: 2em; margin-bottom: 5px; }
+.icon-tarefas { color: var(--primary-color); }
+.icon-historico { color: var(--info-color); }
+.icon-admin { color: var(--error-color); }
+.icon-recompensa { color: var(--success-color); }
+
+/* 6.3 Seções de Informação (Recentes/Pendentes) */
+.dashboard-section { margin-top: 25px; }
+
+
+/* =========================================================================
+ * 7. LISTAS E CARDS (Tarefas e Recompensas)
+ * ========================================================================= */
+
+.historico-lista { padding-top: 5px; }
+
+/* Card Geral de Tarefa */
+.tarefa-card {
+    background-color: var(--list-item-bg-color); padding: 15px;
+    margin-bottom: 10px; border-radius: 6px; border-left: 5px solid var(--primary-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column;
+}
+
+/* Tarefas Disponíveis */
+.tarefa-card-disponivel { border-left-color: var(--primary-color); }
+.tarefa-card-disponivel .tarefa-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+}
+.tarefa-card-disponivel .tarefa-nome { font-size: 1.3em; font-weight: bold; color: var(--primary-dark); flex-grow: 1; }
+.tarefa-card-disponivel .tarefa-valor { font-size: 1.3em; font-weight: bold; color: var(--success-color); margin-left: 10px; white-space: nowrap; }
+.tarefa-card-disponivel .tarefa-descricao { font-size: 0.9em; color: var(--text-light); margin-bottom: 10px; }
+.tarefa-card-disponivel .tarefa-prazo { font-size: 0.85em; color: var(--error-color); font-weight: bold; margin-bottom: 15px; display: block; }
+
+/* Tarefas Atribuídas/Concluídas */
+.tarefa-card-atribuida { border-left-color: var(--info-color); }
+.tarefa-card-atribuida.aprovada { border-left-color: var(--success-color); }
+.tarefa-card-atribuida.pendente { border-left-color: var(--warning-color); }
+
+.tarefa-card-atribuida .tarefa-info-status { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+.tarefa-card-atribuida .tarefa-info-status .status-text { font-weight: bold; font-size: 0.9em; }
+.tarefa-card-atribuida .status-EmAndamento { color: var(--info-color); }
+.tarefa-card-atribuida .status-Pendente { color: var(--warning-color); }
+.tarefa-card-atribuida .status-Aprovada { color: var(--success-color); }
+.tarefa-card-atribuida .status-Paga { color: var(--success-color); }
+.tarefa-card-atribuida .status-Rejeitada { color: var(--error-color); }
+
+/* Recompensas (Embutido no Dashboard/Recompensas.html) */
+.recompensa-card {
+    background-color: var(--box-bg-color); padding: 15px; margin-bottom: 15px;
+    border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); border: 1px solid #eee;
+}
+.recompensa-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.recompensa-nome { font-size: 1.4em; font-weight: bold; color: var(--success-color); }
+.recompensa-valor { font-size: 1.4em; font-weight: bold; color: var(--error-color); white-space: nowrap; }
+.recompensa-descricao { font-size: 0.9em; color: var(--text-light); margin-bottom: 15px; }
+
+.recompensa-btn-area { display: flex; justify-content: flex-end; }
+.btn-disabled {
+    background-color: #ccc !important; color: #666 !important;
+    cursor: not-allowed; border: none;
+}
+.btn-disabled:hover { background-color: #ccc !important; }
+
+/* =========================================================================
+ * 8. MODAIS (POPUPS) 
+ * ========================================================================= */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); display: flex;
+    justify-content: center; align-items: center; z-index: 1000;
+}
+.hidden-start { display: none; }
+.modal-content {
+    background-color: var(--box-bg-color); padding: 30px;
+    border-radius: 10px; width: 90%; max-width: 450px;
+    position: relative; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.close-btn {
+    position: absolute; top: 10px; right: 20px; font-size: 24px;
+    font-weight: bold; color: #aaa; cursor: pointer;
+}
+.close-btn:hover, .close-btn:focus { color: var(--error-color); text-decoration: none; cursor: pointer; }
+.modal-title { font-size: 1.8em; font-weight: bold; color: var(--primary-color); text-align: center; margin-bottom: 15px; }
+.modal-subtitle { font-size: 1.2em; font-weight: bold; margin-top: 15px; margin-bottom: 5px; }
+.modal-info-line {
+    font-size: 1em; color: var(--text-color); margin-bottom: 8px;
+    padding-left: 10px; border-left: 3px solid var(--info-color);
+}
+.modal-info-line span { font-weight: bold; }
+
+/* =========================================================================
+ * 9. RESPONSIVIDADE (Desktop/Tablet)
+ * ========================================================================= */
+
+@media (min-width: 600px) {
+
+    .center-box {
+        max-width: 450px;
+        padding: 40px; 
+    }
+    
+    .large-box {
+        max-width: 800px;
+    }
+
+    .action-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+    }
+    .action-item {
+        padding: 20px;
+    }
+    
+    .tarefa-card-disponivel .tarefa-header {
+        flex-direction: row;
+        align-items: center;
+    }
+    .tarefa-card-disponivel .tarefa-nome,
+    .tarefa-card-disponivel .tarefa-valor {
+        font-size: 1.2em;
+    }
+    
+    .login-form { gap: 15px; }
+    input[type="text"], input[type="password"] { padding: 15px; }
+}
