@@ -1,95 +1,95 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Gerenciador de Tarefas</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gerenciador de Tarefas</title>
+        <link rel="stylesheet" href="login.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title">Acesso ao Sistema</h1>
-        
-        <div class="form-group">
-            <label for="username">Nome de Usuário</label>
-            <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
-        </div>
+    <div class="center-box">
+        <h1 class="main-title">Acesso ao Sistema</h1>
+        
+        <div class="form-group">
+            <label for="username">Nome de Usuário</label>
+                        <input type="text" id="username" class="input-rounded" placeholder="Seu nome" required>
+        </div>
 
-        <div class="form-group">
-            <label for="password">Senha</label>
-            <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
-        </div>
+        <div class="form-group">
+            <label for="password">Senha</label>
+                        <input type="password" id="password" class="input-rounded" placeholder="Sua senha" required>
+        </div>
 
-        <button onclick="loginUser()" class="btn-rounded btn-primary wide-button">Entrar</button>
-        
-        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button center-text button-spacing-top">Primeiro acesso? Cadastre-se.</a>
+        <button onclick="loginUser()" class="btn-rounded btn-primary wide-button button-spacing-top">Entrar</button>
+        
+        <a href="cadastrar-usuario.html" class="btn-secondary-text wide-button center-text button-spacing-top">Primeiro acesso? Cadastre-se.</a>
 
-        <p id="error-message" class="error-message hidden-start button-spacing-top center-text" role="alert"></p>
-    </div>
+                <p id="error-message" class="error-message hidden-start button-spacing-top center-text" role="alert"></p>
+    </div>
 
-    <script>
-        const firestore = db;
-        const USERS_COLLECTION = 'users';
+    <script>
+        const firestore = db;
+        const USERS_COLLECTION = 'users';
 
-        async function loginUser() {
-            const usernameInput = document.getElementById('username').value.trim();
-            const passwordInput = document.getElementById('password').value.trim();
-            const errorMessage = document.getElementById('error-message');
+        async function loginUser() {
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            const errorMessage = document.getElementById('error-message');
 
-            errorMessage.classList.add('hidden-start');
-            errorMessage.textContent = '';
+            errorMessage.classList.add('hidden-start');
+            errorMessage.textContent = '';
 
-            if (!usernameInput || !passwordInput) {
-                errorMessage.textContent = 'Por favor, preencha todos os campos.';
-                errorMessage.classList.remove('hidden-start');
-                return;
-            }
+            if (!usernameInput || !passwordInput) {
+                errorMessage.textContent = 'Por favor, preencha todos os campos.';
+                errorMessage.classList.remove('hidden-start');
+                return;
+            }
 
-            try {
-                const userIdToFetch = usernameInput; 
-                
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
+            try {
+                const userIdToFetch = usernameInput; 
+                
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(userIdToFetch).get();
 
-                if (!userDoc.exists) {
-                    errorMessage.textContent = 'Usuário não encontrado. Verifique o nome.';
-                    errorMessage.classList.remove('hidden-start');
-                    return;
-                }
+                if (!userDoc.exists) {
+                    errorMessage.textContent = 'Usuário não encontrado. Verifique o nome.';
+                    errorMessage.classList.remove('hidden-start');
+                    return;
+                }
 
-                const userData = userDoc.data();
-                const storedPassword = userData.password || userData.senha; 
+                const userData = userDoc.data();
+                const storedPassword = userData.password || userData.senha; 
 
-                if (!storedPassword || storedPassword !== passwordInput) {
-                    errorMessage.textContent = 'Senha incorreta.';
-                    errorMessage.classList.remove('hidden-start');
-                    return;
-                }
+                if (!storedPassword || storedPassword !== passwordInput) {
+                    errorMessage.textContent = 'Senha incorreta.';
+                    errorMessage.classList.remove('hidden-start');
+                    return;
+                }
 
-                // LOGIN BEM-SUCEDIDO: Monta e Salva o objeto completo no localStorage
-                const usuarioLogado = {
-                    nome: userIdToFetch,
-                    isAdmin: userData.isAdmin === true, 
-                    // CRÍTICO: Agora pega fotoBase64 do Firestore ou a foto antiga (foto)
-                    fotoBase64: userData.fotoBase64 || userData.foto || 'img/default-avatar.png', 
-                    saldo: userData.saldo || 0
-                };
+                // LOGIN BEM-SUCEDIDO: Monta e Salva o objeto completo no localStorage
+                const usuarioLogado = {
+                    nome: userIdToFetch,
+                    isAdmin: userData.isAdmin === true, 
+                    // CRÍTICO: Agora pega fotoBase64 do Firestore ou a foto antiga (foto)
+                    fotoBase64: userData.fotoBase64 || userData.foto || 'img/default-avatar.png', 
+                    saldo: userData.saldo || 0
+                };
 
-                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+                localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
 
-                window.location.href = 'index.html';
+                window.location.href = 'index.html';
 
-            } catch (error) {
-                console.error("Erro no login:", error);
-                errorMessage.textContent = 'Erro ao tentar conectar. Tente novamente.';
-                errorMessage.classList.remove('hidden-start');
-            }
-        }
-    </script>
+            } catch (error) {
+                console.error("Erro no login:", error);
+                errorMessage.textContent = 'Erro ao tentar conectar. Tente novamente.';
+                errorMessage.classList.remove('hidden-start');
+            }
+        }
+    </script>
 </body>
 </html>

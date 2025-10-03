@@ -1,0 +1,181 @@
+/*
+ * cadastro.css - ARQUIVO COMPLETO
+ * Contém TODOS os estilos necessários para a página cadastrar-usuario.html, 
+ * incluindo base, layout de centralização e componentes de formulário.
+ */
+
+/* =========================================================================
+ * 1. GERAIS E VARIÁVEIS (ROOT, BODY, RESET) - BASE
+ * ========================================================================= */
+:root {
+    /* Cores Principais */
+    --primary-color: #007bff;
+    --primary-light: #52a7ff;
+    --primary-dark: #0056b3;
+    
+    /* Fundo */
+    --background-color: #ffffff;
+    
+    /* Cores de Feedback */
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+
+    /* Neutros */
+    --text-color: #333;
+    --text-light: #6c757d;
+    --box-bg-color: #e6ffe6; /* Verde Claro (Cor principal da caixa) */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    
+    /* Centralização da tela */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px; /* Adiciona padding para telas pequenas */
+}
+
+/* =========================================================================
+ * 2. LAYOUT E CENTRALIZAÇÃO (Caixa de Cadastro)
+ * ========================================================================= */
+
+.center-box {
+    background-color: var(--box-bg-color);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    margin: 20px auto; 
+    width: 95%; 
+    max-width: 500px; /* Um pouco maior que o login, para o formulário */
+}
+.divider { 
+    border: none; 
+    height: 1px; 
+    background-color: #e0e0e0; 
+    margin: 15px 0; 
+}
+
+
+/* =========================================================================
+ * 3. TIPOGRAFIA E UTILITÁRIOS
+ * ========================================================================= */
+
+.main-title {
+    font-size: 2em;
+    font-weight: bold; 
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.center-text { text-align: center; } 
+
+.error-message {
+    color: var(--error-color);
+    font-weight: bold;
+    padding: 10px;
+    border: 1px solid var(--error-color);
+    border-radius: 5px;
+}
+.positive-text { color: var(--success-color); }
+.info-message { font-size: 0.9em; color: var(--text-light); }
+
+.hidden-start { display: none; }
+
+
+/* =========================================================================
+ * 4. BOTÕES E LINKS
+ * ========================================================================= */
+
+.btn-rounded {
+    padding: 12px 20px; 
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s;
+    font-size: 1em;
+    display: block;
+}
+
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover { background-color: var(--primary-dark); }
+.btn-secondary { background-color: #6c757d; color: white; }
+.btn-secondary:hover { background-color: #5a6268; }
+
+.btn-secondary-text { 
+    background-color: transparent; 
+    color: var(--primary-color); 
+    border: none;
+    text-decoration: underline;
+    display: inline-block;
+    padding: 10px 0;
+    font-weight: normal;
+}
+.btn-secondary-text:hover { color: var(--primary-dark); }
+
+.wide-button { width: 100%; }
+
+/* Estilo para o botão de ícone (Câmera) */
+.btn-icon {
+    width: 48px; 
+    height: 48px;
+    padding: 0;
+    font-size: 1.5em; 
+    flex-shrink: 0; /* Impede que ele encolha */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%; /* Faz o botão ser redondo */
+}
+
+
+/* =========================================================================
+ * 5. FORMULÁRIOS E INPUTS
+ * ========================================================================= */
+
+.form-group {
+    margin-bottom: 15px;
+}
+label { 
+    font-weight: bold; 
+    margin-bottom: 5px; 
+    color: var(--text-color); 
+    display: block;
+}
+
+.input-rounded {
+    padding: 15px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px;
+    font-size: 1em; 
+    width: 100%;
+}
+/* Ajuste para o input[type="file"] para manter o alinhamento */
+input[type="file"] {
+    line-height: 1.2;
+    padding: 11px; /* Ajuste fino para alinhar verticalmente */
+}
+
+/* Garante o layout da foto */
+.form-group > div {
+    display: flex; 
+    gap: 10px; 
+    align-items: center;
+}

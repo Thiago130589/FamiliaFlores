@@ -1,0 +1,159 @@
+/*
+ * login.css - ARQUIVO COMPLETO
+ * Contém TODOS os estilos necessários para a página login.html, 
+ * incluindo base, layout de centralização e componentes de formulário.
+ */
+
+/* =========================================================================
+ * 1. GERAIS E VARIÁVEIS (ROOT, BODY, RESET) - BASE
+ * ========================================================================= */
+:root {
+    /* Cores Principais */
+    --primary-color: #007bff;
+    --primary-light: #52a7ff;
+    --primary-dark: #0056b3;
+    
+    /* Fundo */
+    --background-color: #ffffff;
+    
+    /* Cores de Feedback */
+    --success-color: #28a745;
+    --error-color: #dc3545;
+    --warning-color: #ffc107;
+
+    /* Neutros */
+    --text-color: #333;
+    --text-light: #6c757d;
+    --box-bg-color: #e6ffe6; /* Verde Claro (Cor principal da caixa) */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    
+    /* Centralização Completa da Tela de Login */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+/* =========================================================================
+ * 2. LAYOUT E CENTRALIZAÇÃO (Caixa de Login)
+ * ========================================================================= */
+
+.center-box {
+    background-color: var(--box-bg-color);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    margin: 20px auto; 
+    width: 95%; 
+    max-width: 380px; /* Largura ideal para formulário de login */
+}
+
+/* =========================================================================
+ * 3. TIPOGRAFIA E UTILITÁRIOS
+ * ========================================================================= */
+
+.main-title {
+    font-size: 2em;
+    font-weight: bold; 
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 25px; /* Mais espaço para o título de login */
+}
+
+.center-text { text-align: center; } 
+
+.error-message {
+    color: var(--error-color);
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid var(--error-color);
+    border-radius: 5px;
+}
+
+.hidden-start { display: none; }
+
+
+/* =========================================================================
+ * 4. BOTÕES E LINKS
+ * ========================================================================= */
+
+.btn-rounded {
+    padding: 12px 20px; /* Um pouco maior */
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s, opacity 0.3s;
+    font-size: 1em;
+    display: block; /* Garante que o botão ocupe toda a largura */
+}
+
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover { background-color: var(--primary-dark); }
+
+.btn-secondary-text { 
+    background-color: transparent; 
+    color: var(--primary-color); 
+    border: none;
+    text-decoration: underline;
+    display: inline-block;
+    padding: 10px 0;
+    font-weight: normal;
+}
+.btn-secondary-text:hover { color: var(--primary-dark); }
+
+.wide-button { width: 100%; }
+.button-spacing-top { margin-top: 15px; }
+
+
+/* =========================================================================
+ * 5. FORMULÁRIOS E INPUTS
+ * ========================================================================= */
+
+.form-group {
+    margin-bottom: 15px;
+}
+label { 
+    font-weight: bold; 
+    margin-bottom: 5px; 
+    color: var(--text-color); 
+    display: block;
+}
+
+/* Input principal (mudando para a classe 'input-rounded' usada no HTML) */
+.input-rounded {
+    padding: 15px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px;
+    font-size: 1em; 
+    width: 100%;
+}
+
+
+/* =========================================================================
+ * 6. RESPONSIVIDADE
+ * ========================================================================= */
+
+@media (min-width: 600px) {
+    .center-box {
+        max-width: 450px;
+        padding: 40px; 
+    }
+}

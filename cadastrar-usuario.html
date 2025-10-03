@@ -1,168 +1,168 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Usuário</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuário</title>
+        <link rel="stylesheet" href="cadastro.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="js/firebase-init.js"></script>
+    <script src="js/script.js"></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 class="main-title">Cadastro de Usuário</h1>
-        <p style="text-align: center; margin-bottom: 20px;">Crie sua conta e personalize seu perfil.</p>
-        <hr class="divider">
+    <div class="center-box">
+        <h1 class="main-title">Cadastro de Usuário</h1>
+        <p style="text-align: center; margin-bottom: 20px;">Crie sua conta e personalize seu perfil.</p>
+        <hr class="divider">
 
-        <div class="form-group">
-            <label for="reg-username">Nome de Usuário (Apelido)</label>
-            <input type="text" id="reg-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
-        </div>
+        <div class="form-group">
+            <label for="reg-username">Nome de Usuário (Apelido)</label>
+            <input type="text" id="reg-username" class="input-rounded" placeholder="Seu nome, sem espaços" required>
+        </div>
 
-        <div class="form-group">
-            <label for="reg-sobrenome">Sobrenome</label>
-            <input type="text" id="reg-sobrenome" class="input-rounded" placeholder="Seu Sobrenome" required>
-        </div>
+        <div class="form-group">
+            <label for="reg-sobrenome">Sobrenome</label>
+            <input type="text" id="reg-sobrenome" class="input-rounded" placeholder="Seu Sobrenome" required>
+        </div>
 
-        <div class="form-group">
-            <label for="reg-password">Senha</label>
-            <input type="password" id="reg-password" class="input-rounded" placeholder="Mínimo 6 caracteres" required>
-        </div>
+        <div class="form-group">
+            <label for="reg-password">Senha</label>
+            <input type="password" id="reg-password" class="input-rounded" placeholder="Mínimo 6 caracteres" required>
+        </div>
 
-        <div class="form-group">
-            <label for="reg-confirm-password">Confirmar Senha</label>
-            <input type="password" id="reg-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
-        </div>
+        <div class="form-group">
+            <label for="reg-confirm-password">Confirmar Senha</label>
+            <input type="password" id="reg-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
+        </div>
 
-        <div class="form-group" style="margin-top: 20px;">
-            <label>Foto de Perfil (Opcional)</label>
-            
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="file" id="reg-foto-upload" accept="image/*" class="input-rounded" style="flex-grow: 1;">
-                
-                <button 
-                    type="button" 
-                    class="btn-icon btn-secondary btn-rounded" 
-                    onclick="alert('Funcionalidade de acesso à câmera requer permissões e um código mais complexo, em desenvolvimento.')"
-                    title="Tirar Foto com a Câmera"
-                >
-                    📷
-                </button>
-            </div>
-            <p id="upload-status" class="info-message" style="margin-top: 5px;"></p>
-        </div>
-        
-        <button onclick="registerUser()" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
-            Cadastrar
-        </button>
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Foto de Perfil (Opcional)</label>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="file" id="reg-foto-upload" accept="image/*" class="input-rounded" style="flex-grow: 1;">
+                
+                <button 
+                    type="button" 
+                    class="btn-icon btn-secondary btn-rounded" 
+                    onclick="alert('Funcionalidade de acesso à câmera requer permissões e um código mais complexo, em desenvolvimento.')"
+                    title="Tirar Foto com a Câmera"
+                >
+                    📷
+                </button>
+            </div>
+            <p id="upload-status" class="info-message" style="margin-top: 5px;"></p>
+        </div>
+        
+        <button onclick="registerUser()" class="btn-rounded btn-primary wide-button" style="margin-top: 20px;">
+            Cadastrar
+        </button>
 
-        <a href="login.html" class="btn-secondary-text wide-button" style="text-align: center; display: block; margin-top: 15px;">Já tem conta? Faça login.</a>
+        <a href="login.html" class="btn-secondary-text wide-button" style="text-align: center; display: block; margin-top: 15px;">Já tem conta? Faça login.</a>
 
-        <p id="register-message" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
-    </div>
+        <p id="register-message" class="error-message hidden-start" role="alert" style="margin-top: 15px; text-align: center;"></p>
+    </div>
 
-    <script>
-        // Função para converter o arquivo de imagem para Base64
-        function fileToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Agora 'db' é global e acessível
-        const firestore = db;
-        const USERS_COLLECTION = 'users';
-        
-        async function registerUser() {
-            const username = document.getElementById('reg-username').value.trim();
-            const sobrenome = document.getElementById('reg-sobrenome').value.trim(); 
-            const password = document.getElementById('reg-password').value.trim();
-            const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
-            const fotoFile = document.getElementById('reg-foto-upload').files[0]; 
-            const messageEl = document.getElementById('register-message');
-            const uploadStatusEl = document.getElementById('upload-status');
+    <script>
+        // Função para converter o arquivo de imagem para Base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Agora 'db' é global e acessível
+        const firestore = db;
+        const USERS_COLLECTION = 'users';
+        
+        async function registerUser() {
+            const username = document.getElementById('reg-username').value.trim();
+            const sobrenome = document.getElementById('reg-sobrenome').value.trim(); 
+            const password = document.getElementById('reg-password').value.trim();
+            const confirmPassword = document.getElementById('reg-confirm-password').value.trim();
+            const fotoFile = document.getElementById('reg-foto-upload').files[0]; 
+            const messageEl = document.getElementById('register-message');
+            const uploadStatusEl = document.getElementById('upload-status');
 
-            messageEl.classList.add('hidden-start');
-            messageEl.textContent = '';
-            messageEl.classList.remove('error-message', 'positive-text');
-            uploadStatusEl.textContent = '';
+            messageEl.classList.add('hidden-start');
+            messageEl.textContent = '';
+            messageEl.classList.remove('error-message', 'positive-text');
+            uploadStatusEl.textContent = '';
 
-            // 1. Validações
-            if (!username || !sobrenome || !password || !confirmPassword) { 
-                messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
-                messageEl.classList.add('error-message');
-                messageEl.classList.remove('hidden-start');
-                return;
-            }
+            // 1. Validações
+            if (!username || !sobrenome || !password || !confirmPassword) { 
+                messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
 
-            if (password !== confirmPassword || password.length < 6 || username.includes(' ')) {
-                // Mensagens detalhadas (mantidas por segurança)
-                if (password !== confirmPassword) messageEl.textContent = 'As senhas não coincidem.';
-                else if (password.length < 6) messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
-                else messageEl.textContent = 'O Nome de Usuário (Apelido) não pode conter espaços.';
-                
-                messageEl.classList.add('error-message');
-                messageEl.classList.remove('hidden-start');
-                return;
-            }
+            if (password !== confirmPassword || password.length < 6 || username.includes(' ')) {
+                // Mensagens detalhadas (mantidas por segurança)
+                if (password !== confirmPassword) messageEl.textContent = 'As senhas não coincidem.';
+                else if (password.length < 6) messageEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                else messageEl.textContent = 'O Nome de Usuário (Apelido) não pode conter espaços.';
+                
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
 
-            let fotoBase64 = null;
+            let fotoBase64 = null;
 
-            try {
-                // 2. Verifica se o usuário já existe
-                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
+            try {
+                // 2. Verifica se o usuário já existe
+                const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
 
-                if (userDoc.exists) {
-                    messageEl.textContent = `Nome de usuário (Apelido) '${username}' já está em uso.`;
-                    messageEl.classList.add('error-message');
-                    messageEl.classList.remove('hidden-start');
-                    return;
-                }
+                if (userDoc.exists) {
+                    messageEl.textContent = `Nome de usuário (Apelido) '${username}' já está em uso.`;
+                    messageEl.classList.add('error-message');
+                    messageEl.classList.remove('hidden-start');
+                    return;
+                }
 
-                // 3. CONVERSÃO PARA BASE64 (Rápido e não depende do Storage)
-                if (fotoFile) { 
-                    uploadStatusEl.textContent = 'Processando foto...';
-                    fotoBase64 = await fileToBase64(fotoFile);
-                    uploadStatusEl.textContent = 'Foto processada!';
-                }
+                // 3. CONVERSÃO PARA BASE64 (Rápido e não depende do Storage)
+                if (fotoFile) { 
+                    uploadStatusEl.textContent = 'Processando foto...';
+                    fotoBase64 = await fileToBase64(fotoFile);
+                    uploadStatusEl.textContent = 'Foto processada!';
+                }
 
 
-                // 4. Cria o novo usuário no Firestore (com a foto em Base64)
-                await firestore.collection(USERS_COLLECTION).doc(username).set({
-                    nome: username,
-                    sobrenome: sobrenome, 
-                    senha: password, 
-                    saldo: 0, 
-                    isAdmin: false, 
-                    fotoBase64: fotoBase64, // AGORA SALVA COMO BASE64
-                    dataCadastro: new Date().toISOString()
-                });
+                // 4. Cria o novo usuário no Firestore (com a foto em Base64)
+                await firestore.collection(USERS_COLLECTION).doc(username).set({
+                    nome: username,
+                    sobrenome: sobrenome, 
+                    senha: password, 
+                    saldo: 0, 
+                    isAdmin: false, 
+                    fotoBase64: fotoBase64, // AGORA SALVA COMO BASE64
+                    dataCadastro: new Date().toISOString()
+                });
 
-                // 5. Sucesso e redirecionamento
-                messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
-                messageEl.classList.add('positive-text'); 
-                messageEl.classList.remove('hidden-start');
-                
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                // 5. Sucesso e redirecionamento
+                messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
+                messageEl.classList.add('positive-text'); 
+                messageEl.classList.remove('hidden-start');
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
 
-            } catch (error) {
-                console.error("Erro no cadastro:", error);
-                uploadStatusEl.textContent = ''; 
-                messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console.'}`;
-                messageEl.classList.add('error-message');
-                messageEl.classList.remove('hidden-start');
-            }
-        }
-    </script>
+            } catch (error) {
+                console.error("Erro no cadastro:", error);
+                uploadStatusEl.textContent = ''; 
+                messageEl.textContent = `Erro ao tentar cadastrar: ${error.message || 'Verifique o console.'}`;
+                messageEl.classList.add('error-message');
+                messageEl.classList.remove('hidden-start');
+            }
+        }
+    </script>
 </body>
 </html>

@@ -90,11 +90,11 @@ body {
 /* Separadores e Caixas Base */
 .divider { border: none; height: 1px; background-color: #e0e0e0; margin: 15px 0; }
 .center-box {
+    /* Estilos base de CAIXA, sem layout de CENTRALIZAÇÃO */
     background-color: var(--box-bg-color);
     border-radius: 20px;
     padding: 30px;
     box-shadow: 0 4px 12px var(--shadow-color);
-    /* Estilos de layout (margin, width, max-width) removidos */
 }
 .large-box { 
     /* Estilos de layout (max-width, width) removidos */
@@ -123,7 +123,12 @@ body {
 .btn-info { background-color: var(--info-color); color: white; }
 .btn-info:hover { background-color: #117a8b; }
 
-.btn-secondary-text { background-color: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); }
+/* Ajustado para ser apenas um botão de fundo transparente e texto primário, sem ser um "link de texto" */
+.btn-secondary-text { 
+    background-color: transparent; 
+    color: var(--primary-color); 
+    border: 2px solid var(--primary-color);
+}
 .btn-secondary-text:hover { background-color: var(--primary-color); color: white; }
 
 .btn-danger-outline { background-color: transparent; color: var(--error-color); border: 2px solid var(--error-color); }
@@ -155,6 +160,8 @@ input[type="date"], input[type="time"], textarea, select {
     font-size: 1em; width: 100%;
 }
 textarea { resize: vertical; min-height: 80px; }
+
+/* Classes de formulário mantidas por serem genéricas: */
 .checkbox-group { display: flex; align-items: center; margin-top: 10px; }
 .checkbox-group label { margin-top: 0; margin-left: 10px; font-weight: normal; }
 .checkbox-group input[type="checkbox"] { width: auto; margin-right: 5px; }
@@ -189,14 +196,3 @@ textarea { resize: vertical; min-height: 80px; }
     padding-left: 10px; border-left: 3px solid var(--info-color);
 }
 .modal-info-line span { font-weight: bold; }
-
-/* =========================================================================
- * 6. LOGIN/CADASTRO (Base - Classes de utilidade)
- * ========================================================================= */
-.login-header { margin-bottom: 20px; text-align: center; }
-.login-header .main-title { color: var(--primary-dark); }
-.login-link {
-    display: block; text-align: center; margin-top: 15px;
-    font-size: 0.9em; color: var(--text-light); text-decoration: none;
-}
-.login-link:hover { color: var(--primary-color); text-decoration: underline; }
