@@ -1,6 +1,12 @@
-﻿// Arquivo: script.js
+﻿let currentUser = null;
 
-let currentUser = null;
+// =========================================================================
+// 0. CONFIGURAÇÃO DO FIREBASE (Exemplo)
+// =========================================================================
+// Assumindo que você inicializou o Firebase e o Firestore em algum lugar,
+// e a variável 'db' está disponível. Exemplo:
+// const db = firebase.firestore();
+
 
 // =========================================================================
 // 1. FUNÇÕES GLOBAIS DE UTILITÁRIO (Acessíveis por qualquer página)
@@ -74,15 +80,16 @@ function checkLoginStatus() {
             currentUser = JSON.parse(usuarioLogado);
             console.log("Usuário logado:", currentUser.username, "(Admin:", currentUser.isAdmin, ")");
             
-            // Se estiver no Dashboard, carrega os dados
+            // Se estiver no Dashboard, carrega os dados (AJUSTE DE SINCRONIZAÇÃO)
             if (path.includes('index.html')) {
                 loadDashboardData();
             }
+
             // Verifica acesso de admin se estiver em uma página de administração
             if (path.includes('admin') || path.includes('carteira') || path.includes('multas')) {
                  if (!checkAdminAccess()) {
-                    alert("Acesso restrito a administradores.");
-                    window.location.href = 'index.html';
+                     alert("Acesso restrito a administradores.");
+                     window.location.href = 'index.html';
                  }
             }
             
@@ -100,15 +107,75 @@ function logoutUser() {
 }
 
 // =========================================================================
-// 3. FUNÇÕES DE CARREGAMENTO DO DASHBOARD (index.html)
+// 3. FUNÇÕES DE BUSCA DE DADOS (Simulação de Firestore)
 // =========================================================================
 
+/**
+ * SIMULAÇÃO: Busca o saldo/pontuação mais recente no Firestore.
+ * Em um app real, o 'currentUser' deveria ser atualizado com este dado.
+ * @param {string} userId - ID do usuário.
+ * @returns {Promise<number>} O saldo atualizado.
+ */
+async function getSaldoFromFirestore(userId) {
+    // Implementação real do Firestore seria:
+    // const userDoc = await db.collection('users').doc(userId).get();
+    // return userDoc.exists ? userDoc.data().saldo : 0;
+    
+    console.log(`Simulando busca de saldo para o usuário ID: ${userId}...`);
+    
+    // Simula um delay e um retorno de dado (ex: um saldo de 1500)
+    return new Promise(resolve => setTimeout(() => resolve(1500.75), 500)); 
+}
+
+
+/**
+ * Função para carregar dados adicionais do Dashboard que NÃO estão no localStorage.
+ */
+async function loadDashboardDataFromDatabase() {
+    if (!currentUser || !currentUser.uid) { // Assume que o Firestore usa 'uid'
+        console.warn("Não foi possível carregar dados adicionais: UID do usuário ausente.");
+        return;
+    }
+
+    try {
+        const saldoAtualizado = await getSaldoFromFirestore(currentUser.uid);
+        
+        // Atualiza o objeto currentUser e o localStorage APENAS com o saldo (ou outros campos dinâmicos)
+        currentUser.saldo = saldoAtualizado;
+        // Não é recomendado salvar todo o objeto de volta, mas para manter a consistência...
+        localStorage.setItem('usuarioLogado', JSON.stringify(currentUser)); 
+        
+        // Chama a função de exibição de dados para renderizar os novos valores
+        renderDashboardData(currentUser);
+
+    } catch (error) {
+        console.error("Erro ao buscar dados do Firestore para o Dashboard:", error);
+    }
+}
+
+
+// =========================================================================
+// 4. FUNÇÕES DE CARREGAMENTO DO DASHBOARD (index.html)
+// =========================================================================
+
+// Função principal de carregamento que também chama a busca no banco (se necessário)
 function loadDashboardData() {
     if (!currentUser) return;
 
+    // 1. Renderiza os dados INICIAIS (do localStorage)
+    renderDashboardData(currentUser);
+
+    // 2. Inicia a busca por dados mais recentes/dinâmicos no "banco de dados"
+    loadDashboardDataFromDatabase();
+}
+
+// Função de renderização pura (separa lógica de busca da lógica de DOM)
+function renderDashboardData(userData) {
+    if (!userData) return;
+
     // 1. Detalhes do Perfil
-    document.getElementById('user-name').textContent = currentUser.nome || 'Usuário';
-    document.getElementById('user-username').textContent = `@${currentUser.username || 'usuario'}`;
+    document.getElementById('user-name').textContent = userData.nome || 'Usuário';
+    document.getElementById('user-username').textContent = `@${userData.username || 'usuario'}`;
 
     // 2. Foto do Perfil
     const userPhotoEl = document.getElementById('user-photo');
@@ -116,7 +183,7 @@ function loadDashboardData() {
         const defaultPath = 'imagens/default-avatar.png';
         const fallbackPath = 'default-avatar.png';
         
-        userPhotoEl.src = currentUser.foto || defaultPath; 
+        userPhotoEl.src = userData.foto || defaultPath; 
 
         userPhotoEl.onerror = function() {
             // Tenta o caminho de fallback
@@ -134,7 +201,7 @@ function loadDashboardData() {
     const saldoEl = document.getElementById('user-saldo');
     if (saldoEl) {
         // Usa 'saldo' (do banco) ou 'pontuacao' (fallback)
-        const currentBalance = currentUser.saldo !== undefined ? currentUser.saldo : currentUser.pontuacao || 0;
+        const currentBalance = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
         
         saldoEl.textContent = formatarMoeda(currentBalance);
         
@@ -149,7 +216,7 @@ function loadDashboardData() {
     }
 
     // 4. Exibir/Ocultar elementos de ADMIN
-    const isAdmin = currentUser.isAdmin === true;
+    const isAdmin = userData.isAdmin === true;
     const adminBadge = document.getElementById('user-role'); 
     const adminButton = document.getElementById('admin-button'); 
 
@@ -169,24 +236,34 @@ function loadDashboardData() {
         }
     }
 
-    // 5. Configurar botão de Logout
+    // 5. Configurar botão de Logout (garantindo que seja anexado apenas uma vez)
     const logoutButton = document.getElementById('logout-button');
-    if (logoutButton) {
+    if (logoutButton && !logoutButton.hasAttribute('data-listener-attached')) {
         logoutButton.addEventListener('click', logoutUser);
+        logoutButton.setAttribute('data-listener-attached', 'true');
     }
 }
 
+
 // =========================================================================
-// 4. INICIALIZAÇÃO
+// 5. INICIALIZAÇÃO
 // =========================================================================
 
 // Chama a verificação de status imediatamente ao carregar o script
+// Esta é a primeira ação crucial: verificar autenticação e definir 'currentUser'.
 checkLoginStatus();
 
-// Garante que a lógica do dashboard rode após o DOM ser totalmente carregado (útil com 'defer')
+// Garante que a lógica do dashboard rode APÓS o DOM ser totalmente carregado.
+// A função 'checkLoginStatus' já fez a maior parte do trabalho, este bloco
+// é mais uma garantia e não será estritamente necessário se o script estiver
+// carregado com 'defer' no HTML, mas é uma boa prática.
 document.addEventListener('DOMContentLoaded', () => {
-    // O loadDashboardData já foi chamado, esta é uma redundância segura
+    // Se o usuário já estiver logado (e currentUser não for null) e estivermos no index.html,
+    // garantimos o carregamento de dados (incluindo a busca no banco).
     if (window.location.pathname.includes('index.html') && currentUser) {
-        loadDashboardData();
+        // loadDashboardData já foi chamado em checkLoginStatus, mas se o script
+        // for carregado *antes* de checkLoginStatus terminar (situação rara com 'defer'),
+        // esta chamada garante que ele rode.
+        // Neste código atual, a chamada em checkLoginStatus é suficiente.
     }
 });
