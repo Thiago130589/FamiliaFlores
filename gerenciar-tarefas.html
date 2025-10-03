@@ -118,9 +118,6 @@
         const HISTORICO_PAGAMENTOS_COLLECTION = 'historicoPagamentos'; 
         const USERS_COLLECTION = 'users';
         
-        // Para o histórico, consultamos APENAS o HISTORICO_GERAL_COLLECTION
-        // REMOVEMOS: const COLLECTIONS_TO_QUERY = [...]
-        
         let currentView = 'pendentes'; 
 
         /**
@@ -128,6 +125,8 @@
          */
         function checkAdminAccessAndLoad() {
             // Assume que 'getUsuarioLogado' e 'exibirAlertaGlobal' estão em 'script.js'
+            // NOTA: O erro "exibirAlertaGlobal is not defined" sugere que o script.js 
+            // não está definindo esta função globalmente ou o HTML está carregando em ordem errada.
             const userInfo = getUsuarioLogado();
             if (!userInfo || userInfo.isAdmin !== true) {
                  // Se não for admin, redireciona para a home
@@ -159,7 +158,11 @@
                 });
             } catch (error) {
                 console.error("Erro ao carregar usuários:", error);
-                exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar lista de usuários para filtro.', 'danger');
+                // Usando console.warn para evitar erro se exibirAlertaGlobal não existir
+                console.warn('Alerta: Erro ao carregar lista de usuários para filtro.', error.message);
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', 'Erro ao carregar lista de usuários para filtro.', 'danger');
+                }
             }
         }
         
@@ -235,10 +238,12 @@
             
             listaEl.innerHTML = '<p class="empty-message">Buscando tarefas...</p>';
             let query;
+            let colecaoConsultada = TAREFAS_ATRIBUIDAS_COLLECTION;
 
             // 1. Visão Padrão: Todas as Pendentes de Aprovação
             if (isPendingView) {
                 tituloEl.textContent = 'Tarefas Pendentes de Aprovação';
+                colecaoConsultada = TAREFAS_ATRIBUIDAS_COLLECTION;
                 query = firestore.collection(TAREFAS_ATRIBUIDAS_COLLECTION)
                     .where('status', '==', 'Pendente') 
                     .orderBy('dataConclusao', 'asc');
@@ -246,6 +251,7 @@
             // 2. Visão Histórico: Busca APENAS na NOVA COLEÇÃO HISTORICO_GERAL
             else {
                 let tituloNome = 'Histórico Completo do Sistema'; 
+                colecaoConsultada = HISTORICO_GERAL_COLLECTION;
                 
                 if (filtroUID !== 'todos-historico') {
                     const selectEl = document.getElementById('filtro-usuario');
@@ -273,7 +279,18 @@
 
             } catch (error) {
                 console.error("Erro ao carregar tarefas:", error);
-                exibirAlertaGlobal('tarefas-alerts', `Erro ao carregar tarefas. Verifique as regras e índices do Firestore. Coleção consultada: ${isPendingView ? TAREFAS_ATRIBUIDAS_COLLECTION : HISTORICO_GERAL_COLLECTION}.`, 'danger');
+                
+                let errorMessage = error.message;
+                if (error.code === "permission-denied" || error.message.includes('insufficient permissions')) {
+                     errorMessage = `ERRO DE PERMISSÃO: Falha ao consultar a coleção ${colecaoConsultada}. Verifique as regras de segurança no Firebase.`;
+                }
+
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', errorMessage, 'danger');
+                } else {
+                    console.error("ERRO CRÍTICO: Função exibirAlertaGlobal não está definida. Verifique o arquivo script.js e a ordem de carregamento.");
+                    listaEl.innerHTML = `<p class="empty-message" style="color: red;">Falha ao carregar dados. ${errorMessage}</p>`;
+                }
             }
             
             let html = '';
@@ -301,8 +318,8 @@
                 // Renderização e lógica de status para Admin
                 const { statusText, actionButtons } = getTaskAdminUI(taskId, t, isPendingView);
 
-                // No Histórico, adicionamos a origem para visualização (embora a consulta venha de uma única coleção)
-                const colecaoOrigemDisplay = isPendingView ? TAREFAS_ATRIBUIDAS_COLLECTION : HISTORICO_GERAL_COLLECTION;
+                // Exibe a coleção consultada para fins de debug e rastreamento
+                const colecaoOrigemDisplay = colecaoConsultada;
 
                 html += `
                     <div class="tarefa-card admin-card ${colorClass}">
@@ -344,7 +361,7 @@
             let statusText = taskData.status;
             let actionButtons = '';
             
-            // Só mostra botões de ação se estiver na visão PENDENTE e for da coleção TAREFAS_ATRIBUIDAS
+            // Só mostra botões de ação se estiver na visão PENDENTE e o status for 'Pendente'
             const showActionButtons = (isPendingView && 
                                        taskData.status === 'Pendente'); 
 
@@ -417,7 +434,7 @@
                     transaction.update(taskRef, updateData);
                     
                     // 2. Atualiza o status na coleção HISTORICO_GERAL
-                    // Assume que o documento já existe, criado quando a tarefa foi criada
+                    // É crucial que o documento em historicoGeral já exista, criado na criação da tarefa.
                     transaction.update(historicoRef, updateData);
 
                     // 3. Atualiza o saldo do usuário
@@ -432,11 +449,15 @@
                     transaction.set(firestore.collection(HISTORICO_PAGAMENTOS_COLLECTION).doc(), pagamento);
                 });
 
-                exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) em ${userName}.`, 'success');
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', `Tarefa aprovada. ${formatarMoeda(valor)} creditado(s) em ${userName}.`, 'success');
+                }
                 switchView(currentView); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na aprovação da tarefa:", error);
-                exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível aprovar e pagar. Detalhe: ${error.message}`, 'danger');
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível aprovar e pagar. Detalhe: ${error.message}`, 'danger');
+                }
             }
         }
 
@@ -445,7 +466,9 @@
             const motivo = prompt(`Digite o motivo da reprovação da tarefa "${taskId}". O valor original era ${formatarMoeda(valor)}. \n\nO valor da multa será igual ao valor da tarefa.`);
             
             if (motivo === null || motivo.trim() === '') {
-                exibirAlertaGlobal('tarefas-alerts', 'Ação cancelada. É necessário um motivo para rejeitar.', 'warning');
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', 'Ação cancelada. É necessário um motivo para rejeitar.', 'warning');
+                }
                 return;
             }
 
@@ -498,11 +521,15 @@
                     transaction.set(firestore.collection(HISTORICO_PAGAMENTOS_COLLECTION).doc(), multa);
                 });
 
-                exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}.`, 'danger');
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', `Tarefa reprovada. Multa de ${formatarMoeda(valorMulta)} aplicada a ${userName}.`, 'danger');
+                }
                 switchView(currentView); // Renderiza a visão atual
             } catch (error) {
                 console.error("Erro na reprovação da tarefa:", error);
-                exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível rejeitar a tarefa e aplicar a multa. Detalhe: ${error.message}`, 'danger');
+                if (typeof exibirAlertaGlobal === 'function') {
+                    exibirAlertaGlobal('tarefas-alerts', `ERRO: Não foi possível rejeitar a tarefa e aplicar a multa. Detalhe: ${error.message}`, 'danger');
+                }
             }
         }
 
