@@ -1,14 +1,13 @@
 // Arquivo: login.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica se a variável 'db' do Firestore foi definida (em firebase-init.js)
+    // Verifica se a variável 'db' do Firestore e CryptoJS foram definidos
+    // O CryptoJS foi adicionado ao <head> do login.html, mas verificamos aqui.
     if (typeof db === 'undefined' || typeof CryptoJS === 'undefined') {
-        console.error("ERRO: O Firestore ('db') ou a biblioteca Crypto-JS ('CryptoJS') não estão definidos. Verifique o carregamento dos scripts.");
+        console.error("ERRO CRÍTICO: O Firestore ('db') ou a biblioteca Crypto-JS ('CryptoJS') não estão definidos. Verifique o carregamento dos scripts no login.html e o firebase-init.js.");
         return;
     }
 
-    // Limpa qualquer estado de login anterior ao iniciar na página de login.
-    // ISSO É INTENCIONAL e CORRETO aqui para garantir que a sessão antiga seja apagada.
     localStorage.removeItem('usuarioLogado'); 
 
     const firestore = db;
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Função auxiliar para mostrar mensagens
     const showMessage = (message, isError = true) => {
         const messageEl = document.getElementById('login-message');
         messageEl.textContent = message;
@@ -35,9 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value.trim();
         
-        const messageEl = document.getElementById('login-message');
-        messageEl.classList.add('hidden-start');
-        messageEl.textContent = '';
+        // ... (limpeza de mensagem)
 
         if (!username || !password) {
             showMessage('Por favor, preencha todos os campos.');
@@ -45,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 1. BUSCA O USUÁRIO PELO CAMPO 'username' (Apelido)
+            // 1. BUSCA O USUÁRIO
             const snapshot = await firestore.collection(USERS_COLLECTION)
                 .where('username', '==', username)
                 .limit(1)
@@ -64,21 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. Verifica a senha Cifrada
             if (userData.password !== hashedPassword) {
+                // Se cair aqui, a senha não bateu.
                 showMessage('Nome de usuário ou senha incorretos.');
                 return;
             }
 
             // 4. Login bem-sucedido: Salva dados no localStorage
-            console.log("Login realizado com sucesso:", userData.nome);
-            
             const userToSave = {
                 username: username,
                 nome: userData.nome,
-                uid: userDoc.id, // ID do documento do Firestore
+                uid: userDoc.id, 
                 isAdmin: userData.isAdmin || false, 
                 perfil: userData.perfil || 'usuario',
                 pontuacao: userData.pontuacao || 0,
-                foto: userData.foto || null,
+                // Garantimos que a foto seja um caminho vazio ou o valor do DB
+                foto: userData.foto || '', 
             };
             
             localStorage.setItem('usuarioLogado', JSON.stringify(userToSave));
@@ -88,13 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // 5. Redireciona
             setTimeout(() => {
                 window.location.href = 'index.html'; 
-            }, 500); // Tempo reduzido para 500ms para ser mais rápido
+            }, 500); 
 
         } catch (error) {
             console.error("Erro no login:", error);
-            let errorMessage = "Erro na comunicação com o servidor. Verifique o console ou as regras do Firestore.";
-            
-            showMessage(errorMessage);
+            showMessage("Erro na comunicação com o servidor.");
         }
     }
 });

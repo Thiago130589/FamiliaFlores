@@ -1,57 +1,50 @@
 ﻿// Arquivo: script.js
 
-// Variável global para armazenar os dados do usuário logado
 let currentUser = null;
 
 // =========================================================================
 // 1. FUNÇÕES DE AUTENTICAÇÃO E VERIFICAÇÃO DE ESTADO
 // =========================================================================
 
-/**
- * Verifica se há um usuário logado no localStorage e redireciona se necessário.
- */
 function checkLoginStatus() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
+    const path = window.location.pathname;
 
-    // ATENÇÃO: Se este script está sendo carregado, a página é PROTEGIDA.
-    
+    // Se estiver em telas de AUTH, garante que o usuário logado seja redirecionado para o dashboard.
+    if (path.includes('login.html') || path.includes('cadastrar-usuario.html')) {
+        if (usuarioLogado) {
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 10);
+        }
+        return; 
+    }
+
+    // Lógica para as páginas PROTEGIDAS (como index.html)
     if (!usuarioLogado) {
-        // Se NÃO houver dados de usuário, redireciona IMEDIATAMENTE para o login.
         console.log("Usuário não logado em página protegida. Redirecionando para login.");
-        
-        // CORREÇÃO: Usamos setTimeout=0 para garantir que o redirecionamento 
-        // seja a última coisa a acontecer, evitando o loop de carregamento.
         setTimeout(() => {
             window.location.href = 'login.html'; 
-        }, 0); 
-        
-        return;
+        }, 10); 
     } else {
-        // Usuário logado: Carrega os dados e inicializa o Dashboard.
         try {
             currentUser = JSON.parse(usuarioLogado);
-            console.log("Usuário logado encontrado:", currentUser.username);
+            console.log("Dashboard carregado para:", currentUser.username, "(Admin:", currentUser.isAdmin, ")");
             
-            // Chama a função que carrega os dados na tela (apenas para o index.html)
-            if (window.location.pathname.includes('index.html')) {
+            if (path.includes('index.html')) {
                 loadDashboardData();
             }
             
         } catch (e) {
             console.error("Erro ao processar dados do usuário, forçando logout:", e);
-            // Se os dados estiverem corrompidos, força o logout.
             logoutUser();
         }
     }
 }
 
-/**
- * Função de Logout: Remove os dados do localStorage e redireciona.
- */
 function logoutUser() {
     localStorage.removeItem('usuarioLogado');
     currentUser = null;
-    // Redireciona para o login.
     window.location.href = 'login.html';
 }
 
@@ -59,9 +52,6 @@ function logoutUser() {
 // 2. FUNÇÕES DE CARREGAMENTO DO DASHBOARD (index.html)
 // =========================================================================
 
-/**
- * Carrega e exibe os dados do usuário na tela do Dashboard.
- */
 function loadDashboardData() {
     if (!currentUser) return;
 
@@ -72,8 +62,26 @@ function loadDashboardData() {
     // 2. Foto do Perfil
     const userPhotoEl = document.getElementById('user-photo');
     if (userPhotoEl) {
-        // Se tiver foto no Firestore, usa. Senão, usa um avatar padrão.
-        userPhotoEl.src = currentUser.foto || 'imagens/default-avatar.png'; 
+        // CORREÇÃO DE CAMINHO DE IMAGEM: 
+        // 1. Tenta carregar a foto do DB
+        // 2. Se falhar, tenta o caminho 'imagens/default-avatar.png'
+        // 3. Se ainda falhar (erro 404), usa um caminho mais simples 'default-avatar.png'
+        const defaultPath = 'imagens/default-avatar.png';
+        const fallbackPath = 'default-avatar.png'; // Caminho de fallback caso o 404 persista
+        
+        userPhotoEl.src = currentUser.foto || defaultPath; 
+
+        // Adiciona um listener para lidar com o erro 404 de forma suave
+        userPhotoEl.onerror = function() {
+            // Tenta o caminho de fallback se a primeira tentativa falhar
+            if (userPhotoEl.src.endsWith(defaultPath)) {
+                userPhotoEl.src = fallbackPath;
+            } else if (userPhotoEl.src.endsWith(fallbackPath)) {
+                // Se o fallback também falhar, usa um URL vazio para não quebrar.
+                userPhotoEl.src = ''; 
+                console.error("ERRO 404 CRÍTICO: A imagem de perfil padrão não pôde ser carregada em nenhum caminho. Verifique a pasta/nome do arquivo.");
+            }
+        };
     }
 
     // 3. Saldo/Pontuação
@@ -81,7 +89,6 @@ function loadDashboardData() {
     if (saldoEl) {
         const saldoFormatado = (currentUser.pontuacao || 0).toFixed(2).replace('.', ',');
         saldoEl.textContent = `R$ ${saldoFormatado}`;
-        // Lógica para cor do saldo (opcional)
         if (currentUser.pontuacao < 0) {
             saldoEl.classList.add('saldo-negativo');
             saldoEl.classList.remove('saldo-positivo');
@@ -123,12 +130,9 @@ function loadDashboardData() {
 // 3. INICIALIZAÇÃO
 // =========================================================================
 
-// Chama a verificação de login imediatamente ao carregar o script
 checkLoginStatus();
 
-// Adiciona listener para garantir que o DOM esteja totalmente carregado antes de manipular
 document.addEventListener('DOMContentLoaded', () => {
-    // Se estiver no Dashboard (index.html), recarrega os dados (redundância segura)
     if (window.location.pathname.includes('index.html') && currentUser) {
         loadDashboardData();
     }
