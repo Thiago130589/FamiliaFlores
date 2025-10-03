@@ -15,7 +15,7 @@
     
     <script src="script.js" defer></script> 
     
-    </head>
+</head>
 <body>
     <div class="center-box center-box-admin">
         <header class="admin-header">
@@ -51,7 +51,7 @@
         <div class="admin-section">
             <h2><i class="fas fa-list-check"></i> Gestão de Tarefas</h2>
             <div class="admin-grid">
-                <a href="#" class="admin-action-item">
+                <a href="#" id="btn-criar-tarefa" class="admin-action-item">
                     <i class="fas fa-plus-circle"></i> Criar Nova Tarefa
                 </a>
                 <a href="#" class="admin-action-item">
@@ -78,5 +78,202 @@
             <i class="fas fa-sign-out-alt"></i> Sair da Conta
         </button>
     </div>
+
+    <div id="modal-criar-tarefa" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <h2 class="modal-title">Criar Nova Tarefa</h2>
+            
+            <form id="form-criar-tarefa">
+                
+                <div class="form-group">
+                    <label for="tarefa-nome">Nome da Tarefa</label>
+                    <input type="text" id="tarefa-nome" class="input-rounded" placeholder="Ex: Limpar a Cozinha" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="tarefa-descricao">Descrição</label>
+                    <textarea id="tarefa-descricao" class="input-rounded" placeholder="Detalhes da tarefa e expectativas." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="tarefa-valor">Valor (Recompensa)</label>
+                    <input type="number" step="0.01" id="tarefa-valor" class="input-rounded" placeholder="Ex: 5.00" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="tarefa-atribuicao">Atribuir a:</label>
+                    <select id="tarefa-atribuicao" class="input-rounded" required>
+                        <option value="disponivel">Carregando usuários...</option>
+                    </select>
+                </div>
+
+                <div class="admin-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="tarefa-data-limite">Data Limite</label>
+                        <input type="date" id="tarefa-data-limite" class="input-rounded" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="tarefa-hora-limite">Hora Limite</label>
+                        <input type="time" id="tarefa-hora-limite" class="input-rounded" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-rounded btn-success wide-button modal-button-margin">
+                    <i class="fas fa-check"></i> Criar Tarefa
+                </button>
+                <button type="button" onclick="closeModal('modal-criar-tarefa')" class="btn-rounded btn-secondary-text wide-button modal-close-button">
+                    Cancelar
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Inicializa o Firestore
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+
+        // --- Funções de Utilitário (Assumindo que estão no script.js, mas redefinidas para garantir) ---
+        function checkAdminAccess() {
+             // Esta função é importante e deve estar robusta no seu script.js, mas a lógica básica é mantida aqui.
+            const userInfo = JSON.parse(localStorage.getItem('usuarioLogado'));
+            if (!userInfo || userInfo.isAdmin !== true) {
+                // Se a função real não existir no script.js, usa este fallback
+                return false; 
+            }
+            return true;
+        }
+
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function openModal(modalId) {
+            if (!checkAdminAccess()) return;
+            document.getElementById(modalId).classList.remove('hidden-start');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden-start');
+            // Limpa o formulário ao fechar o modal
+            document.getElementById('form-criar-tarefa').reset();
+        }
+
+        // --- Funções de População de Dados ---
+        async function loadUserDropdown() {
+            const selectEl = document.getElementById('tarefa-atribuicao');
+            selectEl.innerHTML = ''; // Limpa o conteúdo
+
+            // 1. Adiciona a opção padrão
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'disponivel';
+            defaultOption.textContent = 'Tarefas disponíveis (Não Atribuída)';
+            selectEl.appendChild(defaultOption);
+
+            try {
+                // Busca todos os usuários, ordenados pelo nome
+                const usersSnapshot = await firestore.collection('users').orderBy('nome').get();
+                
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const userName = doc.id; // O username (ID do documento) é o valor
+                    
+                    if (userData.isAdmin !== true) { // Opcional: não listar admins para atribuição
+                        const option = document.createElement('option');
+                        option.value = userName;
+                        option.textContent = `${userData.nome} (@${userName})`;
+                        selectEl.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao carregar usuários:", error);
+                const errorOption = document.createElement('option');
+                errorOption.value = 'disponivel';
+                errorOption.textContent = 'Erro ao carregar lista de usuários.';
+                selectEl.appendChild(errorOption);
+            }
+        }
+
+
+        // --- Funções de Ação ---
+
+        async function createNewTask(event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+            
+            if (!checkAdminAccess()) return;
+            
+            const adminUser = getUsuarioLogado();
+            
+            const nome = document.getElementById('tarefa-nome').value.trim();
+            const descricao = document.getElementById('tarefa-descricao').value.trim();
+            const valor = parseFloat(document.getElementById('tarefa-valor').value);
+            const dataLimite = document.getElementById('tarefa-data-limite').value;
+            const horaLimite = document.getElementById('tarefa-hora-limite').value;
+            const atribuicao = document.getElementById('tarefa-atribuicao').value;
+            
+            if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
+                alert("Por favor, preencha todos os campos corretamente.");
+                return;
+            }
+            
+            // Determina o status inicial e quem é o responsável
+            const isDisponivel = (atribuicao === 'disponivel');
+            
+            const novaTarefa = {
+                nome: nome,
+                descricao: descricao,
+                valor: valor,
+                prazo: `${dataLimite}T${horaLimite}`, // Formato ISO para fácil comparação
+                
+                // Dados de Atribuição
+                atribuidaA: isDisponivel ? null : atribuicao, // Username do usuário atribuído ou null
+                status: isDisponivel ? 'Disponível' : 'Em Andamento', // Inicia como "Em Andamento" se atribuída
+                
+                // Dados de Criação
+                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+                criadaPor: adminUser.nome || adminUser.username || 'Admin',
+            };
+
+            try {
+                await firestore.collection('tarefas').add(novaTarefa);
+                
+                alert(`Tarefa "${nome}" criada com sucesso! ${isDisponivel ? 'Ela está disponível para todos.' : `Atribuída diretamente a ${atribuicao}.`}`);
+                closeModal('modal-criar-tarefa');
+                // Se houver uma função para recarregar tarefas na tela principal do admin, chame-a aqui.
+                
+            } catch (error) {
+                console.error("Erro ao criar tarefa:", error);
+                alert("Erro ao criar tarefa. Tente novamente.");
+            }
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verifica acesso e carrega o dropdown ao carregar a página
+            if (checkAdminAccess()) {
+                loadUserDropdown();
+            }
+
+            // Abre o modal ao clicar no botão
+            document.getElementById('btn-criar-tarefa').addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal('modal-criar-tarefa');
+            });
+            
+            // Envia o formulário
+            document.getElementById('form-criar-tarefa').addEventListener('submit', createNewTask);
+            
+            // Lógica de logout (apenas para garantir se não estiver no script.js)
+            if (document.getElementById('logout-button')) {
+                document.getElementById('logout-button').addEventListener('click', () => {
+                    localStorage.removeItem('usuarioLogado');
+                    window.location.href = 'login.html'; 
+                });
+            }
+        });
+    </script>
 </body>
 </html>
