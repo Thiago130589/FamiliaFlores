@@ -3,95 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Task Master</title>
-    
+    <title>Dashboard | Plataforma</title>
     <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="firebase-init.js"></script> 
-    <script src="script.js"></script> 
-    
-    <script src="index.js" defer></script> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body class="body-login"> 
-    
+<body>
     <div class="center-box center-box-dashboard">
         
-        <button onclick="logout()" class="btn-logout-card">Sair</button>
-        
-        <div class="user-profile-header">
+        <button id="logout-button" class="btn-logout-card">Sair</button>
+
+        <header class="user-profile-header">
             <div class="user-details-text">
-                <h2 id="user-name">Carregando...</h2> 
-                
-                <span id="user-perfil-badge" class="profile-badge"></span>
-                
-                <p id="user-username">@carregando</p> 
+                <h1 id="user-name">Nome do Usuário</h1>
+                <span id="user-username">@usuario</span>
+                <span id="user-role" class="profile-badge admin-badge hidden-start">ADMIN</span>
             </div>
             
             <div class="user-photo-container">
-                <img id="user-photo" src="" alt="Foto de Perfil" class="user-photo-style"> 
+                <img id="user-photo" class="user-photo-style" alt="Foto do Usuário">
             </div>
-        </div>
+        </header>
 
-        <hr class="divider-thin">
+        <hr class="divider">
 
         <div class="user-balance">
-            <p>Seu Saldo Atual</p>
-            <h3 id="user-saldo">R$ 0,00</h3>
+            <p>Saldo Atual</p>
+            <div class="balance-line">
+                <p id="user-saldo" class="saldo-positivo">R$ 0,00</p>
+                <a href="minha-carteira.html" class="btn-carteira-saldo">
+                    <i class="fas fa-wallet"></i> Carteira
+                </a>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="action-grid-card">
+            <div class="section-title">Ações</div>
+            <div class="action-grid">
+                <a href="tarefas-disponiveis.html" class="action-item">
+                    <i class="fas fa-list-check action-icon icon-tarefas"></i>
+                    Tarefas Disponíveis
+                </a>
+                
+                <a href="resgatar-recompensas.html" class="action-item">
+                    <i class="fas fa-gift action-icon icon-recompensa"></i>
+                    Resgatar Recompensas
+                </a>
+                
+                <a href="historico.html" class="action-item">
+                    <i class="fas fa-history action-icon icon-historico"></i>
+                    Histórico
+                </a>
+
+                <a href="painel-admin.html" id="admin-button" class="action-item hidden-start">
+                    <i class="fas fa-user-gear action-icon icon-admin"></i>
+                    Painel Admin
+                </a>
+
+            </div>
         </div>
         
-        <hr class="divider"> 
-
-        <section class="action-grid-card">
-            <h2 class="section-title">Ações Rápidas</h2>
-            
-            <div class="action-grid">
-                <a href="minhas-tarefas.html" class="action-item">
-                    <i class="icon icon-tasks"></i>
-                    <span>Ver Tarefas</span>
-                </a>
-                
-                <a href="historico-tarefas.html" class="action-item">
-                    <i class="icon icon-history"></i>
-                    <span>Histórico</span>
-                </a>
-                
-                <a href="trocar-premios.html" class="action-item">
-                    <i class="icon icon-prizes"></i>
-                    <span>Trocar Prêmios</span>
-                </a>
-                
-                <a href="minha-carteira.html" class="action-item">
-                    <i class="icon icon-wallet"></i>
-                    <span>Minha Carteira</span>
-                </a>
-            </div>
-        </section>
-
-        <section id="admin-section" class="admin-panel hidden">
-            <h2 class="section-title admin-title">Funções Administrativas</h2>
-            <div class="action-grid admin-grid">
-                
-                <a href="gerenciar-tarefas.html" class="action-item admin-item">
-                    <i class="icon icon-manage-tasks"></i>
-                    <span>Gerenciar Tarefas</span>
-                </a>
-                
-                <a href="gerenciar-perfis.html" class="action-item admin-item">
-                    <i class="icon icon-manage-users"></i>
-                    <span>Gerenciar Usuários</span>
-                </a>
-
-                <a href="painel-admin.html" class="action-item admin-item">
-                    <i class="icon icon-settings"></i>
-                    <span>Painel Geral</span>
-                </a>
-            </div>
-        </section>
-        
     </div>
+
+    <script>
+        // Seu JavaScript para carregar dados do usuário, saldo e foto
+        // E para controlar a visibilidade do botão Admin e a função de Sair.
+        console.log("Dashboard carregado.");
+    </script>
 </body>
 </html>

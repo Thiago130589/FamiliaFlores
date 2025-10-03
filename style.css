@@ -332,11 +332,54 @@ textarea { resize: vertical; min-height: 80px; }
     color: var(--text-light);
     font-size: 0.9em;
 }
+
+/* NOVO: Classe para alinhar saldo e botão */
+.balance-line {
+    display: flex;
+    justify-content: space-between; /* Espaça o saldo e o botão */
+    align-items: center;
+}
+
 #user-saldo {
     font-size: 2.5em; 
     font-weight: bold;
     color: var(--success-color); 
     line-height: 1.2;
+}
+
+/* NOVO: Estilo do botão Carteira (Verde com Letra Branca) */
+.btn-carteira-saldo {
+    /* Estilo de Botão (Verde) */
+    background-color: var(--success-color); 
+    color: white; 
+    border: none;
+    
+    /* Forma e Tamanho */
+    padding: 8px 15px; 
+    border-radius: 20px; /* Bem arredondado */
+    font-size: 0.9em; 
+    font-weight: bold;
+    text-decoration: none;
+    
+    /* Sombra e Transição */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+    transition: background-color 0.2s, transform 0.2s;
+    
+    /* Garante que o ícone e o texto fiquem alinhados */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-carteira-saldo:hover {
+    background-color: #1e7e34; /* Um verde mais escuro no hover */
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Garante que o ícone dentro dele seja branco */
+.btn-carteira-saldo i {
+    color: white;
 }
 
 
