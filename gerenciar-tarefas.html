@@ -59,31 +59,6 @@
         </div>
     </div>
     
-    <div class="center-box large-box">
-        <h1 class="main-title main-title-danger">Gerenciar Tarefas</h1>
-        <hr class="divider">
-
-        <div id="admin-alerts" style="margin-bottom: 20px;"></div>
-
-        <div style="display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px; flex-wrap: wrap;">
-            <button class="btn-rounded btn-success" onclick="openCriarTarefaModal()">Criar Tarefas</button>
-            
-            <button class="btn-rounded btn-danger" onclick="openExcluirTarefaModal()">Excluir Tarefas</button>
-            
-            <a href="gerenciar-tarefas.html" class="btn-rounded btn-admin-tab active-tab">Tarefas Pendentes</a>
-            
-            <a href="tarefas-concluidas.html" class="btn-rounded btn-admin-tab">Tarefas Concluídas</a>
-        </div>
-        
-        <hr class="divider">
-        
-        <p class="empty-message">A listagem está oculta. Use os botões acima para realizar ações ou navegar.</p>
-
-        <a href="index.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
-            Voltar ao Dashboard
-        </a>
-    </div>
-
     <script>
         // firestore e db são definidos em firebase-init.js
         const firestore = db;
@@ -99,6 +74,7 @@
         // --- Funções Essenciais (Acesso e Inicialização) ---
         
         function checkAdminAccess() {
+            // Supondo que 'getUsuarioLogado' existe em 'js/script.js' ou 'firebase-init.js'
             const userInfo = typeof getUsuarioLogado === 'function' ? getUsuarioLogado() : { nome: null, isAdmin: false };
             if (!userInfo || !userInfo.isAdmin) {
                 window.location.href = 'index.html'; 
@@ -109,6 +85,8 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             if (!checkAdminAccess()) return;
+            // Se você quiser que a página abra o modal por padrão, descomente a linha abaixo:
+            // openAtribuirTarefaModal(); 
         });
         
         // --- Funções de Modais (Chamadas pelos botões) ---
@@ -134,11 +112,13 @@
             const selectUsuario = document.getElementById('select-usuario-atribuir');
             selectUsuario.innerHTML = '<option value="">Carregando Usuários...</option>';
             try {
+                // ESTA LINHA REQUER PERMISSÃO 'LIST' NA COLEÇÃO 'USERS' PARA ADMINS (Regras do Firebase)
                 const snapshot = await firestore.collection(USERS_COLLECTION).get();
                 let optionsHtml = '<option value="">Selecione o Usuário</option>';
                 if(!snapshot.empty) {
                     snapshot.forEach(doc => {
                         const u = doc.data();
+                        // Você pode precisar adicionar uma verificação para garantir que o 'nome' exista
                         const displayName = u.nome || 'Usuário Sem Nome'; 
                         const isAdmin = u.isAdmin ? ' (Admin)' : ''; 
                         optionsHtml += `<option value="${u.nome}">${displayName}${isAdmin}</option>`;
@@ -148,8 +128,10 @@
                 }
                 selectUsuario.innerHTML = optionsHtml;
             } catch (error) {
+                // Aqui o erro de permissão é capturado e exibido
+                console.error("Erro ao carregar usuários (Permissões):", error);
                 selectUsuario.innerHTML = '<option value="">Erro ao carregar usuários.</option>';
-                if(typeof exibirAlertaGlobal === 'function') exibirAlertaGlobal('admin-alerts', `Erro ao carregar usuários (Permissões): ${error.message}.`, 'danger');
+                if(typeof exibirAlertaGlobal === 'function') exibirAlertaGlobal('admin-alerts', `Erro ao carregar usuários (Verifique Regras de Segurança/Permissões): ${error.message}.`, 'danger');
             }
         }
         

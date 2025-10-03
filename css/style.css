@@ -13,7 +13,7 @@
     --primary-dark: #0056b3;
     
     /* Fundo */
-    --background-color: #e3f2fd; /* Azul muito claro, suave */
+    --background-color: #ffffff; /* ATUALIZADO: Branco puro para tela limpa */
     
     /* Cores de Feedback */
     --success-color: #28a745; /* Verde para sucesso/ganhos/aprovar */
@@ -42,10 +42,7 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Alinha o conteúdo ao topo, melhor para páginas longas */
-    padding: 20px;
+    /* Centralização removida para garantir tela limpa. */
 }
 
 /* =========================================================================
