@@ -18,13 +18,32 @@
         <p class="info-message" style="text-align: center;">Ajuste o saldo dos usuários e gerencie multas.</p>
         <hr class="divider">
 
+        <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            
+            <a href="pagamentos.html" class="btn-rounded btn-success task-action-button">
+                <i class="fas fa-hand-holding-dollar"></i> Pagamentos (Criar)
+            </a>
+            
+            <a href="multas.html" class="btn-rounded btn-danger task-action-button">
+                <i class="fas fa-gavel"></i> Multas (Gerenciar)
+            </a>
+            
+            <a href="emprestimos.html" class="btn-rounded btn-info task-action-button">
+                <i class="fas fa-money-bill-transfer"></i> Empréstimos (Criar)
+            </a>
+            
+            <a href="recompensas.html" class="btn-rounded btn-primary task-action-button">
+                <i class="fas fa-gift"></i> Recompensas (Criar)
+            </a>
+        </div>
+        <hr class="divider">
         <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais</h2>
         <div id="usuarios-saldos-lista" class="historico-lista">
             <p class="empty-message">Carregando usuários...</p>
         </div>
 
-        <a href="historico-multas.html" class="btn-rounded btn-danger wide-button" style="margin-top: 20px;">
-            <i class="fas fa-file-invoice-dollar"></i> Ver e Remover Histórico de Multas
+        <a href="historico-multas.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 20px;">
+            <i class="fas fa-file-invoice-dollar"></i> Ver Histórico de Multas Aplicadas
         </a>
         
         <a href="painel-admin.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 15px;">
@@ -76,11 +95,11 @@
 
 
     <script>
+        // Inicialização do Firestore e variáveis
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
         let currentEditingUser = null; // Armazena o ID do documento (username) do usuário sendo editado
 
-        // --- Funções de Utilitário ---
-        // (Assumindo que getUsuarioLogado e formatarMoeda estão no script.js ou firebase-init.js)
+        // --- Funções de Utilitário (Manutenção das funções inline para garantir o funcionamento) ---
 
         function getUsuarioLogado() {
             try {
@@ -90,7 +109,6 @@
             }
         }
         
-        // Exemplo simples, se não estiver em outro lugar
         function formatarMoeda(valor) {
             return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
@@ -133,16 +151,20 @@
             listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
 
             try {
-                // Buscando a coleção 'users'. Se o campo 'saldo' não existir, 'pontuacao' é um bom fallback, 
-                // mas usaremos 'saldo' conforme a sua lógica de transação.
+                // Busca a coleção 'users', ordenada pelo 'saldo'
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
+                const loggedUser = getUsuarioLogado();
 
                 usersSnapshot.forEach(doc => {
-                    // O ID do documento é o username, que é o que você quer editar
+                    // O ID do documento é o username
                     const userName = doc.id; 
                     const userData = doc.data();
+                    
+                    // Opcional: Ignorar o próprio Admin na lista
+                    if (loggedUser && userName === loggedUser.username) return;
+
                     // Garante que o campo correto é 'saldo' e que seja um número, com fallback para 0
                     const saldo = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     
@@ -215,7 +237,6 @@
                     }
                     
                     const userData = docUser.data();
-                    // Garante que o campo inicial seja 'saldo' ou 'pontuacao' se 'saldo' não existir
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     const novoSaldo = saldoInicial + valorAjuste;
                     
