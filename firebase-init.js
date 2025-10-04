@@ -38,6 +38,7 @@ try {
     
     // 3. Define as variáveis globais de serviço.
     // Isso é o que permite que login.js e gerenciar-carteira.html acessem 'db' e 'auth'.
+    // ATENÇÃO: O serviço .firestore() e .auth() SÓ PODE ser chamado APÓS o app ser inicializado.
     db = app.firestore();
     auth = app.auth();
     
