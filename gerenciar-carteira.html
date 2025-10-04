@@ -47,7 +47,11 @@
         <div id="saldo-banco-container" style="text-align: center; margin-bottom: 25px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
             <span style="font-size: 1.1em; font-weight: bold; color: var(--primary-dark);">Carteira do Banco:</span>
             <span id="saldo-banco-valor" style="font-size: 1.8em; font-weight: bold; margin-left: 10px;">R$ 0,00</span>
-            <p id="saldo-banco-alerta" style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--primary-dark);"></p>
+            <p id="saldo-banco-alerta" style="margin: 5px 0 10px 0; font-size: 0.9em; color: var(--primary-dark);"></p>
+            
+            <button onclick="recarregarSaldoBanco()" class="btn-rounded btn-secondary-text" style="font-size: 0.9em; padding: 5px 10px;">
+                <i class="fas fa-arrows-rotate"></i> Recarregar Saldo (R$ 100,00)
+            </button>
         </div>
         
         <h3 style="font-size: 1.2em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais dos Usuários</h3>
@@ -207,6 +211,26 @@
             }
         }
         
+        /**
+         * Recarrega o saldo do banco para o valor inicial (SALDO_INICIAL = 100.00).
+         */
+        async function recarregarSaldoBanco() {
+            if (!confirm(`Tem certeza que deseja recarregar o saldo do banco para ${formatarMoeda(SALDO_INICIAL)}?`)) {
+                return;
+            }
+
+            try {
+                // Atualiza o saldo do banco para o valor inicial
+                await BANCO_REF.set({ saldo: SALDO_INICIAL });
+
+                alert(`Saldo do banco recarregado para ${formatarMoeda(SALDO_INICIAL)} com sucesso!`);
+                renderSaldoBanco(); // Recarrega apenas a visualização do saldo do banco
+            } catch (error) {
+                console.error("Erro ao recarregar saldo do banco:", error);
+                alert('Erro ao recarregar o saldo do banco. Tente novamente.');
+            }
+        }
+
         function initializeAdminView() {
             if (checkAdminAccess()) {
                 renderUsuariosSaldos();
