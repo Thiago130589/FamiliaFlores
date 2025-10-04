@@ -1,6 +1,4 @@
-﻿// Arquivo: firebase-init.js
-
-/**
+﻿/**
  * js/firebase-init.js
  * Configuração e inicialização do Firebase (Versão v8 Namespaced)
  * Otimizado para usar SOMENTE o Firestore.
@@ -29,7 +27,7 @@ if (typeof firebase !== 'undefined') {
 }
 
 // 2. Define a variável global 'db' com o serviço Firestore.
-// A inicialização de 'firebase.auth()' foi removida.
+// Torna 'db' acessível globalmente.
 let db;
 if (typeof app !== 'undefined' && typeof firebase.firestore !== 'undefined') {
     db = firebase.firestore();

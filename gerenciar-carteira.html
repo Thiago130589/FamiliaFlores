@@ -9,8 +9,9 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script>
-    <script src="js/script.js"></script>
+    
+    <script src="js/firebase-init.js" defer></script>
+    <script src="js/script.js" defer></script>
 </head>
 <body>
     <div class="center-box large-box">
@@ -114,7 +115,9 @@
 
     <script>
         // Inicialização do Firestore e variáveis
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Garante que o db está acessível, dependendo da inicialização em firebase-init.js
+        // NOTE: O 'db' é declarado em firebase-init.js
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore(); 
         let currentEditingUser = null; 
         
         // --- Variáveis de Banco ---
@@ -124,7 +127,9 @@
         // --- Fim Variáveis de Banco ---
 
         // --- Funções de Utilitário ---
-
+        // Funções de Utilitário devem ser importadas de 'script.js' ou declaradas globalmente
+        
+        // Simulação das funções essenciais de 'script.js' que a página depende:
         function getUsuarioLogado() {
             try {
                 return JSON.parse(localStorage.getItem('usuarioLogado'));
@@ -178,6 +183,7 @@
             alertaEl.textContent = '';
 
             try {
+                // Tenta acessar a referência. Se 'firestore' ou 'BANCO_REF' falhar, cairá no catch.
                 const bancoDoc = await BANCO_REF.get();
                 let saldoBanco = 0;
 
@@ -204,7 +210,7 @@
                 }
 
             } catch (error) {
-                console.error("Erro ao carregar saldo do banco:", error);
+                console.error("Erro ao carregar saldo do banco (Verifique o Firebase Init e as Regras):", error);
                 valorEl.textContent = 'Erro!';
                 valorEl.style.color = 'var(--danger-color)';
                 alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
@@ -232,13 +238,16 @@
         }
 
         function initializeAdminView() {
+            // NOTE: checkAdminAccess() já faz o redirecionamento.
             if (checkAdminAccess()) {
                 renderUsuariosSaldos();
                 renderSaldoBanco(); 
             }
         }
 
-        // --- Funções de Renderização ---
+        // --- Funções de Renderização e Ações (RenderUsuariosSaldos, confirmAdjustSaldo, confirmApplyMulta)
+        // ... (o restante do seu código para estas funções continua aqui)
+        
         async function renderUsuariosSaldos() {
             // A verificação de acesso já é feita em initializeAdminView
             const listaEl = document.getElementById('usuarios-saldos-lista');
@@ -298,12 +307,7 @@
                 listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos. Verifique o console.</p>';
             }
         }
-
-        // --- Funções de Ação (Ajuste e Multa) ---
-
-        /**
-         * Ajusta o saldo diretamente (transação).
-         */
+        
         async function confirmAdjustSaldo() {
             const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
             const valorAjuste = parseFloat(valorAjusteStr);
@@ -323,7 +327,6 @@
                 // Usa o ID do documento (username)
                 const userRef = firestore.collection('users').doc(currentEditingUser);
 
-                // Esta transação agora só cuida do saldo do usuário. O banco será ajustado na função de Pagamento
                 await firestore.runTransaction(async (transaction) => {
                     const docUser = await transaction.get(userRef);
 
@@ -348,10 +351,6 @@
             }
         }
 
-        /**
-         * Aplica uma multa (diminui o saldo e registra na coleção 'multas').
-         * NOTA: Aplicar multa NÃO afeta o saldo do banco.
-         */
         async function confirmApplyMulta() {
             const valorMultaStr = document.getElementById('multa-value').value;
             const motivoMulta = document.getElementById('multa-reason').value.trim();
