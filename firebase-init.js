@@ -1,46 +1,37 @@
-﻿// firebase-init.js
+﻿/**
+ * Arquivo: firebase-init.js
+ * Descrição: Inicializa o Firebase e exporta as instâncias de Auth e Firestore.
+ * * ATENÇÃO: Verifique a API Key (apiKey) no Google Cloud (Browser key).
+ * Key usada nas imagens: "AIzaSyD5Yv-C_wQ...DXKy2BM"
+ */
 
-// 1. Configuração
-// **Atenção: Use a "Browser key (auto created by Firebase)" do seu console (começa com AIzaSyD5Yv-C...)**
+// 1. Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyCmoV_45m21CA_LOy7SQR1RsfymtbSZiKc", // Substitua pelo seu Browser key. Eu usei a que apareceu na imagem.
+    // COLOQUE A CHAVE CORRETA AQUI!
+    // A chave usada nas suas imagens é: AIzaSyD5Yv-C_wQxDll_Oe0BmOTcrzg63Q_DXKy2BM
+    apiKey: "AIzaSyD5Yv-C_wQxDll_Oe0BmOTcrzg63Q_DXKy2BM", 
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
     storageBucket: "familia-flores-2ed6a.appspot.com",
-    messagingSenderId: "10231537149",
-    appId: "1:10231537149:web:9f0c2fdb8d44c94d03df4c",
-    measurementId: "G-BEB5W8FNXF"
+    messagingSenderId: "38215537586",
+    appId: "1:38215537586:web:1d8d5162a0141f2389d4c",
+    measurementId: "G-8ER9R9R6M4"
 };
 
-// Variáveis globais. Usamos 'let' sem escopo local para que outros scripts possam acessá-las.
-let app;
-let db; // Firestore
-let auth; // FirebaseAuth
-
 // 2. Inicializa o Firebase App
-try {
-    // Verifica se o SDK foi carregado (necessário no HTML)
-    if (typeof firebase !== 'undefined' && typeof firebase.initializeApp === 'function') {
-        
-        // Se não houver um app, inicializa. Se houver, usa o existente.
-        if (!firebase.app.length) {
-            app = firebase.initializeApp(firebaseConfig);
-        } else {
-            app = firebase.app();
-        }
-
-        // 3. Define as variáveis globais de serviço.
-        // Isso é o que permite que login.js e gerenciar-carteira.html acessem 'db' e 'auth'.
-        db = app.firestore();
-        auth = app.auth();
-
-        console.log("Firebase e Firestore inicializados com sucesso.");
-    } else {
-         console.error("ERRO CRÍTICO: Os scripts do SDK do Firebase NÃO foram carregados no seu HTML (firebase-app.js, firebase-firestore.js, etc).");
-    }
-} catch (e) {
-    console.error("ERRO CRÍTICO na inicialização do Firebase:", e.message);
-    app = null;
-    db = null;
-    auth = null;
+// Garante que o app seja inicializado apenas uma vez
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
 }
+
+// 3. Define as variáveis globais de serviço.
+// Isso é o que permite que login.js acesse 'db' e 'auth'.
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// Torna as variáveis acessíveis globalmente para outros scripts (como login.js)
+window.db = db;
+window.auth = auth;
+
+console.log("Firebase e Firestore inicializados com sucesso. (global)");
+// --- FIM DO ARQUIVO ---
