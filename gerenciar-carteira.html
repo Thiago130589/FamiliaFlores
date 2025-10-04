@@ -28,6 +28,7 @@
         const db = firebase.firestore(); 
     </script>
 
+    <script src="firebase-init.js" defer></script> 
     <script src="script.js" defer></script>
 </head>
 <body>
@@ -117,7 +118,7 @@
         const firestore = typeof db !== 'undefined' ? db : null; 
         let currentEditingUser = null; 
         
-        // As constantes BANCO_REF, LIMITE_ALERTA, SALDO_INICIAL foram REMOVIDAS.
+        // AS FUNÇÕES E CONSTANTES DO SALDO DO BANCO FORAM REMOVIDAS.
 
         if (!firestore) {
             console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível no script principal.");
@@ -156,7 +157,6 @@
                 document.getElementById('modal-saldo-info').textContent = `Saldo Atual: ${formatarMoeda(currentSaldo)}`;
             } else if (modalId === 'modal-aplicar-multa') {
                 document.getElementById('modal-multa-user-nome').textContent = userName;
-                // Limpa os campos da multa ao abrir
                 const multaValueEl = document.getElementById('multa-value');
                 const multaReasonEl = document.getElementById('multa-reason');
                 if(multaValueEl) multaValueEl.value = ''; 
@@ -166,8 +166,6 @@
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden-start');
-            // Não zera currentEditingUser, pois ele é usado imediatamente após fechar o modal.
-            // Zera ele apenas se a operação falhar.
         }
 
         // --- Funções Principais ---
@@ -175,7 +173,7 @@
         function initializeAdminView() {
             if (checkAdminAccess()) {
                 renderUsuariosSaldos();
-                // A função renderSaldoBanco foi REMOVIDA
+                // renderSaldoBanco foi removida.
             }
         }
 
@@ -277,7 +275,7 @@
                 
             } catch (error) {
                 console.error("Erro na transação de ajuste de saldo:", error);
-                currentEditingUser = null; // Zera para evitar ajustes acidentais
+                currentEditingUser = null; 
                 alert(`Erro ao ajustar o saldo: ${error.message || 'Tente novamente.'}`);
             }
         }
@@ -334,12 +332,11 @@
                 
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
-                currentEditingUser = null; // Zera para evitar ajustes acidentais
+                currentEditingUser = null; 
                 alert(`Erro ao aplicar a multa: ${error.message || 'Tente novamente.'}`);
             }
         }
 
-        // Esta seção pode ser removida se o script.js já tiver essa lógica:
         if (document.getElementById('logout-button')) {
             document.getElementById('logout-button').addEventListener('click', () => {
                 if (typeof logoutUser === 'function') {
