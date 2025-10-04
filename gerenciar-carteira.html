@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <script src="firebase-init.js" defer></script> 
+    
     <script src="script.js" defer></script>
 </head>
 <body>
@@ -108,12 +109,13 @@
 
     <script>
         // Acesso seguro às variáveis globais (db = Firestore, auth = FirebaseAuth)
+        // Se 'db' não estiver definido (por falha ou ordem de script), será null.
         const firestore = typeof db !== 'undefined' ? db : null; 
         const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
-        let currentEditingUser = null; // Armazena o username do usuário sendo editado.
+        let currentEditingUser = null; 
         
         if (!firestore || !firebaseAuth) {
-            console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente.");
+            console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente. Variáveis 'db' e 'auth' ausentes.");
         } 
         
         // --- Funções de Utilitário (Você pode mover para script.js) ---
@@ -163,8 +165,10 @@
 
         function closeModal(modalId) {
             const modalEl = document.getElementById(modalId);
-            modalEl.classList.add('hidden-start');
-            modalEl.style.display = 'none';
+            if (modalEl) {
+                modalEl.classList.add('hidden-start');
+                modalEl.style.display = 'none';
+            }
         }
 
         // --- Funções Principais ---
@@ -189,6 +193,7 @@
              }
         }
         
+        // CORREÇÃO: Removida a referência a 'SALDO_INICIAL' para resolver o erro.
         async function recarregarSaldoBanco(valor) {
             if (!checkAdminAccess() || !firestore) return;
             
@@ -199,10 +204,11 @@
             const bancoRef = firestore.collection('banco').doc('banco-global');
 
             try {
+                // Utilizando Transação para garantir a atomicidade (segurança) da atualização
                 await firestore.runTransaction(async (transaction) => {
                     const docBanco = await transaction.get(bancoRef);
                     
-                    let saldoAtual = 0; // Nome da variável corrigido
+                    let saldoAtual = 0; 
                     if (docBanco.exists) {
                         saldoAtual = docBanco.data().saldo || 0;
                     }
@@ -238,6 +244,7 @@
             }
 
             try {
+                // Busca todos os documentos na coleção 'users'
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
@@ -247,6 +254,7 @@
                     const userName = doc.id; 
                     const userData = doc.data();
                     
+                    // Não lista o próprio usuário logado (Admin) ou outros Admins
                     if (loggedUser && userName === loggedUser.username) return;
                     if (userData.isAdmin) return; 
 
@@ -297,6 +305,7 @@
         async function confirmAdjustSaldo() {
             if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
+            // Garantir que o valor seja float com duas casas decimais
             const valorAjuste = Math.round(parseFloat(valorAjusteStr) * 100) / 100; 
             
             if (isNaN(valorAjuste) || valorAjuste === 0 || !currentEditingUser) {
@@ -368,7 +377,7 @@
                     
                     const userData = docUser.data();
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
-                    const novoSaldo = saldoInicial - valorMulta; 
+                    const novoSaldo = saldoInicial - valorMulta; // A multa subtrai do saldo
                     
                     // 1. Atualiza o saldo (subtrai)
                     transaction.update(userRef, { saldo: novoSaldo });
@@ -399,6 +408,7 @@
         document.addEventListener('DOMContentLoaded', () => {
              initializeAdminView();
              
+             // Fechar o modal ao clicar fora
              document.getElementById('modal-ajustar-saldo').addEventListener('click', (e) => {
                  if (e.target.id === 'modal-ajustar-saldo') closeModal('modal-ajustar-saldo');
              });

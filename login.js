@@ -4,16 +4,18 @@
  * Depende de: firebase-init.js (para 'auth' e 'db')
  */
 
-// Acesso seguro às variáveis globais (db = Firestore, auth = FirebaseAuth)
-// O firebase-init.js deve definir as variáveis globais 'db' e 'auth'
+// Acessa as variáveis globais injetadas por firebase-init.js. 
+// Renomeamos para melhor clareza no script, mas acessando a global 'db' e 'auth'.
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
-// Elementos do DOM
+// Restante do código
 const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('login-username');
 const passwordInput = document.getElementById('login-password');
 const loginMessage = document.getElementById('login-message');
+
+// ... (O resto da função showMessage, resetMessage, mapUsernameToEmail é o mesmo) ...
 
 /**
  * Exibe uma mensagem de feedback na tela.
@@ -50,6 +52,7 @@ function mapUsernameToEmail(username) {
     return username.toLowerCase().trim();
 }
 
+
 /**
  * Processa o evento de submissão do formulário de login.
  */
@@ -57,6 +60,7 @@ async function handleLogin(e) {
     e.preventDefault();
     resetMessage();
 
+    // Verificação de inicialização CRÍTICA
     if (!firebaseAuth || !firestore) {
         showMessage('Erro crítico: Firebase não inicializado. Verifique firebase-init.js.', 'error');
         return;
