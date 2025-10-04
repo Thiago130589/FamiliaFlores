@@ -207,10 +207,11 @@
                 }
 
             } catch (error) {
-                console.error("Erro ao carregar saldo do banco (Verifique o Firebase Init e as Regras):", error);
+                // Mensagem de erro mais específica para o console:
+                console.error("Erro ao carregar saldo do banco (Ocorreu uma falha no Firestore):", error);
                 valorEl.textContent = 'Erro!';
                 valorEl.style.color = 'var(--danger-color)';
-                alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
+                alertaEl.textContent = 'Erro ao buscar o saldo do banco. Verifique o console.';
             }
         }
         
