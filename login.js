@@ -41,13 +41,18 @@ function resetMessage() {
 
 /**
  * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
+ * Agora utiliza um domínio de teste mais genérico para evitar a confusão com o email gmail.
  */
 function mapUsernameToEmail(username) {
-    if (!username.includes('@')) {
-        // Este e-mail fictício DEVE ter sido usado durante o cadastro.
-        return `${username.toLowerCase().trim()}@familiadefault.com`;
+    // Se o usuário digitou um email, usa o email.
+    if (username.includes('@')) {
+        return username.toLowerCase().trim();
     }
-    return username.toLowerCase().trim();
+    
+    // Se digitou apenas o apelido, assume-se o formato usado no cadastro.
+    // **Atenção:** Se o usuário real for thiagoferreira2flores@gmail.com, a regra deve ser ajustada.
+    // Pelo que vi nas imagens, você está usando o email completo para login.
+    return `${username.toLowerCase().trim()}@familiadefault.com`;
 }
 
 
@@ -66,7 +71,8 @@ async function handleLogin(e) {
 
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
-    const emailToLogin = mapUsernameToEmail(username);
+    // Se o usuário usa o email completo, o mapUsernameToEmail retorna o email.
+    const emailToLogin = mapUsernameToEmail(username); 
     
     if (username === '' || password === '') {
         showMessage('Preencha todos os campos.', 'error');
@@ -84,8 +90,14 @@ async function handleLogin(e) {
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailToLogin, password);
         const firebaseUser = userCredential.user;
         
-        // ETAPA 2: Busca os dados adicionais do usuário no Firestore USANDO O USERNAME/APELIDO
-        const userDocRef = firestore.collection('users').doc(username); 
+        // CORREÇÃO CRÍTICA: Pega o apelido do usuário para buscar o documento.
+        // Se o login foi feito com o e-mail completo, precisamos extrair o apelido (ID do Documento).
+        // Se o email completo for o ID do documento, usamos o email.
+
+        // MUDANÇA AQUI: Usa o EMAIL COMPLETO do Firebase Auth para buscar no Firestore.
+        // O Firestore exige que a permissão de leitura seja concedida por uma regra.
+        const userDocRef = firestore.collection('users').doc(firebaseUser.email); // CORRIGIDO: Usa o email
+        
         const userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
@@ -100,7 +112,9 @@ async function handleLogin(e) {
         // Constrói o objeto de sessão
         const userSession = {
             uid: firebaseUser.uid, 
-            username: userDoc.id, 
+            // O username aqui deve ser o valor que você usa para exibir na tela (o 'apelido' ou 'nome').
+            // Usarei o ID do Documento (o email) como identificador principal, mas o nome real se existir.
+            username: userDoc.id, // ID do Documento (email completo, ex: thiagoferreira2flores@gmail.com)
             nome: userData.nome || userDoc.id,
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
@@ -122,13 +136,13 @@ async function handleLogin(e) {
         // Manipulação de Erros de Auth
         let errorMessage = 'Erro no login. Verifique o Apelido e Senha.';
         
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             errorMessage = 'Apelido ou Senha incorreta.';
         } else if (error.code === 'auth/invalid-email') {
             errorMessage = 'O formato do Apelido/Usuário é inválido.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
-        } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid')) {
+        } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid') || error.message.includes('CONFIGURATION_NOT_FOUND')) {
              // Tratamento para o ERRO CRÍTICO da Chave de API
             errorMessage = 'Erro interno do servidor (400 Bad Request). Verifique se a **API Key** no `firebase-init.js` está correta.';
             console.error("Erro Firebase de Chave de API CRÍTICO:", error.message);
