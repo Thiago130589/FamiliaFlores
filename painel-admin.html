@@ -192,6 +192,11 @@
         const firestoreDB = typeof firestore !== 'undefined' ? firestore : (typeof db !== 'undefined' ? db : null);
         const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
+        if (!firestoreDB || !firebaseAuth) {
+             console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente no painel-admin.");
+        } 
+
+
         // --- Funções de Utilitário (Mantenha aqui ou mova para script.js) ---
 
         function getUsuarioLogado() {
@@ -276,8 +281,14 @@
                      selectEl.appendChild(option);
                  });
              } catch (error) {
-                 console.error("Erro ao carregar usuários:", error);
-                 selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
+                 // Captura erro de permissão aqui também
+                 if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+                     selectEl.innerHTML = '<option value="disponivel">ERRO: Permissão negada ao listar usuários.</option>';
+                     console.error("Erro de Permissão (Firestore Rules):", error);
+                 } else {
+                     console.error("Erro ao carregar usuários:", error);
+                     selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
+                 }
              }
         }
 
@@ -355,8 +366,14 @@
                  closeModal('modal-criar-tarefa');
                  
              } catch (error) {
-                 console.error("Erro ao criar tarefa:", error);
-                 alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
+                 // Captura erro de permissão aqui também
+                 if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+                     alert("ERRO DE PERMISSÃO: Verifique as Regras do Firestore para as coleções de tarefas.");
+                     console.error("Erro de Permissão (Firestore Rules):", error);
+                 } else {
+                    console.error("Erro ao criar tarefa:", error);
+                    alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
+                 }
              }
         }
 

@@ -105,7 +105,8 @@ async function handleLogin(e) {
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
             // Adicionado pontuacao/saldo que é crucial para o Dashboard (index.html)
-            pontuacao: userData.pontuacao || 0,
+            pontuacao: userData.pontuacao || userData.saldo || 0, // Prioriza saldo, fallback para pontuacao
+            saldo: userData.saldo || userData.pontuacao || 0,
         };
         
         // ETAPA 3: Salva a sessão no LocalStorage
@@ -129,8 +130,9 @@ async function handleLogin(e) {
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
         } else if (error.message.includes('Missing or insufficient permissions')) {
-            errorMessage = 'Erro de permissão após autenticação. Tente novamente ou contate o Admin.';
-            console.error("Erro Firebase de Permissão:", error.message);
+            // Ajuste no tratamento do erro de permissão
+            errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
+            console.error("Erro Firebase de Permissão CRÍTICO:", error.message);
         } else {
             // Outros erros
             errorMessage = `Erro desconhecido: ${error.message}`;

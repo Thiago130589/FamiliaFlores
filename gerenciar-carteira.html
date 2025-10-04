@@ -45,6 +45,16 @@
         <div id="usuarios-saldos-lista" class="historico-lista">
             <p class="empty-message">Carregando usuários...</p>
         </div>
+        
+        <h2 id="saldo-banco-title" style="font-size: 1.4em; margin-top: 30px; margin-bottom: 15px; color: var(--primary-dark);">Saldo do Banco</h2>
+        <div class="card-saldo" style="margin-bottom: 20px;">
+            <div id="banco-saldo-display" class="saldo-display">
+                Carteira do Banco: R$ 0,00
+            </div>
+            <a href="#" id="recarregar-saldo-banco" onclick="recarregarSaldoBanco(100.00); return false;" class="recharge-link">
+                Recarregar Saldo (R$ 100,00)
+            </a>
+            </div>
 
         <a href="historico-multas.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 20px;">
             <i class="fas fa-file-invoice-dollar"></i> Ver Histórico de Multas Aplicadas
@@ -102,8 +112,8 @@
         const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
         let currentEditingUser = null; // Armazena o username do usuário sendo editado.
         
-        if (!firestore) {
-            console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível.");
+        if (!firestore || !firebaseAuth) {
+            console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente.");
         } 
         
         // --- Funções de Utilitário (Essas deveriam estar em script.js, mas mantidas aqui por enquanto) ---
@@ -142,6 +152,7 @@
             if (modalId === 'modal-ajustar-saldo') {
                 document.getElementById('modal-saldo-user-nome').textContent = userName;
                 document.getElementById('modal-saldo-info').textContent = `Saldo Atual: ${formatarMoeda(currentSaldo)}`;
+                document.getElementById('saldo-adjustment-value').value = ''; // Limpar o campo
             } else if (modalId === 'modal-aplicar-multa') {
                 document.getElementById('modal-multa-user-nome').textContent = userName;
                 // Limpa os campos do formulário de multa
@@ -159,9 +170,62 @@
         }
 
         // --- Funções Principais ---
+        
+        async function fetchBancoSaldo() {
+             const bancoDisplay = document.getElementById('banco-saldo-display');
+             
+             if (!firestore) {
+                bancoDisplay.innerHTML = 'Carteira do Banco: <span class="error-text">ERRO!</span>';
+                return;
+             }
+             
+             try {
+                 // Assumindo que você tem um documento único 'banco-global' na coleção 'banco'
+                 const bancoDoc = await firestore.collection('banco').doc('banco-global').get();
+                 const saldo = bancoDoc.exists ? bancoDoc.data().saldo || 0 : 0;
+                 bancoDisplay.innerHTML = `Carteira do Banco: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(saldo)}</span>`;
+                 
+             } catch(error) {
+                 console.error("Erro ao buscar saldo do banco:", error);
+                 bancoDisplay.innerHTML = 'Carteira do Banco: <span class="error-text">Erro ao buscar saldo do banco!</span>';
+             }
+        }
+        
+        async function recarregarSaldoBanco(valor) {
+            if (!checkAdminAccess() || !firestore) return;
+            
+            if (!confirm(`Tem certeza que deseja recarregar o Saldo do Banco em ${formatarMoeda(valor)}?`)) {
+                 return;
+            }
+            
+            const bancoRef = firestore.collection('banco').doc('banco-global');
+
+            try {
+                await firestore.runTransaction(async (transaction) => {
+                    const docBanco = await transaction.get(bancoRef);
+                    
+                    let saldoInicial = 0;
+                    if (docBanco.exists) {
+                        saldoInicial = docBanco.data().saldo || 0;
+                    }
+                    
+                    const novoSaldo = saldoInicial + valor;
+                    
+                    transaction.set(bancoRef, { saldo: novoSaldo }, { merge: true });
+                });
+                
+                alert(`Saldo do Banco recarregado em ${formatarMoeda(valor)} com sucesso!`);
+                fetchBancoSaldo(); // Atualiza a exibição
+                
+            } catch (error) {
+                console.error("Erro na transação de recarga do saldo do banco:", error);
+                alert(`Erro ao recarregar o Saldo do Banco: ${error.message || 'Verifique as Regras do Firestore.'}`);
+            }
+        }
 
         function initializeAdminView() {
             if (checkAdminAccess()) {
+                fetchBancoSaldo(); // Tenta buscar o saldo global
                 renderUsuariosSaldos();
             }
         }
@@ -192,7 +256,7 @@
                     // Opcional: Não exibe outros admins na lista de ajuste de saldo
                     if (userData.isAdmin) return; 
 
-                    // Prioriza 'saldo', mas usa 'pontuacao' como fallback (se a migração não foi 100% feita)
+                    // Prioriza 'saldo', mas usa 'pontuacao' como fallback
                     const saldo = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     
                     foundUsers = true;
@@ -227,8 +291,14 @@
                 }
 
             } catch (error) {
-                console.error("Erro ao carregar saldos:", error);
-                listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos. Verifique o console.</p>';
+                // Captura o erro de permissão (Missing or insufficient permissions)
+                if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
+                     listaEl.innerHTML = '<p class="error-message">ERRO DE PERMISSÃO: Verifique as **Regras do Firestore** para a coleção `users`.</p>';
+                     console.error("Erro de Permissão (Firestore Rules):", error);
+                } else {
+                     console.error("Erro ao carregar saldos:", error);
+                     listaEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de saldos. Verifique o console.</p>';
+                }
             }
         }
         
@@ -273,7 +343,7 @@
             } catch (error) {
                 console.error("Erro na transação de ajuste de saldo:", error);
                 currentEditingUser = null; 
-                alert(`Erro ao ajustar o saldo: ${error.message || 'Tente novamente.'}`);
+                alert(`Erro ao ajustar o saldo: ${error.message || 'Tente novamente. Verifique as Regras do Firestore.'}`);
             }
         }
 
@@ -334,7 +404,7 @@
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
                 currentEditingUser = null; 
-                alert(`Erro ao aplicar a multa: ${error.message || 'Tente novamente.'}`);
+                alert(`Erro ao aplicar a multa: ${error.message || 'Tente novamente. Verifique as Regras do Firestore.'}`);
             }
         }
 
@@ -344,6 +414,12 @@
              // Inicia a view (checa admin e carrega saldos)
              initializeAdminView();
 
+             // Listener para o botão de recarregar saldo (usando o onclick na tag A)
+             const recarregarButton = document.getElementById('recarregar-saldo-banco');
+             if (recarregarButton) {
+                 // Já está usando a função recarregarSaldoBanco no onclick, não precisa de mais um listener.
+             }
+             
              // Listener para logout (usa a função global se estiver disponível, ou o fallback)
              const logoutButton = document.getElementById('logout-button');
              if (logoutButton) {
@@ -358,6 +434,14 @@
                      }
                  });
              }
+             
+             // Listener para fechar modais clicando no overlay
+             document.getElementById('modal-ajustar-saldo').addEventListener('click', (e) => {
+                 if (e.target.id === 'modal-ajustar-saldo') closeModal('modal-ajustar-saldo');
+             });
+             document.getElementById('modal-aplicar-multa').addEventListener('click', (e) => {
+                 if (e.target.id === 'modal-aplicar-multa') closeModal('modal-aplicar-multa');
+             });
         });
     </script>
 </body>
