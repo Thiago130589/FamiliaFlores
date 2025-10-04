@@ -5,7 +5,7 @@
  */
 
 // Acessa as variáveis globais injetadas por firebase-init.js. 
-// Renomeamos para melhor clareza no script, mas acessando a global 'db' e 'auth'.
+// Isso resolve o erro "firestore has already been declared" e garante que 'db' e 'auth' sejam acessíveis.
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
@@ -14,8 +14,6 @@ const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('login-username');
 const passwordInput = document.getElementById('login-password');
 const loginMessage = document.getElementById('login-message');
-
-// ... (O resto da função showMessage, resetMessage, mapUsernameToEmail é o mesmo) ...
 
 /**
  * Exibe uma mensagem de feedback na tela.
@@ -87,7 +85,6 @@ async function handleLogin(e) {
         const firebaseUser = userCredential.user;
         
         // ETAPA 2: Busca os dados adicionais do usuário no Firestore USANDO O USERNAME/APELIDO
-        // Seu documento está nomeado pelo Apelido, não pelo UID.
         const userDocRef = firestore.collection('users').doc(username); 
         const userDoc = await userDocRef.get();
 
@@ -131,8 +128,11 @@ async function handleLogin(e) {
             errorMessage = 'O formato do Apelido/Usuário é inválido.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
+        } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid')) {
+             // Tratamento para o ERRO CRÍTICO da Chave de API
+            errorMessage = 'Erro interno do servidor (400 Bad Request). Verifique se a **API Key** no `firebase-init.js` está correta.';
         } else if (error.message.includes('Missing or insufficient permissions')) {
-            // Este erro é CRÍTICO e indica que as Regras do Firestore precisam ser atualizadas!
+            // Este erro indica que as Regras do Firestore precisam ser atualizadas!
             errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
             console.error("Erro Firebase de Permissão CRÍTICO:", error.message);
         } else {
