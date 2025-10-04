@@ -10,7 +10,9 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    
+    <script src="firebase-init.js"></script>
     
     <script src="script.js" defer></script> 
     
@@ -184,12 +186,11 @@
     </div>
     
     <script>
-        // Define as coleções do Firestore para onde as tarefas devem ir
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
 
-        // Inicializa o Firestore e Auth (usando as variáveis globais do firebase-init.js)
-        const firestoreDB = typeof firestore !== 'undefined' ? firestore : (typeof db !== 'undefined' ? db : null);
+        // Acesso seguro às variáveis globais (db = Firestore, auth = FirebaseAuth)
+        const firestoreDB = typeof db !== 'undefined' ? db : null;
         const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
         if (!firestoreDB || !firebaseAuth) {
@@ -281,7 +282,6 @@
                      selectEl.appendChild(option);
                  });
              } catch (error) {
-                 // Captura erro de permissão aqui também
                  if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
                      selectEl.innerHTML = '<option value="disponivel">ERRO: Permissão negada ao listar usuários.</option>';
                      console.error("Erro de Permissão (Firestore Rules):", error);
@@ -316,7 +316,6 @@
                  return;
              }
              
-             // Verifica a coleção de destino e define os dados de atribuição
              const isDisponivel = (atribuicaoValue === 'disponivel');
              
              let collectionName;
@@ -360,13 +359,11 @@
              try {
                  await firestoreDB.collection(collectionName).add(novaTarefa);
                  
-                 // Se você tivesse a função exibirAlertaGlobal no script.js, o ideal seria usá-la aqui.
                  alert(`Tarefa "${nome}" criada com sucesso! Status: ${status}.`); 
                  
                  closeModal('modal-criar-tarefa');
                  
              } catch (error) {
-                 // Captura erro de permissão aqui também
                  if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
                      alert("ERRO DE PERMISSÃO: Verifique as Regras do Firestore para as coleções de tarefas.");
                      console.error("Erro de Permissão (Firestore Rules):", error);

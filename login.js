@@ -4,7 +4,8 @@
  * Depende de: firebase-init.js (para 'auth' e 'db')
  */
 
-// Verifica se as variáveis globais foram inicializadas pelo firebase-init.js
+// Acesso seguro às variáveis globais (db = Firestore, auth = FirebaseAuth)
+// O firebase-init.js deve definir as variáveis globais 'db' e 'auth'
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
@@ -21,11 +22,9 @@ const loginMessage = document.getElementById('login-message');
  */
 function showMessage(message, type = 'error') {
     loginMessage.textContent = message;
-    // O tipo de mensagem para erro crítico deve ser 'error'
     loginMessage.className = `message-feedback ${type}-message`; 
     loginMessage.classList.remove('hidden-start');
     if (type === 'error') {
-        // Usa console.error apenas para erros
         console.error("Erro no login:", message); 
     } else {
         console.log("Login:", message);
@@ -84,7 +83,7 @@ async function handleLogin(e) {
         const firebaseUser = userCredential.user;
         
         // ETAPA 2: Busca os dados adicionais do usuário no Firestore USANDO O USERNAME/APELIDO
-        // Correção CRÍTICA: Seus documentos estão nomeados pelo Apelido, não pelo UID.
+        // Seu documento está nomeado pelo Apelido, não pelo UID.
         const userDocRef = firestore.collection('users').doc(username); 
         const userDoc = await userDocRef.get();
 
@@ -99,13 +98,12 @@ async function handleLogin(e) {
         
         // Constrói o objeto de sessão
         const userSession = {
-            uid: firebaseUser.uid, // O UID do Auth é importante para regras de segurança
-            username: userDoc.id, // O ID do documento users é o username/apelido
+            uid: firebaseUser.uid, 
+            username: userDoc.id, 
             nome: userData.nome || userDoc.id,
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
-            // Adicionado pontuacao/saldo que é crucial para o Dashboard (index.html)
-            pontuacao: userData.pontuacao || userData.saldo || 0, // Prioriza saldo, fallback para pontuacao
+            pontuacao: userData.pontuacao || userData.saldo || 0,
             saldo: userData.saldo || userData.pontuacao || 0,
         };
         
@@ -114,9 +112,9 @@ async function handleLogin(e) {
         
         // ETAPA 4: Redireciona
         if (userSession.isAdmin) {
-            window.location.href = 'painel-admin.html'; // Redireciona para o painel principal do Admin
+            window.location.href = 'painel-admin.html'; 
         } else {
-            window.location.href = 'index.html'; // Redireciona para o Dashboard do usuário
+            window.location.href = 'index.html'; 
         }
 
     } catch (error) {
@@ -130,11 +128,10 @@ async function handleLogin(e) {
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
         } else if (error.message.includes('Missing or insufficient permissions')) {
-            // Ajuste no tratamento do erro de permissão
+            // Este erro é CRÍTICO e indica que as Regras do Firestore precisam ser atualizadas!
             errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
             console.error("Erro Firebase de Permissão CRÍTICO:", error.message);
         } else {
-            // Outros erros
             errorMessage = `Erro desconhecido: ${error.message}`;
             console.error("Erro de Login Desconhecido:", error);
         }
