@@ -131,6 +131,7 @@ async function handleLogin(e) {
         } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid')) {
              // Tratamento para o ERRO CRÍTICO da Chave de API
             errorMessage = 'Erro interno do servidor (400 Bad Request). Verifique se a **API Key** no `firebase-init.js` está correta.';
+            console.error("Erro Firebase de Chave de API CRÍTICO:", error.message);
         } else if (error.message.includes('Missing or insufficient permissions')) {
             // Este erro indica que as Regras do Firestore precisam ser atualizadas!
             errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
