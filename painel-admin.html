@@ -10,8 +10,7 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> <script src="firebase-init.js"></script>
     
     <script src="script.js" defer></script> 
     
@@ -149,11 +148,11 @@
                 <div class="form-group">
                     <label for="tarefa-valor">Valor (Recompensa)</label>
                     <input type="text" 
-                            id="tarefa-valor" 
-                            class="input-rounded" 
-                            placeholder="Ex: 5,00" 
-                            oninput="maskMoney(this)" 
-                            required>
+                                id="tarefa-valor" 
+                                class="input-rounded" 
+                                placeholder="Ex: 5,00" 
+                                oninput="maskMoney(this)" 
+                                required>
                 </div>
 
                 <div class="form-group">
@@ -189,10 +188,12 @@
         const TAREFAS_DISPONIVEIS_COLLECTION = 'tarefasDisponiveis'; 
         const TAREFAS_ATRIBUIDAS_COLLECTION = 'tarefasAtribuidas'; 
 
-        // Inicializa o Firestore
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Inicializa o Firestore e Auth (usando as variáveis globais do firebase-init.js)
+        const firestoreDB = typeof firestore !== 'undefined' ? firestore : (typeof db !== 'undefined' ? db : null);
+        const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
-        // --- Funções de Utilitário ---
+        // --- Funções de Utilitário (Mantenha aqui ou mova para script.js) ---
+
         function getUsuarioLogado() {
             try {
                 return JSON.parse(localStorage.getItem('usuarioLogado'));
@@ -211,165 +212,206 @@
         }
         
         function openModal(modalId) {
-            if (!checkAdminAccess()) return;
-            // Ajuste para garantir que o display seja flexível para centralização
-            document.getElementById(modalId).style.display = 'flex'; 
-            document.getElementById(modalId).classList.remove('hidden-start');
-            document.addEventListener('keydown', handleEscKey);
+             if (!checkAdminAccess()) return;
+             const modalEl = document.getElementById(modalId);
+             modalEl.style.display = 'flex'; 
+             modalEl.classList.remove('hidden-start');
+             document.addEventListener('keydown', handleEscKey);
         }
 
         function closeModal(modalId) {
-            const modalEl = document.getElementById(modalId);
-            modalEl.classList.add('hidden-start');
-            // Oculta completamente
-            modalEl.style.display = 'none';
-            document.getElementById('form-criar-tarefa').reset();
-            document.removeEventListener('keydown', handleEscKey);
+             const modalEl = document.getElementById(modalId);
+             modalEl.classList.add('hidden-start');
+             modalEl.style.display = 'none';
+             const form = document.getElementById('form-criar-tarefa');
+             if(form) form.reset();
+             document.removeEventListener('keydown', handleEscKey);
         }
         
         function handleEscKey(event) {
-            if (event.key === 'Escape') {
-                closeModal('modal-criar-tarefa');
-            }
+             if (event.key === 'Escape') {
+                 closeModal('modal-criar-tarefa');
+             }
         }
+        // --- FIM: Funções de Utilitário ---
+
 
         // --- Funções de População de Dados ---
         async function loadUserDropdown() {
-            const selectEl = document.getElementById('tarefa-atribuicao');
-            selectEl.innerHTML = ''; 
+             if (!firestoreDB) {
+                 console.error("Firestore não está inicializado.");
+                 return;
+             }
+             const selectEl = document.getElementById('tarefa-atribuicao');
+             selectEl.innerHTML = ''; 
 
-            // 1. Adiciona a opção padrão (Disponível)
-            const defaultOption = document.createElement('option');
-            defaultOption.value = 'disponivel';
-            defaultOption.textContent = 'Disponível para todos';
-            selectEl.appendChild(defaultOption);
+             // 1. Adiciona a opção padrão (Disponível)
+             const defaultOption = document.createElement('option');
+             defaultOption.value = 'disponivel';
+             defaultOption.textContent = 'Disponível para todos';
+             selectEl.appendChild(defaultOption);
 
-            try {
-                const usersSnapshot = await firestore.collection('users').orderBy('nome').get();
-                
-                usersSnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    const userUID = doc.id; 
-                    
-                    const userDisplayName = userData.nome || userUID;
-                    
-                    if (userData.isAdmin !== true) { 
-                        const option = document.createElement('option');
-                        option.value = userUID; 
-                        option.textContent = userDisplayName + ' (Atribuir)';
-                        option.dataset.userName = userDisplayName; 
-                        selectEl.appendChild(option);
-                    }
-                });
-            } catch (error) {
-                console.error("Erro ao carregar usuários:", error);
-                selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
-            }
+             try {
+                 // Busca usuários, excluindo Admins
+                 const usersSnapshot = await firestoreDB.collection('users')
+                     .where('isAdmin', '==', false)
+                     .orderBy('nome')
+                     .get();
+                 
+                 if (usersSnapshot.empty) {
+                     selectEl.innerHTML = '<option value="disponivel">Nenhum usuário não-admin encontrado.</option>';
+                     return;
+                 }
+                 
+                 usersSnapshot.forEach(doc => {
+                     const userData = doc.data();
+                     const userUsername = doc.id; // O ID do documento é o username/apelido
+                     
+                     const userDisplayName = userData.nome || userUsername;
+                     
+                     const option = document.createElement('option');
+                     option.value = userUsername; // Usar o username como valor de atribuição
+                     option.textContent = userDisplayName + ` (@${userUsername})`;
+                     option.dataset.userName = userDisplayName; 
+                     selectEl.appendChild(option);
+                 });
+             } catch (error) {
+                 console.error("Erro ao carregar usuários:", error);
+                 selectEl.innerHTML = '<option value="disponivel">Erro ao carregar lista de usuários.</option>';
+             }
         }
 
 
         // --- Funções de Ação ---
 
         async function createNewTask(event) {
-            event.preventDefault();
-            
-            if (!checkAdminAccess()) return;
-            
-            const adminUser = getUsuarioLogado();
-            
-            const nome = document.getElementById('tarefa-nome').value.trim();
-            const descricao = document.getElementById('tarefa-descricao').value.trim();
-            const valor = unmaskMoney(document.getElementById('tarefa-valor').value); 
-            const dataLimite = document.getElementById('tarefa-data-limite').value;
-            const horaLimite = document.getElementById('tarefa-hora-limite').value;
-            
-            const atribuicaoSelect = document.getElementById('tarefa-atribuicao');
-            const atribuicaoValue = atribuicaoSelect.value;
-            
-            if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
-                alert("Por favor, preencha todos os campos corretamente. Verifique se o valor é positivo.");
-                return;
-            }
-            
-            // Verifica a coleção de destino e define os dados de atribuição
-            const isDisponivel = (atribuicaoValue === 'disponivel');
-            
-            let collectionName;
-            let status;
-            let atribuidaPara = null;
-            let usuarioUID = null;
-            
-            if (isDisponivel) {
-                // 1. Tarefa DISPONÍVEL
-                collectionName = TAREFAS_DISPONIVEIS_COLLECTION;
-                status = 'Disponível';
-            } else {
-                // 2. Tarefa ATRIBUÍDA
-                collectionName = TAREFAS_ATRIBUIDAS_COLLECTION;
-                status = 'EmAndamento';
-                
-                usuarioUID = atribuicaoValue; 
-                const selectedOption = atribuicaoSelect.options[atribuicaoSelect.selectedIndex];
-                atribuidaPara = selectedOption.dataset.userName || selectedOption.textContent;
-            }
+             event.preventDefault();
+             
+             if (!checkAdminAccess() || !firestoreDB) return;
+             
+             const adminUser = getUsuarioLogado();
+             
+             const nome = document.getElementById('tarefa-nome').value.trim();
+             const descricao = document.getElementById('tarefa-descricao').value.trim();
+             const valor = unmaskMoney(document.getElementById('tarefa-valor').value); 
+             const dataLimite = document.getElementById('tarefa-data-limite').value;
+             const horaLimite = document.getElementById('tarefa-hora-limite').value;
+             
+             const atribuicaoSelect = document.getElementById('tarefa-atribuicao');
+             const atribuicaoValue = atribuicaoSelect.value;
+             
+             if (nome === '' || descricao === '' || isNaN(valor) || valor <= 0 || dataLimite === '' || horaLimite === '') {
+                 alert("Por favor, preencha todos os campos corretamente. Verifique se o valor é positivo.");
+                 return;
+             }
+             
+             // Verifica a coleção de destino e define os dados de atribuição
+             const isDisponivel = (atribuicaoValue === 'disponivel');
+             
+             let collectionName;
+             let status;
+             let atribuidaPara = null;
+             let usuarioUsername = null; 
+             
+             if (isDisponivel) {
+                 // 1. Tarefa DISPONÍVEL
+                 collectionName = TAREFAS_DISPONIVEIS_COLLECTION;
+                 status = 'Disponível';
+             } else {
+                 // 2. Tarefa ATRIBUÍDA
+                 collectionName = TAREFAS_ATRIBUIDAS_COLLECTION;
+                 status = 'EmAndamento';
+                 
+                 usuarioUsername = atribuicaoValue; // O valor é o username
+                 const selectedOption = atribuicaoSelect.options[atribuicaoSelect.selectedIndex];
+                 atribuidaPara = selectedOption.dataset.userName || selectedOption.textContent.replace(` (@${usuarioUsername})`, '');
+             }
 
-            const novaTarefa = {
-                nome: nome,
-                descricao: descricao,
-                valor: valor,
-                dataPrazo: dataLimite, 
-                horarioPrazo: horaLimite,
-                prazo: `${dataLimite}T${horaLimite}`, 
-                
-                // Dados de Atribuição
-                status: status,
-                atribuidaPara: atribuidaPara, 
-                usuarioUID: usuarioUID, 
-                dataAtribuicao: isDisponivel ? null : new Date().toISOString().split('T')[0],
-                
-                // Dados de Criação
-                dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
-                criadaPor: adminUser.nome || adminUser.username || 'Admin',
-            };
+             const novaTarefa = {
+                 nome: nome,
+                 descricao: descricao,
+                 valor: valor,
+                 dataPrazo: dataLimite, 
+                 horarioPrazo: horaLimite,
+                 prazo: `${dataLimite}T${horaLimite}`, 
+                 
+                 // Dados de Atribuição
+                 status: status,
+                 atribuidaPara: atribuidaPara, 
+                 usuarioUsername: usuarioUsername, 
+                 dataAtribuicao: isDisponivel ? null : new Date().toISOString().split('T')[0],
+                 
+                 // Dados de Criação
+                 dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+                 criadaPor: adminUser.nome || adminUser.username || 'Admin',
+             };
 
-            try {
-                await firestore.collection(collectionName).add(novaTarefa);
-                
-                alert(`Tarefa "${nome}" criada com sucesso! Status: ${status}.`);
-                closeModal('modal-criar-tarefa');
-                
-            } catch (error) {
-                console.error("Erro ao criar tarefa:", error);
-                alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
-            }
+             try {
+                 await firestoreDB.collection(collectionName).add(novaTarefa);
+                 
+                 // Se você tivesse a função exibirAlertaGlobal no script.js, o ideal seria usá-la aqui.
+                 alert(`Tarefa "${nome}" criada com sucesso! Status: ${status}.`); 
+                 
+                 closeModal('modal-criar-tarefa');
+                 
+             } catch (error) {
+                 console.error("Erro ao criar tarefa:", error);
+                 alert("Erro ao criar tarefa. Verifique o console para mais detalhes e as Regras do Firestore.");
+             }
         }
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            if (checkAdminAccess()) {
-                loadUserDropdown();
-            }
+             // 1. Checa acesso e carrega dados
+             if (checkAdminAccess()) {
+                 loadUserDropdown();
+             }
 
-            document.getElementById('btn-criar-tarefa').addEventListener('click', (e) => {
-                e.preventDefault();
-                openModal('modal-criar-tarefa');
-            });
-            
-            document.getElementById('form-criar-tarefa').addEventListener('submit', createNewTask);
-            
-            const modalOverlay = document.getElementById('modal-criar-tarefa');
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) { 
-                    closeModal('modal-criar-tarefa');
-                }
-            });
+             // 2. Abre Modal
+             const btnCriarTarefa = document.getElementById('btn-criar-tarefa');
+             if (btnCriarTarefa) {
+                 btnCriarTarefa.addEventListener('click', (e) => {
+                     e.preventDefault();
+                     openModal('modal-criar-tarefa');
+                 });
+             }
+             
+             // 3. Submissão do Formulário
+             const formCriarTarefa = document.getElementById('form-criar-tarefa');
+             if (formCriarTarefa) {
+                 formCriarTarefa.addEventListener('submit', createNewTask);
+             }
+             
+             // 4. Fechar Modal ao clicar no overlay
+             const modalOverlay = document.getElementById('modal-criar-tarefa');
+             if (modalOverlay) {
+                 modalOverlay.addEventListener('click', (e) => {
+                     if (e.target === modalOverlay) { 
+                         closeModal('modal-criar-tarefa');
+                     }
+                 });
+             }
 
-            if (document.getElementById('logout-button')) {
-                document.getElementById('logout-button').addEventListener('click', () => {
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'login.html'; 
-                });
-            }
+             // 5. Logout
+             const logoutButton = document.getElementById('logout-button');
+             if (logoutButton) {
+                 logoutButton.addEventListener('click', async () => {
+                     if (typeof logoutUser === 'function') {
+                         logoutUser();
+                     } else if (firebaseAuth) {
+                        try {
+                           await firebaseAuth.signOut(); 
+                        } catch (e) {
+                            console.warn("Erro ao deslogar do Auth, limpando local storage.", e);
+                        }
+                        localStorage.removeItem('usuarioLogado'); 
+                        window.location.href = 'login.html';
+                     } else {
+                        localStorage.removeItem('usuarioLogado'); 
+                        window.location.href = 'login.html';
+                     }
+                 });
+             }
         });
     </script>
 </body>

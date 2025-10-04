@@ -1,3 +1,9 @@
+/**
+ * Arquivo: login.js
+ * Descrição: Lógica de autenticação do formulário de login.
+ * Depende de: firebase-init.js (para 'auth' e 'db')
+ */
+
 // Verifica se as variáveis globais foram inicializadas pelo firebase-init.js
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
@@ -15,9 +21,15 @@ const loginMessage = document.getElementById('login-message');
  */
 function showMessage(message, type = 'error') {
     loginMessage.textContent = message;
-    loginMessage.className = `message-feedback ${type}-message`;
+    // O tipo de mensagem para erro crítico deve ser 'error'
+    loginMessage.className = `message-feedback ${type}-message`; 
     loginMessage.classList.remove('hidden-start');
-    console.error("Erro no login:", message);
+    if (type === 'error') {
+        // Usa console.error apenas para erros
+        console.error("Erro no login:", message); 
+    } else {
+        console.log("Login:", message);
+    }
 }
 
 /**
@@ -29,15 +41,11 @@ function resetMessage() {
 }
 
 /**
- * Garante que o username (apelido) termine em "@dominio.com" para usar o Firebase Auth.
- * Se o seu app armazena usuários no Firestore por 'username' e o Firebase Auth por 'email', 
- * este passo é crucial para mapear o username para um email fictício.
- * @param {string} username O apelido ou username digitado.
- * @returns {string} O email completo para login.
+ * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
  */
 function mapUsernameToEmail(username) {
     if (!username.includes('@')) {
-        // ASSUME que todos os usuários são mapeados para um email no domínio do projeto
+        // Este e-mail fictício DEVE ter sido usado durante o cadastro.
         return `${username.toLowerCase().trim()}@familiadefault.com`;
     }
     return username.toLowerCase().trim();
@@ -45,14 +53,13 @@ function mapUsernameToEmail(username) {
 
 /**
  * Processa o evento de submissão do formulário de login.
- * @param {Event} e O evento de submissão.
  */
 async function handleLogin(e) {
     e.preventDefault();
     resetMessage();
 
     if (!firebaseAuth || !firestore) {
-        showMessage('Erro crítico: Firebase não inicializado.', 'error');
+        showMessage('Erro crítico: Firebase não inicializado. Verifique firebase-init.js.', 'error');
         return;
     }
 
@@ -72,31 +79,33 @@ async function handleLogin(e) {
 
 
     try {
-        // ETAPA 1: Autenticação via Firebase Auth (Email/Senha)
+        // ETAPA 1: Autenticação via Firebase Auth (Verifica email/senha)
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailToLogin, password);
         const firebaseUser = userCredential.user;
         
-        // ETAPA 2: Busca os dados adicionais do usuário no Firestore (usando o UID do Auth)
-        const userDocRef = firestore.collection('users').doc(firebaseUser.uid);
+        // ETAPA 2: Busca os dados adicionais do usuário no Firestore USANDO O USERNAME/APELIDO
+        // Correção CRÍTICA: Seus documentos estão nomeados pelo Apelido, não pelo UID.
+        const userDocRef = firestore.collection('users').doc(username); 
         const userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
-            // Isso pode acontecer se o Firestore não tiver um documento user
-            // correspondente ao UID do Auth. Desloga e reporta.
+            // Se o documento Firestore não existir, desloga o Auth.
             await firebaseAuth.signOut();
-            showMessage('Conta encontrada, mas perfil incompleto. Contate o administrador.', 'error');
+            showMessage('Perfil de usuário não encontrado no banco de dados. Contate o administrador.', 'error');
             return;
         }
 
         const userData = userDoc.data();
         
-        // Constrói o objeto de sessão (Username é o DOC ID, não o email do Auth)
+        // Constrói o objeto de sessão
         const userSession = {
-            uid: firebaseUser.uid,
+            uid: firebaseUser.uid, // O UID do Auth é importante para regras de segurança
             username: userDoc.id, // O ID do documento users é o username/apelido
-            nome: userData.nome,
+            nome: userData.nome || userDoc.id,
+            foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
-            // ... outros dados que você queira salvar na sessão
+            // Adicionado pontuacao/saldo que é crucial para o Dashboard (index.html)
+            pontuacao: userData.pontuacao || 0,
         };
         
         // ETAPA 3: Salva a sessão no LocalStorage
@@ -104,26 +113,28 @@ async function handleLogin(e) {
         
         // ETAPA 4: Redireciona
         if (userSession.isAdmin) {
-            window.location.href = 'painel-admin.html';
+            window.location.href = 'painel-admin.html'; // Redireciona para o painel principal do Admin
         } else {
-            window.location.href = 'minhas-tarefas.html'; // Exemplo de página para usuários
+            window.location.href = 'index.html'; // Redireciona para o Dashboard do usuário
         }
 
     } catch (error) {
         // Manipulação de Erros de Auth
-        let errorMessage = 'Erro no login. Verifique as credenciais.';
-        if (error.code === 'auth/wrong-password') {
-            errorMessage = 'Senha incorreta.';
-        } else if (error.code === 'auth/user-not-found') {
-            // Este erro é menos provável se você estiver usando o mapeamento de email
-            errorMessage = 'Usuário não encontrado. Crie uma conta.';
+        let errorMessage = 'Erro no login. Verifique o Apelido e Senha.';
+        
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            errorMessage = 'Apelido ou Senha incorreta.';
         } else if (error.code === 'auth/invalid-email') {
-            errorMessage = 'Formato de usuário/apelido inválido.';
+            errorMessage = 'O formato do Apelido/Usuário é inválido.';
         } else if (error.code === 'auth/network-request-failed') {
-            errorMessage = 'Erro de conexão. Verifique sua rede.';
+            errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
         } else if (error.message.includes('Missing or insufficient permissions')) {
-            // Este erro deve ser menos frequente se o processo Auth->Firestore for seguido
-            errorMessage = 'Erro de permissão. Tente novamente ou contate o Admin.';
+            errorMessage = 'Erro de permissão após autenticação. Tente novamente ou contate o Admin.';
+            console.error("Erro Firebase de Permissão:", error.message);
+        } else {
+            // Outros erros
+            errorMessage = `Erro desconhecido: ${error.message}`;
+            console.error("Erro de Login Desconhecido:", error);
         }
         
         showMessage(errorMessage, 'error');

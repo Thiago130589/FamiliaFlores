@@ -9,25 +9,8 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
-    <script>
-        // *** VOCÊ DEVE SUBSTITUIR ESTE CONTEÚDO PELA SUA CONFIGURAÇÃO REAL ***
-        const firebaseConfig = {
-            apiKey: "...", // Sua chave real
-            authDomain: "...", // Seu domínio real
-            projectId: "...", // Seu ID de projeto real
-            storageBucket: "...",
-            messagingSenderId: "...",
-            appId: "..."
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-
-        const db = firebase.firestore(); 
-    </script>
-
     <script src="firebase-init.js" defer></script> 
     <script src="script.js" defer></script>
 </head>
@@ -72,7 +55,7 @@
         </a>
     </div>
 
-    <div id="modal-ajustar-saldo" class="modal-overlay hidden-start">
+    <div id="modal-ajustar-saldo" class="modal-overlay hidden-start" style="display: none;">
         <div class="modal-content">
             <button class="modal-close-icon" onclick="closeModal('modal-ajustar-saldo')"><i class="fas fa-times"></i></button>
             <h2 class="modal-title">Ajustar Saldo Manualmente</h2>
@@ -90,7 +73,7 @@
         </div>
     </div>
     
-    <div id="modal-aplicar-multa" class="modal-overlay hidden-start">
+    <div id="modal-aplicar-multa" class="modal-overlay hidden-start" style="display: none;">
         <div class="modal-content">
             <button class="modal-close-icon" onclick="closeModal('modal-aplicar-multa')"><i class="fas fa-times"></i></button>
             <h2 class="modal-title" style="color: var(--danger-color);">Aplicar Multa</h2>
@@ -114,17 +97,16 @@
 
 
     <script>
-        // Acesso ao 'db' que agora está definido acima
+        // Acesso ao 'db' e 'auth' (assumindo que foram definidos em firebase-init.js)
         const firestore = typeof db !== 'undefined' ? db : null; 
-        let currentEditingUser = null; 
+        const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
+        let currentEditingUser = null; // Armazena o username do usuário sendo editado.
         
-        // AS FUNÇÕES E CONSTANTES DO SALDO DO BANCO FORAM REMOVIDAS.
-
         if (!firestore) {
-            console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível no script principal.");
+            console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível.");
         } 
         
-        // --- Funções de Utilitário e Lógica de Negócios ---
+        // --- Funções de Utilitário (Essas deveriam estar em script.js, mas mantidas aqui por enquanto) ---
         
         function getUsuarioLogado() {
             try {
@@ -134,6 +116,7 @@
             }
         }
         
+        // Esta função DEVE SER movida para script.js para uso global
         function formatarMoeda(valor) {
             return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
@@ -141,7 +124,8 @@
         function checkAdminAccess() {
             const userInfo = getUsuarioLogado();
             if (!userInfo || userInfo.isAdmin !== true) {
-                alert("Acesso negado. Apenas administradores.");
+                // Se você tiver uma função global de alerta (em script.js) use-a aqui.
+                alert("Acesso negado. Apenas administradores."); 
                 window.location.href = 'index.html';
                 return false;
             }
@@ -149,14 +133,18 @@
         }
 
         function openModal(modalId, userName, currentSaldo) {
+            if (!checkAdminAccess()) return;
             currentEditingUser = userName;
-            document.getElementById(modalId).classList.remove('hidden-start');
+            const modalEl = document.getElementById(modalId);
+            modalEl.classList.remove('hidden-start');
+            modalEl.style.display = 'flex'; // Garante que o modal apareça centralizado
             
             if (modalId === 'modal-ajustar-saldo') {
                 document.getElementById('modal-saldo-user-nome').textContent = userName;
                 document.getElementById('modal-saldo-info').textContent = `Saldo Atual: ${formatarMoeda(currentSaldo)}`;
             } else if (modalId === 'modal-aplicar-multa') {
                 document.getElementById('modal-multa-user-nome').textContent = userName;
+                // Limpa os campos do formulário de multa
                 const multaValueEl = document.getElementById('multa-value');
                 const multaReasonEl = document.getElementById('multa-reason');
                 if(multaValueEl) multaValueEl.value = ''; 
@@ -165,7 +153,9 @@
         }
 
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden-start');
+            const modalEl = document.getElementById(modalId);
+            modalEl.classList.add('hidden-start');
+            modalEl.style.display = 'none'; // Oculta completamente
         }
 
         // --- Funções Principais ---
@@ -173,7 +163,6 @@
         function initializeAdminView() {
             if (checkAdminAccess()) {
                 renderUsuariosSaldos();
-                // renderSaldoBanco foi removida.
             }
         }
 
@@ -187,17 +176,23 @@
             }
 
             try {
+                // Busca todos os usuários ordenados pelo saldo.
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
                 const loggedUser = getUsuarioLogado();
 
                 usersSnapshot.forEach(doc => {
+                    // O ID do documento é o username/apelido, que usamos como identificador único.
                     const userName = doc.id; 
                     const userData = doc.data();
                     
+                    // Não exibe o próprio admin na lista
                     if (loggedUser && userName === loggedUser.username) return;
+                    // Opcional: Não exibe outros admins na lista de ajuste de saldo
+                    if (userData.isAdmin) return; 
 
+                    // Prioriza 'saldo', mas usa 'pontuacao' como fallback (se a migração não foi 100% feita)
                     const saldo = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     
                     foundUsers = true;
@@ -228,7 +223,7 @@
                 if (foundUsers) {
                     listaEl.innerHTML = html;
                 } else {
-                    listaEl.innerHTML = '<p class="empty-message">Nenhum usuário encontrado (além de você).</p>';
+                    listaEl.innerHTML = '<p class="empty-message">Nenhum usuário não-administrador encontrado.</p>';
                 }
 
             } catch (error) {
@@ -240,7 +235,8 @@
         async function confirmAdjustSaldo() {
             if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
-            const valorAjuste = parseFloat(valorAjusteStr);
+            // Usa Math.round para evitar problemas de ponto flutuante, mas mantém 2 casas decimais.
+            const valorAjuste = Math.round(parseFloat(valorAjusteStr) * 100) / 100; 
             
             if (isNaN(valorAjuste) || valorAjuste === 0 || !currentEditingUser) {
                 alert("Valor inválido ou usuário não selecionado.");
@@ -270,8 +266,9 @@
                     transaction.update(userRef, { saldo: novoSaldo });
                 });
 
+                // Idealmente, usar exibirAlertaGlobal() aqui.
                 alert(`Saldo de ${currentEditingUser} ajustado em ${formatarMoeda(valorAjuste)} com sucesso!`);
-                initializeAdminView(); 
+                initializeAdminView(); // Recarrega a lista
                 
             } catch (error) {
                 console.error("Erro na transação de ajuste de saldo:", error);
@@ -284,10 +281,11 @@
             if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorMultaStr = document.getElementById('multa-value').value;
             const motivoMulta = document.getElementById('multa-reason').value.trim();
-            const valorMulta = parseFloat(valorMultaStr);
+            // Usa Math.round para evitar problemas de ponto flutuante, garantindo 2 casas decimais.
+            const valorMulta = Math.round(parseFloat(valorMultaStr) * 100) / 100;
             
-            if (isNaN(valorMulta) || valorMulta <= 0 || !currentEditingUser || !motivoMulta) {
-                alert("Verifique o valor da multa e o motivo.");
+            if (isNaN(valorMulta) || valorMulta <= 0 || !currentEditingUser || motivoMulta === '') {
+                alert("Verifique o valor da multa (deve ser positivo) e o motivo.");
                 return;
             }
 
@@ -299,6 +297,7 @@
 
             try {
                 const userRef = firestore.collection('users').doc(currentEditingUser);
+                // Gera um ID automático para o novo documento na coleção 'multas'
                 const multaRef = firestore.collection('multas').doc(); 
                 const adminUser = getUsuarioLogado();
 
@@ -311,6 +310,7 @@
                     
                     const userData = docUser.data();
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
+                    // Subtrai o valor da multa
                     const novoSaldo = saldoInicial - valorMulta; 
                     
                     // 1. Atualiza o saldo (subtrai)
@@ -327,8 +327,9 @@
                     });
                 });
 
+                // Idealmente, usar exibirAlertaGlobal() aqui.
                 alert(`Multa de ${formatarMoeda(valorMulta)} aplicada a ${currentEditingUser} com sucesso!`);
-                initializeAdminView(); 
+                initializeAdminView(); // Recarrega a lista
                 
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
@@ -337,18 +338,27 @@
             }
         }
 
-        if (document.getElementById('logout-button')) {
-            document.getElementById('logout-button').addEventListener('click', () => {
-                if (typeof logoutUser === 'function') {
-                    logoutUser();
-                } else {
-                    localStorage.removeItem('usuarioLogado');
-                    window.location.href = 'login.html';
-                }
-            });
-        }
+        // --- Event Listeners ---
         
-        window.addEventListener('DOMContentLoaded', initializeAdminView);
+        document.addEventListener('DOMContentLoaded', () => {
+             // Inicia a view (checa admin e carrega saldos)
+             initializeAdminView();
+
+             // Listener para logout (usa a função global se estiver disponível, ou o fallback)
+             const logoutButton = document.getElementById('logout-button');
+             if (logoutButton) {
+                logoutButton.addEventListener('click', () => {
+                     // Verifica se a função global está carregada pelo script.js
+                     if (typeof logoutUser === 'function') {
+                         logoutUser();
+                     } else {
+                         // Fallback simples
+                         localStorage.removeItem('usuarioLogado');
+                         window.location.href = 'login.html';
+                     }
+                 });
+             }
+        });
     </script>
 </body>
 </html>
