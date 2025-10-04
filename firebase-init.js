@@ -1,42 +1,43 @@
 ﻿/**
  * Arquivo: firebase-init.js
  * Descrição: Configuração e inicialização do Firebase (Versão 8 Namespace)
- * Otimizado para usar SOMENTE o Firestore.
+ * Otimizado para usar Firestore e Auth.
+ * * ATENÇÃO: Se o erro "API key not valid" persistir, substitua a 'apiKey' 
+ * pela chave correta do seu console.
  */
 
-// 1. Configurações (Substitua com suas chaves reais!)
+// 1. Configurações (Usando a chave que apareceu em uma imagem anterior)
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY_AQUI", // Use sua chave real
-    authDomain: "SUA_DOMAIN_AQUI.firebaseapp.com",
-    projectId: "SEU_PROJECT_ID",
-    storageBucket: "SEU_STORAGE_BUCKET.appspot.com",
-    messagingSenderId: "SEU_SENDER_ID",
-    appId: "SEU_APP_ID",
-    measurementId: "SEU_MEASUREMENT_ID"
+    apiKey: "AIzaSyDsYy-C_wQXdLOe08mOTczq63Q_DXky2BM",
+    authDomain: "familia-flores-2ed6a.firebaseapp.com",
+    projectId: "familia-flores-2ed6a",
+    storageBucket: "familia-flores-2ed6a.firebasestorage.app",
+    messagingSenderId: "102151517349",
+    appId: "1:102151517349:web:0fa6cfa865f9da338f494c",
+    measurementId: "G-8E95B0VFNR"
 };
 
-// Variáveis globais (NÃO use const, let ou var para injetar globalmente)
-// Se não usar const/let/var, o escopo se torna global.
+// Variáveis globais. Usamos 'let' sem escopo local para que outros scripts possam acessá-las.
 let app;
-let db; // Firestore
+let db;   // Firestore
 let auth; // FirebaseAuth
 
 // 2. Inicializa o Firebase App
 try {
-    // Verifica se a variável global 'firebase' do SDK foi carregada
+    // 🚨 Verifica se o SDK foi carregado (necessário no HTML)
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp !== 'function') {
-        console.error("ERRO CRÍTICO: O script 'firebase-app.js' NÃO foi carregado no seu HTML.");
+        console.error("ERRO CRÍTICO: Os scripts do SDK do Firebase NÃO foram carregados no seu HTML (firebase-app.js, firebase-firestore.js, etc).");
     }
 
-    // Verifica se já existe um app inicializado
+    // Se não houver um app, inicializa. Se houver, usa o existente.
     if (firebase.apps.length === 0) {
         app = firebase.initializeApp(firebaseConfig);
     } else {
         app = firebase.app();
     }
     
-    // 3. Define as variáveis globais de serviço
-    // Nota: O acesso global é necessário para que outros scripts como login.js o utilizem.
+    // 3. Define as variáveis globais de serviço.
+    // Isso é o que permite que login.js e gerenciar-carteira.html acessem 'db' e 'auth'.
     db = app.firestore();
     auth = app.auth();
     
@@ -44,7 +45,6 @@ try {
 
 } catch (e) {
     console.error("ERRO CRÍTICO na inicialização do Firebase:", e.message);
-    // Em caso de erro, definimos como null para evitar erros de referência em outros arquivos
     app = null;
     db = null;
     auth = null;
