@@ -2,18 +2,20 @@
  * Arquivo: firebase-init.js
  * Descrição: Configuração e inicialização do Firebase (Versão 8 Namespace)
  * Otimizado para usar SOMENTE o Firestore e Auth.
- * * * * IMPORTANTE: Chave de API atualizada com sucesso.
+ * * * * IMPORTANTE: Usando as credenciais do NOVO PROJETO: familia-flores-new
  */
 
-// 1. Configurações (CHAVE E APP ID ATUALIZADOS)
+// 1. Configurações (CHAVE E APP ID ATUALIZADOS para o novo projeto)
 const firebaseConfig = {
-    apiKey: "AIzaSyDuliFO2bNSWfplEzcZuY7fRz1PK5muUNQ",
-    authDomain: "familia-flores-2ed6a.firebaseapp.com",
-    projectId: "familia-flores-2ed6a",
-    storageBucket: "familia-flores-2ed6a.firebasestorage.app",
-    messagingSenderId: "102151517349",
-    appId: "1:102151517349:web:8c87e65a3b6e1a568f494c",
-    measurementId: "G-V3D7JWZDSN"
+    // Chave de API do novo projeto
+    apiKey: "AIzaSyCmoV_45m21CA_LOy7SQR1RsfymtbSZiKc",
+    // Credenciais do novo projeto
+    authDomain: "familia-flores-new.firebaseapp.com",
+    projectId: "familia-flores-new",
+    storageBucket: "familia-flores-new.firebasestorage.app",
+    messagingSenderId: "367548553329",
+    appId: "1:367548553329:web:6a87bd723b9cd36b2ae3d0",
+    measurementId: "G-G9JPTHRFQR"
 };
 
 // Variáveis globais (Usamos 'let' sem escopo local para que outros scripts possam acessá-las)
@@ -24,8 +26,9 @@ let auth; // FirebaseAuth
 // 2. Inicializa o Firebase App
 try {
     // Verificação de segurança: Checa se o SDK (V8) foi carregado
+    // É CRÍTICO que os scripts 'firebase-app.js' e 'firebase-firestore.js' estejam no seu HTML
     if (typeof firebase === 'undefined' || typeof firebase.initializeApp !== 'function') {
-        console.error("ERRO CRÍTICO: O objeto 'firebase' não está definido. Verifique se os scripts do SDK (firebase-app.js, firebase-firestore.js, etc.) estão carregados no seu HTML.");
+        console.error("ERRO CRÍTICO: O objeto 'firebase' não está definido. Verifique se os scripts do SDK estão carregados no seu HTML.");
     }
 
     // Se não houver um app, inicializa. Se houver, usa o existente.
