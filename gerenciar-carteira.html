@@ -18,7 +18,7 @@
         <p class="info-message" style="text-align: center;">Ajuste o saldo dos usuários e gerencie multas.</p>
         <hr class="divider">
 
-        <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+        <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             
             <a href="pagamentos.html" class="btn-rounded btn-success task-action-button">
                 <i class="fas fa-hand-holding-dollar"></i> Pagamentos (Criar)
@@ -36,8 +36,19 @@
                 <i class="fas fa-gift"></i> Recompensas (Criar)
             </a>
         </div>
+        
+        <a href="historico-pagamentos.html" class="btn-rounded btn-secondary wide-button" style="margin-bottom: 20px;">
+            <i class="fas fa-file-invoice-dollar"></i> Histórico de Pagamentos
+        </a>
         <hr class="divider">
-        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais</h2>
+        
+        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais (Usuários)</h2>
+
+        <div id="saldo-banco-container" style="text-align: center; margin-bottom: 25px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+            <span style="font-size: 1.1em; font-weight: bold; color: var(--primary-dark);">Carteira do Banco:</span>
+            <span id="saldo-banco-valor" style="font-size: 1.8em; font-weight: bold; margin-left: 10px;">R$ 0,00</span>
+            <p id="saldo-banco-alerta" style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--primary-dark);"></p>
+        </div>
         <div id="usuarios-saldos-lista" class="historico-lista">
             <p class="empty-message">Carregando usuários...</p>
         </div>
@@ -97,9 +108,15 @@
     <script>
         // Inicialização do Firestore e variáveis
         const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
-        let currentEditingUser = null; // Armazena o ID do documento (username) do usuário sendo editado
+        let currentEditingUser = null; 
+        
+        // --- Variáveis de Banco ---
+        const BANCO_REF = firestore.collection('bank').doc('carteira');
+        const LIMITE_ALERTA = 20.00; // R$ 20,00
+        const SALDO_INICIAL = 100.00; // R$ 100,00
+        // --- Fim Variáveis de Banco ---
 
-        // --- Funções de Utilitário (Manutenção das funções inline para garantir o funcionamento) ---
+        // --- Funções de Utilitário ---
 
         function getUsuarioLogado() {
             try {
@@ -143,10 +160,60 @@
             currentEditingUser = null; 
         }
 
+        // --- Funções da Carteira do Banco ---
+
+        async function renderSaldoBanco() {
+            const valorEl = document.getElementById('saldo-banco-valor');
+            const alertaEl = document.getElementById('saldo-banco-alerta');
+            
+            valorEl.textContent = "Carregando...";
+            valorEl.style.color = 'var(--primary-dark)'; 
+            alertaEl.textContent = '';
+
+            try {
+                const bancoDoc = await BANCO_REF.get();
+                let saldoBanco = 0;
+
+                if (!bancoDoc.exists) {
+                    // Inicializa o saldo do banco se o documento não existir
+                    await BANCO_REF.set({ saldo: SALDO_INICIAL });
+                    saldoBanco = SALDO_INICIAL;
+                } else {
+                    saldoBanco = bancoDoc.data().saldo || 0;
+                }
+                
+                const saldoFormatado = formatarMoeda(saldoBanco);
+                valorEl.textContent = saldoFormatado;
+
+                // Lógica da cor do saldo
+                if (saldoBanco <= LIMITE_ALERTA) {
+                    valorEl.style.color = 'var(--danger-color)'; // Vermelho (se menor ou igual a R$ 20,00)
+                    alertaEl.textContent = 'ATENÇÃO: Saldo baixo! Recarregue a carteira do banco.';
+                    alertaEl.style.color = 'var(--danger-color)';
+                } else {
+                    valorEl.style.color = 'black'; // Preto (se acima de R$ 20,00)
+                    alertaEl.textContent = 'Este é o saldo disponível para pagamentos.';
+                    alertaEl.style.color = 'var(--primary-dark)';
+                }
+
+            } catch (error) {
+                console.error("Erro ao carregar saldo do banco:", error);
+                valorEl.textContent = 'Erro!';
+                valorEl.style.color = 'var(--danger-color)';
+                alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
+            }
+        }
+        
+        function initializeAdminView() {
+            if (checkAdminAccess()) {
+                renderUsuariosSaldos();
+                renderSaldoBanco(); 
+            }
+        }
+
         // --- Funções de Renderização ---
         async function renderUsuariosSaldos() {
-            if (!checkAdminAccess()) return;
-            
+            // A verificação de acesso já é feita em initializeAdminView
             const listaEl = document.getElementById('usuarios-saldos-lista');
             listaEl.innerHTML = '<p class="empty-message">Buscando usuários...</p>';
 
@@ -229,6 +296,7 @@
                 // Usa o ID do documento (username)
                 const userRef = firestore.collection('users').doc(currentEditingUser);
 
+                // Esta transação agora só cuida do saldo do usuário. O banco será ajustado na função de Pagamento
                 await firestore.runTransaction(async (transaction) => {
                     const docUser = await transaction.get(userRef);
 
@@ -245,7 +313,7 @@
                 });
 
                 alert(`Saldo de ${currentEditingUser} ajustado em ${formatarMoeda(valorAjuste)} com sucesso!`);
-                renderUsuariosSaldos(); // Recarrega a lista
+                initializeAdminView(); // Recarrega a lista E o saldo do banco
                 
             } catch (error) {
                 console.error("Erro na transação de ajuste de saldo:", error);
@@ -255,6 +323,7 @@
 
         /**
          * Aplica uma multa (diminui o saldo e registra na coleção 'multas').
+         * NOTA: Aplicar multa NÃO afeta o saldo do banco.
          */
         async function confirmApplyMulta() {
             const valorMultaStr = document.getElementById('multa-value').value;
@@ -298,13 +367,13 @@
                         nomeUsuario: userData.nome || currentEditingUser,
                         valor: valorMulta,
                         motivo: motivoMulta,
-                        dataMulta: firebase.firestore.FieldValue.serverTimestamp(), // Usa timestamp do servidor para melhor ordenação
+                        dataMulta: firebase.firestore.FieldValue.serverTimestamp(), 
                         aplicadaPor: adminUser.nome || adminUser.username || 'Admin'
                     });
                 });
 
                 alert(`Multa de ${formatarMoeda(valorMulta)} aplicada a ${currentEditingUser} com sucesso!`);
-                renderUsuariosSaldos(); // Recarrega a lista
+                initializeAdminView(); // Recarrega a lista
                 
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
@@ -324,7 +393,7 @@
             });
         }
         
-        window.addEventListener('DOMContentLoaded', renderUsuariosSaldos);
+        window.addEventListener('DOMContentLoaded', initializeAdminView);
     </script>
 </body>
 </html>
