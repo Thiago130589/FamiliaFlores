@@ -5,7 +5,6 @@
  */
 
 // Acessa as variáveis globais injetadas por firebase-init.js. 
-// Isso resolve o erro "firestore has already been declared" e garante que 'db' e 'auth' sejam acessíveis.
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
@@ -17,8 +16,6 @@ const loginMessage = document.getElementById('login-message');
 
 /**
  * Exibe uma mensagem de feedback na tela.
- * @param {string} message A mensagem a ser exibida.
- * @param {string} type O tipo de mensagem ('success' ou 'error').
  */
 function showMessage(message, type = 'error') {
     loginMessage.textContent = message;
@@ -41,17 +38,19 @@ function resetMessage() {
 
 /**
  * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
- * Agora utiliza um domínio de teste mais genérico para evitar a confusão com o email gmail.
+ * Se o usuário digitar 'Thiago', ele tenta 'thiago@familiadefault.com'.
+ * Se digitar o e-mail completo, usa o e-mail completo.
  */
 function mapUsernameToEmail(username) {
-    // Se o usuário digitou um email, usa o email.
+    // Se o usuário digitou um email, usa o email completo.
     if (username.includes('@')) {
         return username.toLowerCase().trim();
     }
     
-    // Se digitou apenas o apelido, assume-se o formato usado no cadastro.
-    // **Atenção:** Se o usuário real for thiagoferreira2flores@gmail.com, a regra deve ser ajustada.
-    // Pelo que vi nas imagens, você está usando o email completo para login.
+    // CASO CRÍTICO: Se o documento no Firestore foi salvo com o apelido (ex: /users/Thiago),
+    // mas o Auth foi criado com um email fictício (ex: thiago@familiadefault.com).
+    // O seu banco tem /users/thiagoferreira2flores@gmail.com, então o login com
+    // apelido é problemático. Por segurança, manteremos o e-mail fictício padrão.
     return `${username.toLowerCase().trim()}@familiadefault.com`;
 }
 
@@ -66,12 +65,12 @@ async function handleLogin(e) {
     // Verificação de inicialização CRÍTICA
     if (!firebaseAuth || !firestore) {
         showMessage('Erro crítico: Firebase não inicializado. Verifique firebase-init.js.', 'error');
+        // Este erro é visto na image_269c09.png
         return;
     }
 
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
-    // Se o usuário usa o email completo, o mapUsernameToEmail retorna o email.
     const emailToLogin = mapUsernameToEmail(username); 
     
     if (username === '' || password === '') {
@@ -79,7 +78,7 @@ async function handleLogin(e) {
         return;
     }
     
-    // Desabilita o botão para evitar múltiplos envios
+    // Desabilita o botão
     const loginButton = loginForm.querySelector('button[type="submit"]');
     loginButton.disabled = true;
     loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
@@ -90,13 +89,10 @@ async function handleLogin(e) {
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailToLogin, password);
         const firebaseUser = userCredential.user;
         
-        // CORREÇÃO CRÍTICA: Pega o apelido do usuário para buscar o documento.
-        // Se o login foi feito com o e-mail completo, precisamos extrair o apelido (ID do Documento).
-        // Se o email completo for o ID do documento, usamos o email.
-
-        // MUDANÇA AQUI: Usa o EMAIL COMPLETO do Firebase Auth para buscar no Firestore.
-        // O Firestore exige que a permissão de leitura seja concedida por uma regra.
-        const userDocRef = firestore.collection('users').doc(firebaseUser.email); // CORRIGIDO: Usa o email
+        // ETAPA 2: Busca os dados adicionais do usuário no Firestore
+        // USA O EMAIL COMPLETO RETORNADO PELO FIREBASE AUTH.
+        // Isso corresponde ao ID do documento 'thiagoferreira2flores@gmail.com'.
+        const userDocRef = firestore.collection('users').doc(firebaseUser.email);
         
         const userDoc = await userDocRef.get();
 
@@ -112,9 +108,8 @@ async function handleLogin(e) {
         // Constrói o objeto de sessão
         const userSession = {
             uid: firebaseUser.uid, 
-            // O username aqui deve ser o valor que você usa para exibir na tela (o 'apelido' ou 'nome').
-            // Usarei o ID do Documento (o email) como identificador principal, mas o nome real se existir.
-            username: userDoc.id, // ID do Documento (email completo, ex: thiagoferreira2flores@gmail.com)
+            // Usa o ID do documento (email completo) como identificador principal da sessão
+            username: userDoc.id, 
             nome: userData.nome || userDoc.id,
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
@@ -145,10 +140,12 @@ async function handleLogin(e) {
         } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid') || error.message.includes('CONFIGURATION_NOT_FOUND')) {
              // Tratamento para o ERRO CRÍTICO da Chave de API
             errorMessage = 'Erro interno do servidor (400 Bad Request). Verifique se a **API Key** no `firebase-init.js` está correta.';
+            // Este erro é visto na image_0bec6d.png, image_17a407.png, etc.
             console.error("Erro Firebase de Chave de API CRÍTICO:", error.message);
         } else if (error.message.includes('Missing or insufficient permissions')) {
-            // Este erro indica que as Regras do Firestore precisam ser atualizadas!
+            // Este erro indica que as Regras do Firestore estão negando a leitura.
             errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
+            // Este erro é visto na image_24e8d4.png.
             console.error("Erro Firebase de Permissão CRÍTICO:", error.message);
         } else {
             errorMessage = `Erro desconhecido: ${error.message}`;

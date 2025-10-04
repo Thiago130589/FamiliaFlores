@@ -3,7 +3,7 @@
 // 1. Configuração
 // **Atenção: Use a "Browser key (auto created by Firebase)" do seu console (começa com AIzaSyD5Yv-C...)**
 const firebaseConfig = {
-    apiKey: "AIzaSyD5Yv-C_wQXdl.0e0BmOTcrzg63Q_DXKy2BM", // Substitua pelo seu Browser key. Eu usei a que apareceu na imagem.
+    apiKey: "AIzaSyCmoV_45m21CA_LOy7SQR1RsfymtbSZiKc", // Substitua pelo seu Browser key. Eu usei a que apareceu na imagem.
     authDomain: "familia-flores-2ed6a.firebaseapp.com",
     projectId: "familia-flores-2ed6a",
     storageBucket: "familia-flores-2ed6a.appspot.com",
