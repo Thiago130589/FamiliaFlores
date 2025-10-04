@@ -10,7 +10,28 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
-    <script src="firebase-init.js" defer></script>
+    <script>
+        // *** VOCÊ DEVE SUBSTITUIR ESTE CONTEÚDO PELA SUA CONFIGURAÇÃO REAL ***
+        const firebaseConfig = {
+            apiKey: "...", // Sua chave real
+            authDomain: "...", // Seu domínio real
+            projectId: "...", // Seu ID de projeto real
+            storageBucket: "...",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        // Inicializa o Firebase e define 'db' globalmente
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // Torna 'db' global, que será usado nos scripts subsequentes
+        const db = firebase.firestore(); 
+        
+        // Se 'script.js' não usa 'db', você pode deixar ele para carregar depois.
+    </script>
+
     <script src="script.js" defer></script>
 </head>
 <body>
@@ -20,19 +41,15 @@
         <hr class="divider">
 
         <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            
             <a href="pagamentos.html" class="btn-rounded btn-success task-action-button">
                 <i class="fas fa-hand-holding-dollar"></i> Pagamentos (Criar)
             </a>
-            
             <a href="multas.html" class="btn-rounded btn-danger task-action-button">
                 <i class="fas fa-gavel"></i> Multas (Gerenciar)
             </a>
-            
             <a href="emprestimos.html" class="btn-rounded btn-info task-action-button">
                 <i class="fas fa-money-bill-transfer"></i> Empréstimos (Criar)
             </a>
-            
             <a href="recompensas.html" class="btn-rounded btn-primary task-action-button">
                 <i class="fas fa-gift"></i> Recompensas (Criar)
             </a>
@@ -78,43 +95,24 @@
 
 
     <script>
-        // --- Variáveis de Banco MOVIDAS PARA O TOPO DO SCRIPT ---
-        // Isso resolve o ReferenceError na função 'recarregarSaldoBanco'
+        // Acesso direto ao 'db' que agora está definido acima no <head>
+        const firestore = typeof db !== 'undefined' ? db : null; 
+        let currentEditingUser = null; 
+        
+        // Variáveis do Banco MOVIDAS PARA O TOPO (para resolver o 'ReferenceError')
         const LIMITE_ALERTA = 20.00; // R$ 20,00
         const SALDO_INICIAL = 100.00; // R$ 100,00
-        // --- Fim Variáveis de Banco ---
         
-        // Inicialização do Firestore
-        // Tentativa de acesso seguro a 'db', que é definido em 'firebase-init.js'
-        let firestore;
-        try {
-            // Tenta usar a variável global 'db'
-            firestore = db;
-        } catch (e) {
-            // Se 'db' não existir ou for nula, tenta inicializar diretamente se o firebase existir
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                 firestore = firebase.firestore();
-            } else {
-                console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente.");
-            }
-        }
-        
-        // Verifica se o firestore foi inicializado antes de criar BANCO_REF
-        if (firestore) {
-             var BANCO_REF = firestore.collection('bank').doc('carteira');
-        } else {
-             console.error("ERRO CRÍTICO: Variável 'firestore' não definida. As operações de banco falharão.");
-             // Pode-se definir um objeto mock para evitar erros, mas o erro do console é mais útil.
-             var BANCO_REF = null;
-        }
-        
-        let currentEditingUser = null; 
+        // Tenta definir BANCO_REF SE o firestore foi inicializado.
+        const BANCO_REF = firestore ? firestore.collection('bank').doc('carteira') : null;
 
-        // --- Funções de Utilitário (Manter essas funções aqui se não estiverem em script.js) ---
-        // Se as funções abaixo (getUsuarioLogado, formatarMoeda, checkAdminAccess) 
-        // já estão em 'script.js' e estão sendo carregadas, elas podem ser removidas daqui.
-        // Assumindo que 'script.js' carrega *depois* do HTML, vamos mantê-las aqui para o contexto da página:
-
+        // SE firestore não foi definido, exibe um erro mais claro.
+        if (!firestore) {
+             console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível no script principal.");
+        } 
+        
+        // --- Funções de Utilitário e Lógica de Negócios (restante das suas funções) ---
+        
         function getUsuarioLogado() {
             try {
                 return JSON.parse(localStorage.getItem('usuarioLogado'));
@@ -129,7 +127,6 @@
         
         function checkAdminAccess() {
             const userInfo = getUsuarioLogado();
-            // Verifica se o usuário está logado E se é administrador
             if (!userInfo || userInfo.isAdmin !== true) {
                 alert("Acesso negado. Apenas administradores.");
                 window.location.href = 'index.html';
@@ -170,16 +167,15 @@
             if (!BANCO_REF) {
                 valorEl.textContent = 'Erro!';
                 alertaEl.textContent = 'Falha na conexão com o Banco de Dados.';
+                valorEl.style.color = 'var(--danger-color)';
                 return;
             }
 
             try {
-                // Tenta acessar a referência.
                 const bancoDoc = await BANCO_REF.get();
                 let saldoBanco = 0;
 
                 if (!bancoDoc.exists) {
-                    // Inicializa o saldo do banco se o documento não existir
                     await BANCO_REF.set({ saldo: SALDO_INICIAL });
                     saldoBanco = SALDO_INICIAL;
                 } else {
@@ -189,13 +185,12 @@
                 const saldoFormatado = formatarMoeda(saldoBanco);
                 valorEl.textContent = saldoFormatado;
 
-                // Lógica da cor do saldo
                 if (saldoBanco <= LIMITE_ALERTA) {
-                    valorEl.style.color = 'var(--danger-color)'; // Vermelho (se menor ou igual a R$ 20,00)
+                    valorEl.style.color = 'var(--danger-color)'; 
                     alertaEl.textContent = 'ATENÇÃO: Saldo baixo! Recarregue a carteira do banco.';
                     alertaEl.style.color = 'var(--danger-color)';
                 } else {
-                    valorEl.style.color = 'black'; // Preto (se acima de R$ 20,00)
+                    valorEl.style.color = 'black'; 
                     alertaEl.textContent = 'Este é o saldo disponível para pagamentos.';
                     alertaEl.style.color = 'var(--primary-dark)';
                 }
@@ -204,14 +199,10 @@
                 console.error("Erro ao carregar saldo do banco (Verifique as Regras do Firestore):", error);
                 valorEl.textContent = 'Erro!';
                 valorEl.style.color = 'var(--danger-color)';
-                alertaEl.textContent = 'Erro ao buscar o saldo do banco. Verifique o console.';
+                alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
             }
         }
         
-        /**
-         * Recarrega o saldo do banco para o valor inicial (SALDO_INICIAL).
-         * A recarga é a base para o modelo de Saldo Dinâmico.
-         */
         async function recarregarSaldoBanco() {
             if (!BANCO_REF) {
                 alert('Erro na conexão com o Banco de Dados.');
@@ -222,7 +213,6 @@
             }
 
             try {
-                // Atualiza o saldo do banco para o valor inicial
                 await BANCO_REF.set({ saldo: SALDO_INICIAL });
 
                 alert(`Saldo do banco recarregado para ${formatarMoeda(SALDO_INICIAL)} com sucesso!`);
@@ -233,20 +223,8 @@
             }
         }
         
-        // --- Funções de Saldo Dinâmico e Tarefas ---
-
-        /*
-        * O SALDO é dinâmico:
-        * 1. Ele é inicializado com 0 no documento do usuário.
-        * 2. É alterado por transações de multas (saídas) e tarefas concluídas/ajustes (entradas).
-        * 3. Quando o usuário clica em "Recarregar Saldo", ele está repondo o "caixa" do sistema.
-        * O Saldo do Banco deve refletir as SAÍDAS de pagamentos de tarefas e RECARGAS manuais.
-        */
-        
         function initializeAdminView() {
-            // Garante que o usuário é admin
             if (checkAdminAccess()) {
-                // Inicia o carregamento de dados do banco
                 renderUsuariosSaldos();
                 renderSaldoBanco(); 
             }
@@ -262,7 +240,6 @@
             }
 
             try {
-                // Busca a coleção 'users', ordenada pelo 'saldo'
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
@@ -274,7 +251,6 @@
                     
                     if (loggedUser && userName === loggedUser.username) return;
 
-                    // O saldo é o campo dinâmico que será atualizado pelas transações
                     const saldo = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     
                     foundUsers = true;
@@ -315,6 +291,7 @@
         }
         
         async function confirmAdjustSaldo() {
+            if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
             const valorAjuste = parseFloat(valorAjusteStr);
             
@@ -330,7 +307,6 @@
             closeModal('modal-ajustar-saldo'); 
 
             try {
-                // Usa o ID do documento (username)
                 const userRef = firestore.collection('users').doc(currentEditingUser);
 
                 await firestore.runTransaction(async (transaction) => {
@@ -341,16 +317,13 @@
                     }
                     
                     const userData = docUser.data();
-                    // Garante que o saldo seja o campo de referência para o valor atual
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
                     const novoSaldo = saldoInicial + valorAjuste;
                     
-                    // Atualiza o campo 'saldo' (criando-o se necessário)
                     transaction.update(userRef, { saldo: novoSaldo });
                 });
 
                 alert(`Saldo de ${currentEditingUser} ajustado em ${formatarMoeda(valorAjuste)} com sucesso!`);
-                // Recarrega a lista para mostrar o novo saldo
                 initializeAdminView(); 
                 
             } catch (error) {
@@ -360,6 +333,7 @@
         }
 
         async function confirmApplyMulta() {
+            if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorMultaStr = document.getElementById('multa-value').value;
             const motivoMulta = document.getElementById('multa-reason').value.trim();
             const valorMulta = parseFloat(valorMultaStr);
@@ -389,7 +363,6 @@
                     
                     const userData = docUser.data();
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
-                    // O valor é subtraído da carteira do usuário
                     const novoSaldo = saldoInicial - valorMulta; 
                     
                     // 1. Atualiza o saldo (subtrai)
@@ -407,7 +380,7 @@
                 });
 
                 alert(`Multa de ${formatarMoeda(valorMulta)} aplicada a ${currentEditingUser} com sucesso!`);
-                initializeAdminView(); // Recarrega a lista
+                initializeAdminView(); 
                 
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
@@ -415,21 +388,17 @@
             }
         }
 
-        // Garante que o logout funcione nos modais e na tela
         if (document.getElementById('logout-button')) {
             document.getElementById('logout-button').addEventListener('click', () => {
                 if (typeof logoutUser === 'function') {
-                    // Se logoutUser estiver em script.js
                     logoutUser();
                 } else {
-                    // Fallback
                     localStorage.removeItem('usuarioLogado');
                     window.location.href = 'login.html';
                 }
             });
         }
         
-        // Chamada principal quando o DOM estiver pronto
         window.addEventListener('DOMContentLoaded', initializeAdminView);
     </script>
 </body>
