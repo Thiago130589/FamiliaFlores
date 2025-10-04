@@ -21,15 +21,11 @@
             appId: "..."
         };
 
-        // Inicializa o Firebase e define 'db' globalmente
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
 
-        // Torna 'db' global, que será usado nos scripts subsequentes
         const db = firebase.firestore(); 
-        
-        // Se 'script.js' não usa 'db', você pode deixar ele para carregar depois.
     </script>
 
     <script src="script.js" defer></script>
@@ -37,10 +33,10 @@
 <body>
     <div class="center-box large-box">
         <h1 class="main-title" style="color: var(--warning-color);">Gerenciar Carteira e Multas</h1>
-        <p class="info-message" style="text-align: center;">Ajuste o saldo dos usuários e gerencie multas.</p>
+        <p class="info-message" style="text-align: center;">Ajuste o saldo dos usuários e gerencie multas/empréstimos.</p>
         <hr class="divider">
 
-        <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <div class="admin-menu-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
             <a href="pagamentos.html" class="btn-rounded btn-success task-action-button">
                 <i class="fas fa-hand-holding-dollar"></i> Pagamentos (Criar)
             </a>
@@ -51,7 +47,7 @@
                 <i class="fas fa-money-bill-transfer"></i> Empréstimos (Criar)
             </a>
             <a href="recompensas.html" class="btn-rounded btn-primary task-action-button">
-                <i class="fas fa-gift"></i> Recompensas (Criar)
+                <i class="fas fa-gift"></i> Recompensas (Gerenciar)
             </a>
         </div>
         
@@ -60,19 +56,7 @@
         </a>
         <hr class="divider">
         
-        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldo do Banco</h2>
-
-        <div id="saldo-banco-container" style="text-align: center; margin-bottom: 25px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
-            <span style="font-size: 1.1em; font-weight: bold; color: var(--primary-dark);">Carteira do Banco:</span>
-            <span id="saldo-banco-valor" style="font-size: 1.8em; font-weight: bold; margin-left: 10px;">R$ 0,00</span>
-            <p id="saldo-banco-alerta" style="margin: 5px 0 10px 0; font-size: 0.9em; color: var(--primary-dark);"></p>
-            
-            <button onclick="recarregarSaldoBanco()" class="btn-rounded btn-secondary-text" style="font-size: 0.9em; padding: 5px 10px;">
-                <i class="fas fa-arrows-rotate"></i> Recarregar Saldo (R$ 100,00)
-            </button>
-        </div>
-        
-        <h3 style="font-size: 1.2em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais dos Usuários</h3>
+        <h2 style="font-size: 1.4em; margin-bottom: 15px; color: var(--primary-dark);">Saldos Atuais dos Usuários</h2>
         
         <div id="usuarios-saldos-lista" class="historico-lista">
             <p class="empty-message">Carregando usuários...</p>
@@ -88,30 +72,58 @@
     </div>
 
     <div id="modal-ajustar-saldo" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <button class="modal-close-icon" onclick="closeModal('modal-ajustar-saldo')"><i class="fas fa-times"></i></button>
+            <h2 class="modal-title">Ajustar Saldo Manualmente</h2>
+            <p style="text-align: center;">Usuário: <strong id="modal-saldo-user-nome"></strong></p>
+            <p id="modal-saldo-info" style="text-align: center; margin-bottom: 20px;"></p>
+
+            <div class="form-group">
+                <label for="saldo-adjustment-value"><i class="fas fa-dollar-sign"></i> Valor do Ajuste (Positivo para Crédito, Negativo para Débito)</label>
+                <input type="number" step="0.01" id="saldo-adjustment-value" class="input-rounded" placeholder="Ex: 10.00 (Crédito) ou -5.00 (Débito)" required>
+            </div>
+            
+            <button onclick="confirmAdjustSaldo()" class="btn-rounded btn-warning wide-button modal-button-margin">
+                <i class="fas fa-save"></i> Confirmar Ajuste
+            </button>
         </div>
+    </div>
     
     <div id="modal-aplicar-multa" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <button class="modal-close-icon" onclick="closeModal('modal-aplicar-multa')"><i class="fas fa-times"></i></button>
+            <h2 class="modal-title" style="color: var(--danger-color);">Aplicar Multa</h2>
+            <p style="text-align: center;">Usuário: <strong id="modal-multa-user-nome"></strong></p>
+
+            <div class="form-group">
+                <label for="multa-value"><i class="fas fa-gavel"></i> Valor da Multa (R$)</label>
+                <input type="number" step="0.01" id="multa-value" class="input-rounded" placeholder="Ex: 15.00" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="multa-reason"><i class="fas fa-clipboard"></i> Motivo da Multa</label>
+                <input type="text" id="multa-reason" class="input-rounded" placeholder="Ex: Desperdício de água, Atraso no dever" required>
+            </div>
+
+            <button onclick="confirmApplyMulta()" class="btn-rounded btn-danger wide-button modal-button-margin">
+                <i class="fas fa-bomb"></i> Aplicar Multa
+            </button>
         </div>
+    </div>
 
 
     <script>
-        // Acesso direto ao 'db' que agora está definido acima no <head>
+        // Acesso ao 'db' que agora está definido acima
         const firestore = typeof db !== 'undefined' ? db : null; 
         let currentEditingUser = null; 
         
-        // Variáveis do Banco MOVIDAS PARA O TOPO (para resolver o 'ReferenceError')
-        const LIMITE_ALERTA = 20.00; // R$ 20,00
-        const SALDO_INICIAL = 100.00; // R$ 100,00
-        
-        // Tenta definir BANCO_REF SE o firestore foi inicializado.
-        const BANCO_REF = firestore ? firestore.collection('bank').doc('carteira') : null;
+        // As constantes BANCO_REF, LIMITE_ALERTA, SALDO_INICIAL foram REMOVIDAS.
 
-        // SE firestore não foi definido, exibe um erro mais claro.
         if (!firestore) {
-             console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível no script principal.");
+            console.error("ERRO CRÍTICO: Firebase/Firestore não está acessível no script principal.");
         } 
         
-        // --- Funções de Utilitário e Lógica de Negócios (restante das suas funções) ---
+        // --- Funções de Utilitário e Lógica de Negócios ---
         
         function getUsuarioLogado() {
             try {
@@ -122,7 +134,7 @@
         }
         
         function formatarMoeda(valor) {
-            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
         
         function checkAdminAccess() {
@@ -144,89 +156,26 @@
                 document.getElementById('modal-saldo-info').textContent = `Saldo Atual: ${formatarMoeda(currentSaldo)}`;
             } else if (modalId === 'modal-aplicar-multa') {
                 document.getElementById('modal-multa-user-nome').textContent = userName;
-                document.getElementById('multa-value').value = ''; 
-                document.getElementById('multa-reason').value = ''; 
+                // Limpa os campos da multa ao abrir
+                const multaValueEl = document.getElementById('multa-value');
+                const multaReasonEl = document.getElementById('multa-reason');
+                if(multaValueEl) multaValueEl.value = ''; 
+                if(multaReasonEl) multaReasonEl.value = ''; 
             }
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden-start');
-            currentEditingUser = null; 
+            // Não zera currentEditingUser, pois ele é usado imediatamente após fechar o modal.
+            // Zera ele apenas se a operação falhar.
         }
 
-        // --- Funções da Carteira do Banco ---
+        // --- Funções Principais ---
 
-        async function renderSaldoBanco() {
-            const valorEl = document.getElementById('saldo-banco-valor');
-            const alertaEl = document.getElementById('saldo-banco-alerta');
-            
-            valorEl.textContent = "Carregando...";
-            valorEl.style.color = 'var(--primary-dark)'; 
-            alertaEl.textContent = '';
-            
-            if (!BANCO_REF) {
-                valorEl.textContent = 'Erro!';
-                alertaEl.textContent = 'Falha na conexão com o Banco de Dados.';
-                valorEl.style.color = 'var(--danger-color)';
-                return;
-            }
-
-            try {
-                const bancoDoc = await BANCO_REF.get();
-                let saldoBanco = 0;
-
-                if (!bancoDoc.exists) {
-                    await BANCO_REF.set({ saldo: SALDO_INICIAL });
-                    saldoBanco = SALDO_INICIAL;
-                } else {
-                    saldoBanco = bancoDoc.data().saldo || 0;
-                }
-                
-                const saldoFormatado = formatarMoeda(saldoBanco);
-                valorEl.textContent = saldoFormatado;
-
-                if (saldoBanco <= LIMITE_ALERTA) {
-                    valorEl.style.color = 'var(--danger-color)'; 
-                    alertaEl.textContent = 'ATENÇÃO: Saldo baixo! Recarregue a carteira do banco.';
-                    alertaEl.style.color = 'var(--danger-color)';
-                } else {
-                    valorEl.style.color = 'black'; 
-                    alertaEl.textContent = 'Este é o saldo disponível para pagamentos.';
-                    alertaEl.style.color = 'var(--primary-dark)';
-                }
-
-            } catch (error) {
-                console.error("Erro ao carregar saldo do banco (Verifique as Regras do Firestore):", error);
-                valorEl.textContent = 'Erro!';
-                valorEl.style.color = 'var(--danger-color)';
-                alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
-            }
-        }
-        
-        async function recarregarSaldoBanco() {
-            if (!BANCO_REF) {
-                alert('Erro na conexão com o Banco de Dados.');
-                return;
-            }
-            if (!confirm(`Tem certeza que deseja recarregar o saldo do banco para ${formatarMoeda(SALDO_INICIAL)}?`)) {
-                return;
-            }
-
-            try {
-                await BANCO_REF.set({ saldo: SALDO_INICIAL });
-
-                alert(`Saldo do banco recarregado para ${formatarMoeda(SALDO_INICIAL)} com sucesso!`);
-                renderSaldoBanco(); 
-            } catch (error) {
-                console.error("Erro ao recarregar saldo do banco:", error);
-                alert('Erro ao recarregar o saldo do banco. Tente novamente.');
-            }
-        }
-        
         function initializeAdminView() {
             if (checkAdminAccess()) {
                 renderUsuariosSaldos();
-                renderSaldoBanco(); 
+                // A função renderSaldoBanco foi REMOVIDA
             }
         }
 
@@ -281,7 +230,7 @@
                 if (foundUsers) {
                     listaEl.innerHTML = html;
                 } else {
-                    listaEl.innerHTML = '<p class="empty-message">Nenhum usuário encontrado.</p>';
+                    listaEl.innerHTML = '<p class="empty-message">Nenhum usuário encontrado (além de você).</p>';
                 }
 
             } catch (error) {
@@ -328,6 +277,7 @@
                 
             } catch (error) {
                 console.error("Erro na transação de ajuste de saldo:", error);
+                currentEditingUser = null; // Zera para evitar ajustes acidentais
                 alert(`Erro ao ajustar o saldo: ${error.message || 'Tente novamente.'}`);
             }
         }
@@ -384,10 +334,12 @@
                 
             } catch (error) {
                 console.error("Erro na transação de multa:", error);
+                currentEditingUser = null; // Zera para evitar ajustes acidentais
                 alert(`Erro ao aplicar a multa: ${error.message || 'Tente novamente.'}`);
             }
         }
 
+        // Esta seção pode ser removida se o script.js já tiver essa lógica:
         if (document.getElementById('logout-button')) {
             document.getElementById('logout-button').addEventListener('click', () => {
                 if (typeof logoutUser === 'function') {
