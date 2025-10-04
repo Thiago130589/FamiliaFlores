@@ -1,110 +1,146 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefas Concluídas</title>
-    <link rel="stylesheet" href="style.css"> 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="js/firebase-init.js"></script> 
-    <script src="js/script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Pagamentos (Tarefas)</title> 
+    
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script> 
+    
+    <script src="script.js" defer></script>
 </head>
 <body>
-    <div class="center-box">
-        <h1 style="color: #4CAF50;">Tarefas Concluídas e Pagas</h1>
-        <hr style="width: 100%; border: 0; border-top: 1px solid #ddd; margin: 15px 0;">
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--success-color);"><i class="fas fa-history"></i> Histórico de Tarefas Pagas</h1>
+        <p class="info-message center-text">Visão de todas as tarefas concluídas e pagas.</p>
+        
+        <hr class="divider">
 
-        <div id="tarefas-concluidas-list" style="width: 100%;">
-            <p id="loading-message">Carregando histórico...</p>
-        </div>
+        <div id="tarefas-concluidas-list" style="width: 100%;">
+            <p id="loading-message" class="empty-message">Carregando histórico...</p>
+        </div>
+        
+        <button onclick="voltarAoPerfil()" class="btn-rounded btn-secondary wide-button" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> Voltar ao Perfil
+        </button>
+    </div>
+    
+    <script>
+        // --- Funções Auxiliares (Fallback, garantindo que existam) ---
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function formatarMoeda(valor) {
+            return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        // Fim das Funções Auxiliares
 
-        <button onclick="voltarAoPerfil()" class="btn-rounded" style="margin-top: 20px;">Voltar ao perfil</button>
-    </div>
-    
-    <script>
-        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
+        // Conexão com Firestore
+        const firestore = typeof db !== 'undefined' ? db : firebase.firestore();
 
-        function voltarAoPerfil() {
-            window.location.href = 'index.html';
-        }
+        function voltarAoPerfil() {
+            window.location.href = 'index.html';
+        }
 
-        function getUsuarioInfo() {
-            const userInfo = getUsuarioLogado();
-            if (!userInfo) {
-                window.location.href = 'login.html'; 
-                return { nome: null, isAdmin: false };
-            }
-            return userInfo;
-        }
+        function getUsuarioInfo() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo) {
+                // Redireciona e impede a execução se não houver usuário logado
+                window.location.href = 'login.html'; 
+                return { username: null, isAdmin: false };
+            }
+            return userInfo;
+        }
 
-        async function loadTarefasConcluidas() {
-            const lista = document.getElementById('tarefas-concluidas-list');
-            lista.innerHTML = '<p id="loading-message">Carregando histórico...</p>';
-            
-            const userInfo = getUsuarioInfo();
-            const userName = userInfo.nome;
-            const isAdmin = userInfo.isAdmin;
-            
-            if (!userName) {
-                lista.innerHTML = '<p style="color: red;">ERRO: Usuário não identificado.</p>';
-                return;
-            }
+        async function loadTarefasConcluidas() {
+            const lista = document.getElementById('tarefas-concluidas-list');
+            lista.innerHTML = '<p id="loading-message" class="empty-message">Carregando histórico...</p>';
+            
+            const userInfo = getUsuarioInfo();
+            // CORREÇÃO: Usar o username para filtrar, que é o ID do documento do usuário
+            const userUsername = userInfo.username; 
+            const isAdmin = userInfo.isAdmin;
+            
+            if (!userUsername) {
+                lista.innerHTML = '<p class="error-message">ERRO: Usuário não identificado.</p>';
+                return;
+            }
 
-            try {
-                let query = firestore.collection('tarefasConcluidas').orderBy('dataPagamento', 'desc');
+            try {
+                let query = firestore.collection('tarefasAtribuidas').orderBy('dataPagamento', 'desc');
 
-                // Filtra pelo status final "Paga"
-                query = query.where('status', '==', 'Paga');
+                // 1. Filtra pelo status final "Paga"
+                query = query.where('status', '==', 'Paga');
 
-                // Filtra apenas as tarefas do usuário, se não for Admin
-                if (!isAdmin) {
-                    query = query.where('atribuidaPara', '==', userName);
-                }
-                
-                const snapshot = await query.get();
-                
-                lista.innerHTML = ''; 
+                // 2. Filtra apenas as tarefas do usuário, se não for Admin
+                if (!isAdmin) {
+                    // ATENÇÃO: Se 'atribuidaPara' armazena o nome completo, mude 'userUsername' para 'userInfo.nome'.
+                    query = query.where('atribuidaPara', '==', userUsername); 
+                }
+                
+                const snapshot = await query.get();
+                
+                lista.innerHTML = ''; // Limpa a mensagem de carregamento
 
-                if (snapshot.empty) {
-                    lista.innerHTML = `<p class="empty-message">Não há tarefas concluídas e pagas ${isAdmin ? 'no sistema' : 'no seu histórico'}.</p>`;
-                    return;
-                }
+                if (snapshot.empty) {
+                    lista.innerHTML = `<p class="empty-message">Não há tarefas concluídas e pagas ${isAdmin ? 'no sistema' : 'no seu histórico'}.</p>`;
+                    return;
+                }
 
-                snapshot.forEach(doc => {
-                    const tarefa = doc.data();
-                    
-                    const elemento = document.createElement('div');
-                    elemento.className = 'tarefa-card-concluida'; 
-                    
-                    const dataPagamento = tarefa.dataPagamento 
-                        ? new Date(tarefa.dataPagamento).toLocaleDateString('pt-BR') 
-                        : 'N/A';
-                    
-                    const valorFormatado = formatarMoeda(tarefa.valor || 0);
-                    
-                    let infoAdmin = '';
-                    if(isAdmin) {
-                        infoAdmin = `<span style="font-weight: bold; color: #1976d2;">Usuário: ${tarefa.atribuidaPara}</span> | `;
-                    }
+                snapshot.forEach(doc => {
+                    const tarefa = doc.data();
+                    
+                    const elemento = document.createElement('div');
+                    // Uso da classe tarefa-card, mais fácil de estilizar no style.css
+                    elemento.className = 'tarefa-card'; 
+                    // Linha lateral verde para indicar PAGO
+                    elemento.style.borderLeftColor = 'var(--success-color)';
+                    
+                    // Formatação da data (ajustado para ser mais robusto com a data do Firestore)
+                    const dataPagamento = tarefa.dataPagamento && tarefa.dataPagamento.toDate 
+                        ? tarefa.dataPagamento.toDate().toLocaleDateString('pt-BR') 
+                        : 'N/A';
+                    
+                    const valorFormatado = formatarMoeda(tarefa.valor || 0);
+                    
+                    let infoAdmin = '';
+                    // Exibe quem fez a tarefa apenas para o admin
+                    if(isAdmin) {
+                        infoAdmin = `<span style="font-weight: bold; color: var(--primary-dark);">${tarefa.nomeUsuario || tarefa.atribuidaPara}</span> | `;
+                    }
 
-                    elemento.innerHTML = `
-                        <div class="tarefa-details-concluida">
-                            <span class="tarefa-nome">${tarefa.nome}</span>
-                            <span class="tarefa-info">${infoAdmin}${valorFormatado} | Paga em: ${dataPagamento}</span> 
-                        </div>
-                        <span style="color: #4CAF50; font-weight: bold; font-size: 1.1rem;">PAGO</span>
-                    `;
-                    lista.appendChild(elemento);
-                });
+                    elemento.innerHTML = `
+                        <div class="tarefa-details-concluida" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span class="tarefa-nome" style="font-size: 1.2em;">${tarefa.nome}</span>
+                                <p class="tarefa-descricao" style="margin-top: 5px; font-size: 0.9em;">
+                                    ${infoAdmin}Paga em: ${dataPagamento}
+                                </p>
+                            </div>
+                            <span class="transaction-amount amount-credit">${valorFormatado}</span>
+                        </div>
+                    `;
+                    lista.appendChild(elemento);
+                });
 
-            } catch (error) {
-                console.error("Erro ao carregar tarefas concluídas:", error);
-                lista.innerHTML = `<p style="color: red;">Erro ao carregar o histórico de tarefas.</p>`;
-            }
-        }
+            } catch (error) {
+                console.error("Erro ao carregar tarefas concluídas:", error);
+                lista.innerHTML = `<p class="error-message">Erro ao carregar o histórico de tarefas. Verifique o console.</p>`;
+            }
+        }
 
-        window.addEventListener('DOMContentLoaded', loadTarefasConcluidas);
-    </script>
+        window.addEventListener('DOMContentLoaded', loadTarefasConcluidas);
+    </script>
 </body>
 </html>

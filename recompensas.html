@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Recompensas</title>
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script>
+    
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--warning-color);">Gerenciar Recompensas</h1>
+        <p class="info-message center-text">Crie novas recompensas para resgate e gerencie os pedidos pendentes.</p>
+        <hr class="divider">
+        
+        <button onclick="openCreateRewardModal()" class="btn-rounded btn-primary wide-button modal-button-margin">
+            <i class="fas fa-plus-circle"></i> Criar Nova Recompensa
+        </button>
+        
+        <hr class="divider">
+
+        <h2 class="section-title"><i class="fas fa-list-check"></i> Pedidos de Resgate Pendentes</h2>
+        <div id="pending-resgates-list">
+            <p class="empty-message">Carregando pedidos de resgate...</p>
+        </div>
+        
+        <hr class="divider">
+        
+        <h2 class="section-title"><i class="fas fa-trophy"></i> Recompensas Disponíveis</h2>
+        <div id="available-rewards-list">
+            <p class="empty-message">Carregando recompensas...</p>
+        </div>
+
+
+        <a href="gerenciar-carteira.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> Voltar à Gerência de Carteira
+        </a>
+    </div>
+
+    <div id="createRewardModal" class="modal-overlay hidden-start">
+        <div class="modal-content">
+            <button class="modal-close-icon" onclick="closeCreateRewardModal()"><i class="fas fa-times"></i></button>
+            <h2 class="modal-title">Criar Nova Recompensa</h2>
+
+            <form id="reward-form">
+                <div class="form-group">
+                    <label for="reward-name"><i class="fas fa-star"></i> Nome da Recompensa</label>
+                    <input type="text" id="reward-name" class="input-rounded" placeholder="Ex: 1 hora extra de vídeo-game" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="reward-cost"><i class="fas fa-sack-dollar"></i> Custo em Saldo (R$)</label>
+                    <input type="number" step="0.01" id="reward-cost" class="input-rounded" placeholder="Ex: 25.00" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reward-description"><i class="fas fa-info-circle"></i> Descrição Detalhada</label>
+                    <textarea id="reward-description" class="input-rounded" placeholder="Explique o que a recompensa inclui e quais são as regras." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="reward-limit"><i class="fas fa-sort-numeric-up"></i> Limite por Usuário (opcional)</label>
+                    <input type="number" id="reward-limit" class="input-rounded" placeholder="Deixe em branco para ilimitado. Ex: 1" min="1">
+                </div>
+
+                <button type="submit" class="btn-rounded btn-success wide-button modal-button-margin">
+                    <i class="fas fa-save"></i> Salvar Recompensa
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // Acesso ao Firestore e Variáveis Globais
+        const firestore = typeof db !== 'undefined' ? db : null; 
+        const REWARDS_COLLECTION = firestore ? firestore.collection('recompensas') : null;
+        const RESGATES_COLLECTION = firestore ? firestore.collection('resgatesPendentes') : null;
+        
+        // --- Funções Auxiliares (Reutilizadas) ---
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function formatarMoeda(valor) {
+            return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || userInfo.isAdmin !== true) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        // --- Funções do Modal ---
+        function openCreateRewardModal() {
+            document.getElementById('createRewardModal').classList.remove('hidden-start');
+            // Limpa o formulário para criação
+            document.getElementById('reward-form').reset(); 
+            document.getElementById('reward-name').focus();
+        }
+
+        function closeCreateRewardModal() {
+            document.getElementById('createRewardModal').classList.add('hidden-start');
+        }
+
+
+        // --- Funções CRUD de Recompensas ---
+        
+        /**
+         * Salva ou atualiza uma recompensa no Firestore.
+         */
+        async function saveReward(event) {
+            event.preventDefault();
+            
+            if (!REWARDS_COLLECTION) {
+                alert('Erro na conexão com o Banco de Dados.');
+                return;
+            }
+
+            const name = document.getElementById('reward-name').value.trim();
+            const cost = parseFloat(document.getElementById('reward-cost').value);
+            const description = document.getElementById('reward-description').value.trim();
+            const limitStr = document.getElementById('reward-limit').value;
+            const limit = limitStr ? parseInt(limitStr) : null;
+            
+            if (!name || cost <= 0 || !description) {
+                alert("Preencha o Nome, Custo (maior que zero) e a Descrição.");
+                return;
+            }
+            
+            try {
+                // Cria um novo documento com ID automático
+                await REWARDS_COLLECTION.add({
+                    nome: name,
+                    custo: cost,
+                    descricao: description,
+                    limitePorUsuario: limit,
+                    ativa: true,
+                    dataCriacao: firebase.firestore.FieldValue.serverTimestamp(),
+                    criadoPor: getUsuarioLogado().username || 'Admin'
+                });
+
+                alert(`Recompensa "${name}" criada com sucesso!`);
+                closeCreateRewardModal();
+                loadAvailableRewards(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro ao salvar recompensa:", error);
+                alert(`Erro ao salvar: ${error.message}`);
+            }
+        }
+        
+        // Associa a função de salvar ao formulário
+        document.getElementById('reward-form').addEventListener('submit', saveReward);
+
+
+        /**
+         * Carrega e exibe a lista de recompensas disponíveis.
+         */
+        async function loadAvailableRewards() {
+            const listEl = document.getElementById('available-rewards-list');
+            listEl.innerHTML = '<p class="empty-message">Carregando recompensas...</p>';
+
+            if (!REWARDS_COLLECTION) return;
+
+            try {
+                const snapshot = await REWARDS_COLLECTION.where('ativa', '==', true).orderBy('custo', 'asc').get();
+                
+                if (snapshot.empty) {
+                    listEl.innerHTML = '<p class="empty-message">Nenhuma recompensa ativa encontrada.</p>';
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(doc => {
+                    const recompensa = doc.data();
+                    const recompensaId = doc.id;
+                    const limite = recompensa.limitePorUsuario ? `Limite: ${recompensa.limitePorUsuario} por usuário` : 'Ilimitado';
+                    
+                    html += `
+                        <div class="tarefa-card tarefa-card-disponivel">
+                            <div class="tarefa-header">
+                                <span class="tarefa-nome">${recompensa.nome}</span>
+                                <span class="tarefa-valor" style="color: var(--primary-color);">${formatarMoeda(recompensa.custo)}</span>
+                            </div>
+                            <p class="tarefa-descricao">${recompensa.descricao}</p>
+                            <span class="tarefa-prazo" style="color: var(--info-color);">${limite}</span>
+                            <div class="admin-action-grid" style="margin-top: 15px;">
+                                <button onclick="editReward('${recompensaId}')" class="task-action-button btn-warning">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button onclick="deleteReward('${recompensaId}', '${recompensa.nome}')" class="task-action-button btn-danger">
+                                    <i class="fas fa-trash"></i> Excluir
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                listEl.innerHTML = html;
+            } catch (error) {
+                console.error("Erro ao carregar recompensas:", error);
+                listEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de recompensas.</p>';
+            }
+        }
+        
+        /**
+         * Exclui uma recompensa.
+         * (Opcional: Você pode mudar para apenas setar 'ativa: false' em vez de deletar permanentemente)
+         */
+        async function deleteReward(rewardId, rewardName) {
+            if (!confirm(`Tem certeza que deseja excluir a recompensa: "${rewardName}"?`)) {
+                return;
+            }
+
+            try {
+                await REWARDS_COLLECTION.doc(rewardId).delete();
+                alert(`Recompensa "${rewardName}" excluída com sucesso.`);
+                loadAvailableRewards(); 
+            } catch (error) {
+                console.error("Erro ao excluir recompensa:", error);
+                alert("Erro ao excluir. Verifique as permissões.");
+            }
+        }
+        
+        // A função editReward precisaria de um modal para preencher e usar a função saveReward com um ID.
+        // Por enquanto, fica como placeholder:
+        function editReward(rewardId) {
+            alert("Funcionalidade de Edição (ID: " + rewardId + ") precisa ser implementada no modal.");
+            // Lógica: 1. Fetch do documento. 2. Preencher o modal. 3. Mudar o botão para "Atualizar".
+        }
+
+
+        // --- Funções de Resgates Pendentes ---
+        
+        /**
+         * Carrega e exibe a lista de resgates pendentes de aprovação.
+         */
+        async function loadPendingResgates() {
+            const listEl = document.getElementById('pending-resgates-list');
+            listEl.innerHTML = '<p class="empty-message">Carregando pedidos de resgate...</p>';
+
+            if (!RESGATES_COLLECTION) return;
+
+            try {
+                // Assume que os resgates são registrados com status 'Pendente'
+                const snapshot = await RESGATES_COLLECTION.where('status', '==', 'Pendente').get();
+                
+                if (snapshot.empty) {
+                    listEl.innerHTML = '<p class="empty-message">Nenhum pedido de resgate pendente.</p>';
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(doc => {
+                    const resgate = doc.data();
+                    const resgateId = doc.id;
+                    const custoFormatado = formatarMoeda(resgate.custo);
+                    
+                    html += `
+                        <div class="tarefa-card" style="border-left-color: var(--warning-color);">
+                            <div class="tarefa-header">
+                                <span class="tarefa-nome">Resgate de: ${resgate.nomeRecompensa}</span>
+                                <span class="tarefa-valor" style="color: var(--error-color);">${custoFormatado}</span>
+                            </div>
+                            <p class="tarefa-descricao">Solicitado por: <strong>${resgate.nomeUsuario}</strong> (@${resgate.usuarioId})</p>
+                            <p class="tarefa-descricao" style="font-size: 0.8em;">Data: ${resgate.dataResgate ? resgate.dataResgate.toDate().toLocaleDateString('pt-BR') : 'N/A'}</p>
+
+                            <div class="admin-action-grid" style="margin-top: 15px;">
+                                <button onclick="approveResgate('${resgateId}', '${resgate.usuarioId}', ${resgate.custo})" class="task-action-button btn-success">
+                                    <i class="fas fa-check"></i> Aprovar
+                                </button>
+                                <button onclick="rejectResgate('${resgateId}', '${resgate.usuarioId}')" class="task-action-button btn-danger">
+                                    <i class="fas fa-times"></i> Rejeitar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                listEl.innerHTML = html;
+            } catch (error) {
+                console.error("Erro ao carregar resgates pendentes:", error);
+                listEl.innerHTML = '<p class="error-message">Erro ao carregar a lista de resgates pendentes.</p>';
+            }
+        }
+        
+        /**
+         * Aprova o resgate, garantindo que o usuário tem saldo e remove o valor.
+         */
+        async function approveResgate(resgateId, userId, custo) {
+            if (!RESGATES_COLLECTION || !firestore) return;
+
+            if (!confirm(`Confirma a APROVAÇÃO do resgate para o usuário ${userId}? O valor de ${formatarMoeda(custo)} será debitado.`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection('users').doc(userId);
+
+                await firestore.runTransaction(async (transaction) => {
+                    // 1. LER o saldo do USUÁRIO e o Resgate
+                    const docUser = await transaction.get(userRef);
+                    const docResgate = await transaction.get(RESGATES_COLLECTION.doc(resgateId));
+                    
+                    if (!docUser.exists) throw new Error(`Usuário ${userId} não encontrado.`);
+                    if (docResgate.data().status !== 'Pendente') throw new Error('O resgate não está mais pendente.');
+
+                    const saldoAtualUser = docUser.data().saldo !== undefined ? docUser.data().saldo : docUser.data().pontuacao || 0; 
+                    
+                    // 2. VALIDAR Saldo
+                    if (saldoAtualUser < custo) {
+                         // Se o usuário não tiver mais saldo (por exemplo, por ter feito outra compra no meio tempo)
+                        throw new Error(`Saldo insuficiente. O usuário precisa de ${formatarMoeda(custo)}, mas tem apenas ${formatarMoeda(saldoAtualUser)}.`);
+                    }
+
+                    // 3. ATUALIZAR
+                    const novoSaldoUser = saldoAtualUser - custo;
+                    
+                    // Saída do Usuário (Pagamento)
+                    transaction.update(userRef, { saldo: novoSaldoUser });
+                    
+                    // Atualizar status do Resgate
+                    transaction.update(RESGATES_COLLECTION.doc(resgateId), {
+                        status: 'Aprovado',
+                        dataAprovacao: firebase.firestore.FieldValue.serverTimestamp(),
+                        aprovadoPor: getUsuarioLogado().username || 'Admin'
+                    });
+                });
+
+                alert(`Resgate APROVADO! ${formatarMoeda(custo)} debitado de ${userId}.`);
+                loadPendingResgates(); // Recarrega a lista
+                
+            } catch (error) {
+                console.error("Erro ao aprovar resgate:", error);
+                alert(`Erro ao aprovar: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+        
+        /**
+         * Rejeita o resgate (o valor já foi debitado no resgate, então só muda o status).
+         * NOTA: A lógica ideal seria fazer o débito na APROVAÇÃO (como acima).
+         * Se o resgate tiver sido feito por um usuário, o valor *já foi debitado*. 
+         * Nesse caso, a REJEIÇÃO precisa estornar o valor.
+         * * VAMOS ASSUMIR A LÓGICA MAIS SIMPLES E SEGURA: O DÉBITO OCORRE APENAS NA APROVAÇÃO.
+         */
+        async function rejectResgate(resgateId, userId) {
+            if (!RESGATES_COLLECTION) return;
+
+            if (!confirm(`Tem certeza que deseja REJEITAR o resgate do usuário ${userId}?`)) {
+                return;
+            }
+            
+            try {
+                // Apenas atualiza o status, pois o débito só ocorreria na aprovação
+                await RESGATES_COLLECTION.doc(resgateId).update({
+                    status: 'Rejeitado',
+                    dataRejeicao: firebase.firestore.FieldValue.serverTimestamp(),
+                    rejeitadoPor: getUsuarioLogado().username || 'Admin'
+                });
+                
+                alert(`Resgate REJEITADO para ${userId}.`);
+                loadPendingResgates(); // Recarrega a lista
+            } catch (error) {
+                console.error("Erro ao rejeitar resgate:", error);
+                alert(`Erro ao rejeitar: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+
+        // --- Inicialização ---
+
+        function initializeRewardsView() {
+            if (checkAdminAccess()) {
+                loadAvailableRewards();
+                loadPendingResgates();
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', initializeRewardsView);
+    </script>
+</body>
+</html>

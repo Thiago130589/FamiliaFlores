@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Empréstimo</title>
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script>
+    
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--info-color);">Registrar Empréstimo</h1>
+        <p class="info-message center-text">Concede fundos do Banco para um usuário, gerando uma dívida a ser paga.</p>
+        <hr class="divider">
+
+        <div id="loan-form">
+            
+            <div class="form-group">
+                <label for="user-select"><i class="fas fa-user"></i> Selecione o Usuário:</label>
+                <select id="user-select" class="input-rounded" required>
+                    <option value="" disabled selected>Carregando usuários...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="loan-value"><i class="fas fa-sack-dollar"></i> Valor do Empréstimo (R$)</label>
+                <input type="number" step="0.01" id="loan-value" class="input-rounded" placeholder="Ex: 50.00" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="interest-rate"><i class="fas fa-percent"></i> Taxa de Juros Simples (%)</label>
+                <input type="number" step="0.01" id="interest-rate" class="input-rounded" value="10.00" placeholder="Ex: 10.00" required>
+                <p class="info-message" style="margin-top: 5px;">*O valor de volta será (Empréstimo + Juros).</p>
+            </div>
+
+            <div class="form-group">
+                <label for="loan-reason"><i class="fas fa-clipboard"></i> Motivo do Empréstimo</label>
+                <input type="text" id="loan-reason" class="input-rounded" placeholder="Ex: Compra de Jogo, Emergência" required>
+            </div>
+            
+            <div id="loan-summary" style="padding: 15px; border: 1px dashed var(--info-color); border-radius: 8px; margin-bottom: 20px;">
+                <p>Valor de Volta (Total da Dívida): <strong id="total-return-value">R$ 0,00</strong></p>
+                <p style="font-size: 0.9em; color: var(--text-light);">Juros Calculados: <span id="interest-value">R$ 0,00</span></p>
+            </div>
+
+            <div id="saldo-banco-container" style="text-align: center; margin-bottom: 25px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: var(--primary-dark);">Saldo Atual do Banco:</span>
+                <span id="saldo-banco-valor" style="font-size: 1.8em; font-weight: bold; margin-left: 10px;">R$ 0,00</span>
+                <p id="saldo-banco-alerta" style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--primary-dark);"></p>
+            </div>
+
+
+            <button onclick="confirmLoan()" class="btn-rounded btn-info wide-button">
+                <i class="fas fa-handshake"></i> Conceder Empréstimo
+            </button>
+            
+        </div>
+        
+        <a href="gerenciar-carteira.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> Voltar à Gerência de Carteira
+        </a>
+    </div>
+
+    <script>
+        // Acesso ao Firestore e Variáveis Globais
+        const firestore = typeof db !== 'undefined' ? db : null; 
+        const BANCO_REF = firestore ? firestore.collection('bank').doc('carteira') : null;
+        const LIMITE_ALERTA = 20.00; 
+        
+        // --- Funções Auxiliares (As mesmas que você usa em outras páginas) ---
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function formatarMoeda(valor) {
+            // Garante que o valor é um número e formata
+            return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || userInfo.isAdmin !== true) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        // --- Funções Específicas de Empréstimo ---
+
+        /**
+         * Calcula o valor total a ser devolvido (incluindo juros).
+         */
+        function calculateTotalReturn() {
+            const loanValueEl = document.getElementById('loan-value');
+            const interestRateEl = document.getElementById('interest-rate');
+            const totalReturnEl = document.getElementById('total-return-value');
+            const interestValueEl = document.getElementById('interest-value');
+            
+            const valorEmprestado = parseFloat(loanValueEl.value) || 0;
+            const taxaJuros = parseFloat(interestRateEl.value) || 0;
+            
+            if (valorEmprestado <= 0) {
+                totalReturnEl.textContent = formatarMoeda(0);
+                interestValueEl.textContent = formatarMoeda(0);
+                return;
+            }
+
+            const valorJuros = valorEmprestado * (taxaJuros / 100);
+            const valorTotalDevolver = valorEmprestado + valorJuros;
+
+            totalReturnEl.textContent = formatarMoeda(valorTotalDevolver);
+            interestValueEl.textContent = formatarMoeda(valorJuros);
+            
+            return {
+                valorEmprestado: valorEmprestado,
+                valorTotalDevolver: valorTotalDevolver,
+                valorJuros: valorJuros,
+                taxaJuros: taxaJuros
+            };
+        }
+        
+        // Adiciona listeners para atualizar o cálculo em tempo real
+        document.getElementById('loan-value').addEventListener('input', calculateTotalReturn);
+        document.getElementById('interest-rate').addEventListener('input', calculateTotalReturn);
+
+
+        /**
+         * Carrega o saldo do banco para exibição. (Reutilizado de pagamentos.html)
+         */
+        async function renderSaldoBanco() {
+            const valorEl = document.getElementById('saldo-banco-valor');
+            const alertaEl = document.getElementById('saldo-banco-alerta');
+            
+            valorEl.textContent = "Carregando...";
+            if (!BANCO_REF) {
+                valorEl.textContent = 'Erro!';
+                alertaEl.textContent = 'Falha na conexão. Verifique o console.';
+                valorEl.style.color = 'var(--danger-color)';
+                return 0;
+            }
+
+            try {
+                const bancoDoc = await BANCO_REF.get();
+                const saldoBanco = bancoDoc.exists ? (bancoDoc.data().saldo || 0) : 0;
+                
+                valorEl.textContent = formatarMoeda(saldoBanco);
+
+                if (saldoBanco < 10) { // Alerta de saldo muito baixo para emprestar
+                    valorEl.style.color = 'var(--danger-color)'; 
+                    alertaEl.textContent = 'ATENÇÃO: Saldo muito baixo! Recarregue antes de emprestar.';
+                } else {
+                    valorEl.style.color = 'black'; 
+                    alertaEl.textContent = 'Saldo disponível no caixa para o empréstimo.';
+                }
+                return saldoBanco;
+            } catch (error) {
+                console.error("Erro ao carregar saldo do banco:", error);
+                return 0;
+            }
+        }
+
+        /**
+         * Popula a lista suspensa de usuários. (Reutilizado de pagamentos.html)
+         */
+        async function loadUsers() {
+            const selectEl = document.getElementById('user-select');
+            selectEl.innerHTML = '<option value="" disabled selected>Carregando usuários...</option>';
+
+            if (!firestore) {
+                selectEl.innerHTML = '<option value="" disabled selected>Erro de conexão.</option>';
+                return;
+            }
+
+            try {
+                const usersSnapshot = await firestore.collection('users').orderBy('nome', 'asc').get();
+                let optionsHtml = '<option value="" disabled selected>Selecione um usuário...</option>';
+                const loggedUser = getUsuarioLogado();
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    
+                    if (loggedUser && userName === loggedUser.username) return; 
+                    
+                    const nomeCompleto = userData.nome || userName;
+                    optionsHtml += `<option value="${userName}">${nomeCompleto} (@${userName})</option>`;
+                });
+                
+                selectEl.innerHTML = optionsHtml;
+            } catch (error) {
+                console.error("Erro ao carregar a lista de usuários:", error);
+                selectEl.innerHTML = '<option value="" disabled selected>Erro ao carregar a lista.</option>';
+            }
+        }
+
+        // --- Função de Transação (O coração da página) ---
+
+        /**
+         * Confirma e executa a transação de empréstimo.
+         */
+        async function confirmLoan() {
+            if (!firestore || !BANCO_REF) {
+                alert('Erro na conexão com o Banco de Dados.');
+                return;
+            }
+            
+            const userId = document.getElementById('user-select').value;
+            const motivo = document.getElementById('loan-reason').value.trim();
+            const calc = calculateTotalReturn();
+            
+            if (!userId || calc.valorEmprestado <= 0 || !motivo) {
+                alert("Por favor, preencha o Usuário, o Valor do Empréstimo e o Motivo.");
+                return;
+            }
+            
+            const valorEmprestado = calc.valorEmprestado;
+            const valorTotalDevolver = calc.valorTotalDevolver;
+            
+            if (!confirm(`Confirma o empréstimo de ${formatarMoeda(valorEmprestado)} para ${userId}? \n\nO valor total de volta é de ${formatarMoeda(valorTotalDevolver)}.`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection('users').doc(userId);
+                // Novo registro de empréstimo (dívida)
+                const emprestimoRef = firestore.collection('emprestimos').doc(); 
+                const adminUser = getUsuarioLogado();
+
+                await firestore.runTransaction(async (transaction) => {
+                    // 1. LER o saldo atual do BANCO e do USUÁRIO
+                    const docBanco = await transaction.get(BANCO_REF);
+                    const docUser = await transaction.get(userRef);
+
+                    if (!docBanco.exists) {
+                        throw new Error("Carteira do Banco não encontrada. Crie o documento 'bank/carteira'.");
+                    }
+                    if (!docUser.exists) {
+                        throw new Error(`Usuário ${userId} não encontrado.`);
+                    }
+                    
+                    const saldoBanco = docBanco.data().saldo || 0;
+                    const saldoInicialUser = docUser.data().saldo !== undefined ? docUser.data().saldo : docUser.data().pontuacao || 0; 
+
+                    // 2. VALIDAR se o banco tem fundos para emprestar
+                    if (saldoBanco < valorEmprestado) {
+                        throw new Error(`Saldo insuficiente no Banco (${formatarMoeda(saldoBanco)}) para conceder o empréstimo de ${formatarMoeda(valorEmprestado)}.`);
+                    }
+
+                    // 3. CALCULAR novos saldos
+                    const novoSaldoBanco = saldoBanco - valorEmprestado; // Saída do Banco
+                    const novoSaldoUser = saldoInicialUser + valorEmprestado; // Entrada no Usuário
+                    
+                    // 4. ATUALIZAR os documentos
+                    transaction.update(BANCO_REF, { saldo: novoSaldoBanco });
+                    transaction.update(userRef, { saldo: novoSaldoUser });
+                    
+                    // 5. REGISTRAR a DÍVIDA
+                    transaction.set(emprestimoRef, {
+                        usuarioId: userId,
+                        nomeUsuario: docUser.data().nome || userId,
+                        valorEmprestado: valorEmprestado,
+                        valorDevolver: valorTotalDevolver,
+                        juros: calc.valorJuros,
+                        taxa: calc.taxaJuros,
+                        motivo: motivo,
+                        dataEmprestimo: firebase.firestore.FieldValue.serverTimestamp(), 
+                        status: 'Aberto', // Aberto, Pago, Atrasado
+                        concedidoPor: adminUser.nome || adminUser.username || 'Admin',
+                        dataPagamento: null // Data em que o pagamento for registrado
+                    });
+                });
+
+                alert(`Empréstimo de ${formatarMoeda(valorEmprestado)} concedido a ${userId}! O valor total a pagar é ${formatarMoeda(valorTotalDevolver)}. A dívida foi registrada.`);
+                
+                // Limpa o formulário e recarrega o saldo do banco
+                document.getElementById('loan-value').value = '0';
+                document.getElementById('loan-reason').value = '';
+                document.getElementById('interest-rate').value = '10.00';
+                calculateTotalReturn(); // Reseta o resumo
+                renderSaldoBanco(); 
+                
+            } catch (error) {
+                console.error("Erro na transação de empréstimo:", error);
+                alert(`Erro ao registrar o empréstimo: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+        // --- Inicialização ---
+
+        function initializeLoanView() {
+            if (checkAdminAccess()) {
+                loadUsers();      
+                renderSaldoBanco(); 
+                calculateTotalReturn(); // Cálculo inicial
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', initializeLoanView);
+    </script>
+</body>
+</html>

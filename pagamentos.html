@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Pagamento</title>
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="firebase-init.js"></script>
+    
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="center-box large-box">
+        <h1 class="main-title" style="color: var(--success-color);">Registrar Pagamento</h1>
+        <p class="info-message" style="text-align: center;">Transfere fundos da Carteira do Banco para o saldo de um usuário.</p>
+        <hr class="divider">
+
+        <div id="payment-form">
+            
+            <div class="form-group">
+                <label for="user-select">Selecione o Usuário:</label>
+                <select id="user-select" class="input-rounded" required>
+                    <option value="" disabled selected>Carregando usuários...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="payment-value">Valor a Pagar (R$)</label>
+                <input type="number" step="0.01" id="payment-value" class="input-rounded" placeholder="Ex: 10.00" required>
+            </div>
+
+            <div class="form-group">
+                <label for="payment-reason">Motivo do Pagamento</label>
+                <input type="text" id="payment-reason" class="input-rounded" placeholder="Ex: Tarefa Limpar Quarto - Aprovada" required>
+            </div>
+            
+            <div id="saldo-banco-container" style="text-align: center; margin-bottom: 25px; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: var(--primary-dark);">Saldo Atual do Banco:</span>
+                <span id="saldo-banco-valor" style="font-size: 1.8em; font-weight: bold; margin-left: 10px;">R$ 0,00</span>
+                <p id="saldo-banco-alerta" style="margin: 5px 0 0 0; font-size: 0.9em; color: var(--primary-dark);"></p>
+            </div>
+
+
+            <button onclick="confirmPayment()" class="btn-rounded btn-success wide-button">
+                <i class="fas fa-check-circle"></i> Confirmar e Registrar Pagamento
+            </button>
+            
+        </div>
+        
+        <a href="gerenciar-carteira.html" class="btn-rounded btn-secondary-text wide-button" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> Voltar à Gerência de Carteira
+        </a>
+    </div>
+
+    <script>
+        // Acesso ao Firestore e Variáveis Globais
+        // Assumindo que 'db' foi definido no script 'firebase-init.js' no cabeçalho.
+        const firestore = typeof db !== 'undefined' ? db : null; 
+        const BANCO_REF = firestore ? firestore.collection('bank').doc('carteira') : null;
+        const LIMITE_ALERTA = 20.00; // Valor para alerta de saldo baixo
+        
+        // --- Funções Auxiliares (Ajustadas para serem locais se não estiverem em script.js) ---
+        function getUsuarioLogado() {
+            try {
+                return JSON.parse(localStorage.getItem('usuarioLogado'));
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        function formatarMoeda(valor) {
+            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
+        function checkAdminAccess() {
+            const userInfo = getUsuarioLogado();
+            if (!userInfo || userInfo.isAdmin !== true) {
+                alert("Acesso negado. Apenas administradores.");
+                window.location.href = 'index.html';
+                return false;
+            }
+            return true;
+        }
+
+        // --- Funções de Carregamento de Dados ---
+        
+        /**
+         * Carrega o saldo do banco para exibição.
+         */
+        async function renderSaldoBanco() {
+            const valorEl = document.getElementById('saldo-banco-valor');
+            const alertaEl = document.getElementById('saldo-banco-alerta');
+            
+            valorEl.textContent = "Carregando...";
+            valorEl.style.color = 'var(--primary-dark)'; 
+            alertaEl.textContent = '';
+            
+            if (!BANCO_REF) {
+                valorEl.textContent = 'Erro!';
+                alertaEl.textContent = 'Falha na conexão. Verifique o console.';
+                valorEl.style.color = 'var(--danger-color)';
+                return;
+            }
+
+            try {
+                const bancoDoc = await BANCO_REF.get();
+                const saldoBanco = bancoDoc.exists ? (bancoDoc.data().saldo || 0) : 0;
+                
+                const saldoFormatado = formatarMoeda(saldoBanco);
+                valorEl.textContent = saldoFormatado;
+
+                if (saldoBanco <= LIMITE_ALERTA) {
+                    valorEl.style.color = 'var(--danger-color)'; 
+                    alertaEl.textContent = 'ATENÇÃO: Saldo baixo! O pagamento pode esgotar o caixa.';
+                } else {
+                    valorEl.style.color = 'black'; 
+                    alertaEl.textContent = 'Saldo disponível no caixa para o pagamento.';
+                }
+                return saldoBanco; // Retorna o saldo para uso na validação
+            } catch (error) {
+                console.error("Erro ao carregar saldo do banco:", error);
+                valorEl.textContent = 'Erro!';
+                valorEl.style.color = 'var(--danger-color)';
+                alertaEl.textContent = 'Erro ao buscar o saldo do banco.';
+                return 0;
+            }
+        }
+
+        /**
+         * Popula a lista suspensa de usuários.
+         */
+        async function loadUsers() {
+            const selectEl = document.getElementById('user-select');
+            selectEl.innerHTML = '<option value="" disabled selected>Carregando usuários...</option>';
+
+            if (!firestore) {
+                selectEl.innerHTML = '<option value="" disabled selected>Erro de conexão.</option>';
+                return;
+            }
+
+            try {
+                const usersSnapshot = await firestore.collection('users').get();
+                let optionsHtml = '<option value="" disabled selected>Selecione um usuário...</option>';
+                
+                usersSnapshot.forEach(doc => {
+                    const userName = doc.id;
+                    const userData = doc.data();
+                    const nomeCompleto = userData.nome || userName;
+                    // O valor da opção será o username (ID do documento)
+                    optionsHtml += `<option value="${userName}">${nomeCompleto} (@${userName})</option>`;
+                });
+                
+                selectEl.innerHTML = optionsHtml;
+            } catch (error) {
+                console.error("Erro ao carregar a lista de usuários:", error);
+                selectEl.innerHTML = '<option value="" disabled selected>Erro ao carregar a lista.</option>';
+            }
+        }
+
+        // --- Função de Transação (O coração da página) ---
+
+        /**
+         * Confirma e executa a transação de pagamento.
+         */
+        async function confirmPayment() {
+            if (!firestore || !BANCO_REF) {
+                alert('Erro na conexão com o Banco de Dados. Verifique o console.');
+                return;
+            }
+            
+            const userId = document.getElementById('user-select').value;
+            const valorStr = document.getElementById('payment-value').value;
+            const motivo = document.getElementById('payment-reason').value.trim();
+            const valor = parseFloat(valorStr);
+
+            if (!userId || isNaN(valor) || valor <= 0 || !motivo) {
+                alert("Por favor, preencha todos os campos corretamente (Usuário, Valor > 0, e Motivo).");
+                return;
+            }
+
+            if (!confirm(`Confirma o pagamento de ${formatarMoeda(valor)} para o usuário ${userId} por: "${motivo}"?`)) {
+                return;
+            }
+
+            try {
+                const userRef = firestore.collection('users').doc(userId);
+                const transacaoRef = firestore.collection('pagamentos').doc(); 
+                const adminUser = getUsuarioLogado();
+
+                await firestore.runTransaction(async (transaction) => {
+                    // 1. LER o saldo atual do BANCO e do USUÁRIO
+                    const docBanco = await transaction.get(BANCO_REF);
+                    const docUser = await transaction.get(userRef);
+
+                    if (!docBanco.exists) {
+                        throw new Error("Carteira do Banco não encontrada. Crie o documento 'bank/carteira'.");
+                    }
+                    if (!docUser.exists) {
+                        throw new Error(`Usuário ${userId} não encontrado.`);
+                    }
+                    
+                    const saldoBanco = docBanco.data().saldo || 0;
+                    const saldoInicialUser = docUser.data().saldo !== undefined ? docUser.data().saldo : docUser.data().pontuacao || 0;
+
+                    // 2. VALIDAR se o banco tem fundos
+                    if (saldoBanco < valor) {
+                        throw new Error(`Saldo insuficiente no Banco (${formatarMoeda(saldoBanco)}) para pagar ${formatarMoeda(valor)}.`);
+                    }
+
+                    // 3. CALCULAR novos saldos
+                    const novoSaldoBanco = saldoBanco - valor;
+                    const novoSaldoUser = saldoInicialUser + valor;
+                    
+                    // 4. ATUALIZAR os documentos
+                    // Saída do Banco
+                    transaction.update(BANCO_REF, { saldo: novoSaldoBanco });
+                    // Entrada para o Usuário
+                    transaction.update(userRef, { saldo: novoSaldoUser });
+                    
+                    // 5. REGISTRAR a Transação (Opcional, mas recomendado para histórico)
+                    transaction.set(transacaoRef, {
+                        tipo: 'Pagamento',
+                        usuarioId: userId,
+                        nomeUsuario: docUser.data().nome || userId,
+                        valor: valor,
+                        motivo: motivo,
+                        dataTransacao: firebase.firestore.FieldValue.serverTimestamp(), 
+                        processadoPor: adminUser.nome || adminUser.username || 'Admin'
+                    });
+                });
+
+                alert(`Pagamento de ${formatarMoeda(valor)} registrado com sucesso para ${userId}! Saldo do Banco atualizado.`);
+                // Limpa o formulário e recarrega o saldo do banco
+                document.getElementById('payment-value').value = '';
+                document.getElementById('payment-reason').value = '';
+                renderSaldoBanco(); 
+                
+            } catch (error) {
+                console.error("Erro na transação de pagamento:", error);
+                alert(`Erro ao registrar o pagamento: ${error.message || 'Tente novamente.'}`);
+            }
+        }
+
+        // --- Inicialização ---
+
+        function initializePaymentView() {
+            if (checkAdminAccess()) {
+                loadUsers();      // Carrega a lista de usuários
+                renderSaldoBanco(); // Carrega o saldo do banco
+            }
+        }
+        
+        window.addEventListener('DOMContentLoaded', initializePaymentView);
+    </script>
+</body>
+</html>
