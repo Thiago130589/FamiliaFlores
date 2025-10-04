@@ -12,8 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <script src="firebase-init.js" defer></script> 
-    
-    <script src="script.js" defer></script>
+    <script src="script.js" defer></script> 
 </head>
 <body>
     <div class="center-box large-box">
@@ -52,10 +51,7 @@
             <div id="banco-saldo-display" class="saldo-display">
                 Carteira do Banco: R$ 0,00
             </div>
-            <a href="#" id="recarregar-saldo-banco" onclick="recarregarSaldoBanco(100.00); return false;" class="recharge-link">
-                Recarregar Saldo (R$ 100,00)
-            </a>
-        </div>
+            </div>
 
         <a href="historico-multas.html" class="btn-rounded btn-secondary wide-button" style="margin-top: 20px;">
             <i class="fas fa-file-invoice-dollar"></i> Ver Histórico de Multas Aplicadas
@@ -108,17 +104,18 @@
 
 
     <script>
-        // Acesso seguro às variáveis globais (db = Firestore, auth = FirebaseAuth)
-        // Se 'db' não estiver definido (por falha ou ordem de script), será null.
+        // Acesso seguro às variáveis globais
         const firestore = typeof db !== 'undefined' ? db : null; 
         const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
         let currentEditingUser = null; 
         
         if (!firestore || !firebaseAuth) {
-            console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente. Variáveis 'db' e 'auth' ausentes.");
+            console.error("ERRO CRÍTICO: Firebase ou Firestore não foram inicializados corretamente. As operações de banco falharão.");
+            const bancoDisplay = document.getElementById('banco-saldo-display');
+            if(bancoDisplay) bancoDisplay.innerHTML = 'Carteira do Banco: <span class="error-text">Falha na conexão com o Banco de Dados.</span>';
         } 
         
-        // --- Funções de Utilitário (Você pode mover para script.js) ---
+        // --- Funções de Utilitário ---
         
         function getUsuarioLogado() {
             try {
@@ -128,7 +125,6 @@
             }
         }
         
-        // Esta função DEVE SER movida para script.js para uso global
         function formatarMoeda(valor) {
             return (parseFloat(valor) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
@@ -182,7 +178,6 @@
              }
              
              try {
-                 // Assumindo que você tem um documento único 'banco-global' na coleção 'banco'
                  const bancoDoc = await firestore.collection('banco').doc('banco-global').get();
                  const saldo = bancoDoc.exists ? bancoDoc.data().saldo || 0 : 0;
                  bancoDisplay.innerHTML = `Carteira do Banco: <span class="positive-text" style="font-weight: bold;">${formatarMoeda(saldo)}</span>`;
@@ -193,40 +188,8 @@
              }
         }
         
-        // CORREÇÃO: Removida a referência a 'SALDO_INICIAL' para resolver o erro.
-        async function recarregarSaldoBanco(valor) {
-            if (!checkAdminAccess() || !firestore) return;
-            
-            if (!confirm(`Tem certeza que deseja recarregar o Saldo do Banco em ${formatarMoeda(valor)}?`)) {
-                 return;
-            }
-            
-            const bancoRef = firestore.collection('banco').doc('banco-global');
-
-            try {
-                // Utilizando Transação para garantir a atomicidade (segurança) da atualização
-                await firestore.runTransaction(async (transaction) => {
-                    const docBanco = await transaction.get(bancoRef);
-                    
-                    let saldoAtual = 0; 
-                    if (docBanco.exists) {
-                        saldoAtual = docBanco.data().saldo || 0;
-                    }
-                    
-                    const novoSaldo = saldoAtual + valor;
-                    
-                    transaction.set(bancoRef, { saldo: novoSaldo }, { merge: true });
-                });
-                
-                alert(`Saldo do Banco recarregado em ${formatarMoeda(valor)} com sucesso!`);
-                fetchBancoSaldo(); // Atualiza a exibição
-                
-            } catch (error) {
-                console.error("Erro na transação de recarga do saldo do banco:", error);
-                alert(`Erro ao recarregar o Saldo do Banco: ${error.message || 'Verifique as Regras do Firestore.'}`);
-            }
-        }
-
+        // FUNÇÃO recarregarSaldoBanco REMOVIDA
+        
         function initializeAdminView() {
             if (checkAdminAccess()) {
                 fetchBancoSaldo(); 
@@ -244,7 +207,6 @@
             }
 
             try {
-                // Busca todos os documentos na coleção 'users'
                 const usersSnapshot = await firestore.collection('users').orderBy('saldo', 'desc').get();
                 let html = '<ul class="transaction-list">';
                 let foundUsers = false;
@@ -254,7 +216,6 @@
                     const userName = doc.id; 
                     const userData = doc.data();
                     
-                    // Não lista o próprio usuário logado (Admin) ou outros Admins
                     if (loggedUser && userName === loggedUser.username) return;
                     if (userData.isAdmin) return; 
 
@@ -293,7 +254,7 @@
 
             } catch (error) {
                 if (error.code === 'permission-denied' || error.message.includes('Missing or insufficient permissions')) {
-                     listaEl.innerHTML = '<p class="error-message">ERRO DE PERMISSÃO: Verifique as **Regras do Firestore** para a coleção `users`.</p>';
+                     listaEl.innerHTML = '<p class="error-message">ERRO DE PERMISSÃO: Verifique as **Regras do Firestore** (coleção `users`).</p>';
                      console.error("Erro de Permissão (Firestore Rules):", error);
                 } else {
                      console.error("Erro ao carregar saldos:", error);
@@ -305,7 +266,6 @@
         async function confirmAdjustSaldo() {
             if (!firestore) { alert('Erro na conexão com o Banco de Dados.'); return; }
             const valorAjusteStr = document.getElementById('saldo-adjustment-value').value;
-            // Garantir que o valor seja float com duas casas decimais
             const valorAjuste = Math.round(parseFloat(valorAjusteStr) * 100) / 100; 
             
             if (isNaN(valorAjuste) || valorAjuste === 0 || !currentEditingUser) {
@@ -377,7 +337,7 @@
                     
                     const userData = docUser.data();
                     const saldoInicial = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
-                    const novoSaldo = saldoInicial - valorMulta; // A multa subtrai do saldo
+                    const novoSaldo = saldoInicial - valorMulta; 
                     
                     // 1. Atualiza o saldo (subtrai)
                     transaction.update(userRef, { saldo: novoSaldo });
@@ -408,7 +368,7 @@
         document.addEventListener('DOMContentLoaded', () => {
              initializeAdminView();
              
-             // Fechar o modal ao clicar fora
+             // Fechar o modal ao clicar no overlay
              document.getElementById('modal-ajustar-saldo').addEventListener('click', (e) => {
                  if (e.target.id === 'modal-ajustar-saldo') closeModal('modal-ajustar-saldo');
              });
