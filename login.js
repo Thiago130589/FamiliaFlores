@@ -1,11 +1,11 @@
 /**
  * Arquivo: login.js
  * Descrição: Lógica de autenticação do formulário de login.
- * Depende de: firebase-init.js (para 'auth' e 'db')
+ * Depende de: firebase-init.js (para 'auth' e 'db' [Firestore])
  */
 
-const firestore = typeof db !== 'undefined' ? db : null;
-const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
+// A variável 'db' (Firestore) e 'auth' (Firebase Auth) são definidas em firebase-init.js.
+const firebaseAuth = typeof auth !== 'undefined' ? auth : null; // Usa 'auth' global
 
 const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('login-username');
@@ -41,7 +41,7 @@ function mapUsernameToEmail(username) {
     if (username.includes('@')) {
         return username.toLowerCase().trim();
     }
-    // E-mail fictício usado no cadastro do Firebase Auth (DEVE SER O MESMO DO CADASTRAR-USUARIO.JS)
+    // E-mail fictício usado no cadastro do Firebase Auth
     return `${username.toLowerCase().trim()}@familiadefault.com`;
 }
 
@@ -53,7 +53,8 @@ async function handleLogin(e) {
     e.preventDefault();
     resetMessage();
 
-    if (!firebaseAuth || !firestore) {
+    // CRÍTICO: Usa 'db' (a variável global do Firestore)
+    if (!firebaseAuth || typeof db === 'undefined' || !db) {
         showMessage('Erro crítico: Firebase não inicializado. Verifique firebase-init.js.', 'error');
         return;
     }
@@ -74,13 +75,12 @@ async function handleLogin(e) {
 
 
     try {
-        // ETAPA 1: Autenticação via Firebase Auth (Verifica email/senha)
+        // ETAPA 1: Autenticação via Firebase Auth
         const userCredential = await firebaseAuth.signInWithEmailAndPassword(emailToLogin, password);
         const firebaseUser = userCredential.user;
         
-        // ETAPA 2: Busca os dados adicionais do usuário no Firestore
-        // O ID do documento é o email completo do usuário logado.
-        const userDocRef = firestore.collection('users').doc(firebaseUser.email);
+        // ETAPA 2: Busca os dados adicionais do usuário no Firestore (usando 'db')
+        const userDocRef = db.collection('users').doc(firebaseUser.email);
         
         const userDoc = await userDocRef.get();
 
@@ -95,11 +95,10 @@ async function handleLogin(e) {
         // Constrói o objeto de sessão
         const userSession = {
             uid: firebaseUser.uid, 
-            username: userData.username || userDoc.id, // Usa o username do Firestore
+            username: userData.username || userDoc.id, 
             nome: userData.nome || 'Usuário',
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
-            // Prioriza 'saldo' se disponível, senão usa 'pontuacao'
             pontuacao: userData.saldo || userData.pontuacao || 0, 
             saldo: userData.saldo || userData.pontuacao || 0,
         };
@@ -120,12 +119,8 @@ async function handleLogin(e) {
         
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             errorMessage = 'Apelido ou Senha incorreta.';
-        } else if (error.code === 'auth/invalid-email') {
-            errorMessage = 'O formato do Apelido/Usuário é inválido.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
-        } else if (error.message.includes('API key not valid')) {
-            errorMessage = 'Erro interno do servidor. Verifique se a API Key no `firebase-init.js` está correta.';
         }
         
         showMessage(errorMessage, 'error');

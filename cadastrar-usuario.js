@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Acessa as variáveis globais
-    const firestore = typeof db !== 'undefined' ? db : null;
+    // Acessa as variáveis globais 'db' (Firestore) e 'auth' (Firebase Auth)
     const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
     const USERS_COLLECTION = 'users';
 
-    if (!firestore || !firebaseAuth) {
+    // CRÍTICO: Usa 'db' (a variável global do Firestore)
+    if (typeof db === 'undefined' || !db || !firebaseAuth) { 
         console.error("ERRO CRÍTICO: Firebase (Firestore ou Auth) não está definido. Verifique a ordem dos scripts no HTML.");
     }
 
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
      */
     function mapUsernameToEmail(username) {
-        // E-mail fictício usado no cadastro do Firebase Auth (DEVE SER O MESMO DO LOGIN.JS)
+        // E-mail fictício usado no cadastro do Firebase Auth
         return `${username.toLowerCase().trim()}@familiadefault.com`;
     }
     
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const confirmPassword = document.getElementById('register-confirm-password').value.trim();
         const fotoInput = document.getElementById('register-foto-perfil');
         
-        if (!firestore || !firebaseAuth) {
+        if (typeof db === 'undefined' || !db || !firebaseAuth) {
             messageEl.textContent = 'Erro de inicialização do Firebase. Verifique firebase-init.js.';
             messageEl.classList.remove('hidden-start');
             return;
@@ -88,12 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             
-            // 2. VERIFICAÇÃO DE DUPLICIDADE (Opcional, mas útil para apelido)
-            // Tenta buscar o documento para garantir que o apelido (ID) não está em uso
-            const userDocCheck = await firestore.collection(USERS_COLLECTION).doc(emailToRegister).get();
+            // 2. VERIFICAÇÃO DE DUPLICIDADE (Usando 'db')
+            const userDocCheck = await db.collection(USERS_COLLECTION).doc(emailToRegister).get();
 
             if (userDocCheck.exists) {
-                // Se existir no Firestore, assume que a conta já foi criada no Auth também.
                 messageEl.textContent = `O nome de usuário "${username}" já está em uso.`;
                 messageEl.classList.remove('hidden-start');
                 return;
@@ -110,19 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 fotoBase64 = await convertFileToBase64(fotoInput.files[0]);
             }
             
-            // 5. CRIAÇÃO DO DOCUMENTO NO FIRESTORE
+            // 5. CRIAÇÃO DO DOCUMENTO NO FIRESTORE (Usando 'db')
             const newUserDoc = {
                 uid: firebaseUser.uid,
                 nome: nome,
-                username: username, // Apelido
+                username: username,
                 foto: fotoBase64,
                 pontuacao: 0,
                 isAdmin: false, 
-                // A senha NÃO é salva no Firestore!
             };
 
-            // ID do documento: o email completo mapeado
-            await firestore.collection(USERS_COLLECTION).doc(emailToRegister).set(newUserDoc);
+            await db.collection(USERS_COLLECTION).doc(emailToRegister).set(newUserDoc);
             console.log("Documento Firestore criado com sucesso para:", emailToRegister);
 
             // 6. SUCCESSO
@@ -140,13 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let errorMessage = `Erro ao cadastrar: ${error.message || 'Verifique o console.'}`;
             
-            if (error.code === 'auth/email-already-in-use' || error.message.includes('already in use')) {
+            if (error.code === 'auth/email-already-in-use') {
                 errorMessage = "Este apelido já está em uso.";
             } else if (error.code === 'auth/weak-password') {
                  errorMessage = "A senha deve ter pelo menos 6 caracteres.";
-            } else if (error.message && error.message.includes('permission denied')) {
-                 errorMessage = "Erro de permissão. Verifique suas regras do Firestore.";
-            }
+            } 
             
             messageEl.textContent = errorMessage;
             messageEl.classList.add('error-message');
