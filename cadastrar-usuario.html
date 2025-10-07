@@ -1,61 +1,62 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Usuário</title>
-    
-    <link rel="stylesheet" href="style.css"> 
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <script src="firebase-init.js"></script> 
-    <script src="cadastrar-usuario.js" defer></script> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuário</title>
+    
+    <link rel="stylesheet" href="style.css"> 
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    
+    <script src="firebase-init.js"></script> 
+    <script src="cadastrar-usuario.js" defer></script> 
 </head>
 <body class="body-register">
-    <div class="center-box center-box-register">
-        <div class="login-header">
-            <h1 class="main-title main-title-success">Cadastro - Task Master</h1>
-            <p class="center-text">Crie sua conta de acesso.</p>
-        </div>
-        
-        <hr class="divider">
+    <div class="center-box center-box-register">
+        <div class="login-header">
+            <h1 class="main-title main-title-success">Cadastro - Task Master</h1>
+            <p class="center-text">Crie sua conta de acesso.</p>
+        </div>
+        
+        <hr class="divider">
 
-        <form id="register-form">
-            <div class="form-group">
-                <label for="register-nome">Nome Completo</label>
-                <input type="text" id="register-nome" class="input-rounded" placeholder="Seu nome" required>
-            </div>
+        <form id="register-form">
+            <div class="form-group">
+                <label for="register-nome">Nome Completo</label>
+                <input type="text" id="register-nome" class="input-rounded" placeholder="Seu nome" required>
+            </div>
 
-            <div class="form-group">
-                <label for="register-username">Nome de Usuário (Apelido)</label>
-                <input type="text" id="register-username" class="input-rounded" placeholder="Apelido, sem espaços" required>
-            </div>
+            <div class="form-group">
+                <label for="register-username">Nome de Usuário (Apelido)</label>
+                <input type="text" id="register-username" class="input-rounded" placeholder="Apelido, sem espaços" required>
+            </div>
 
-            <div class="form-group">
-                <label for="register-password">Senha</label>
-                <input type="password" id="register-password" class="input-rounded" placeholder="Sua senha" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="register-confirm-password">Confirmar Senha</label>
-                <input type="password" id="register-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
-            </div>
+            <div class="form-group">
+                <label for="register-password">Senha</label>
+                <input type="password" id="register-password" class="input-rounded" placeholder="Sua senha" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="register-confirm-password">Confirmar Senha</label>
+                <input type="password" id="register-confirm-password" class="input-rounded" placeholder="Repita a senha" required>
+            </div>
 
-            <div class="form-group">
-                <label for="register-foto-perfil">Foto de Perfil (Opcional)</label>
-                <input type="file" id="register-foto-perfil" accept="image/*">
-            </div>
-            
-            <button type="submit" class="btn-rounded btn-success btn-rounded-large wide-button">
-                Cadastrar
-            </button>
-        </form>
+            <div class="form-group">
+                <label for="register-foto-perfil">Foto de Perfil (Opcional)</label>
+                <input type="file" id="register-foto-perfil" accept="image/*">
+            </div>
+            
+            <button type="submit" class="btn-rounded btn-success btn-rounded-large wide-button">
+                Cadastrar
+            </button>
+        </form>
 
-        <a href="login.html" class="login-link">Já tem conta? Faça login.</a>
-        
-        <p id="register-message" class="error-message hidden-start" role="alert"></p>
-    </div>
+        <a href="login.html" class="login-link">Já tem conta? Faça login.</a>
+        
+        <p id="register-message" class="error-message hidden-start" role="alert"></p>
+    </div>
 </body>
 </html>

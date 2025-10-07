@@ -1,11 +1,10 @@
 ﻿let currentUser = null;
 
 // =========================================================================
-// 0. CONFIGURAÇÃO DO FIREBASE (Exemplo)
+// 0. CONFIGURAÇÃO DO FIREBASE (Variáveis Globais)
 // =========================================================================
-// Assumindo que você inicializou o Firebase e o Firestore em algum lugar,
-// e a variável 'db' está disponível. Exemplo:
-// const db = firebase.firestore();
+const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
+const firestore = typeof db !== 'undefined' ? db : null;
 
 
 // =========================================================================
@@ -14,7 +13,6 @@
 
 /**
  * Retorna os dados do usuário logado do localStorage.
- * @returns {Object|null} Objeto do usuário ou null.
  */
 function getUsuarioLogado() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
@@ -23,6 +21,7 @@ function getUsuarioLogado() {
             return JSON.parse(usuarioLogado);
         } catch (e) {
             console.error("Erro ao processar JSON do usuário:", e);
+            localStorage.removeItem('usuarioLogado');
             return null;
         }
     }
@@ -31,21 +30,17 @@ function getUsuarioLogado() {
 
 /**
  * Verifica se o usuário logado é administrador.
- * @returns {boolean} True se for admin, false caso contrário.
  */
 function checkAdminAccess() {
-    const userInfo = getUsuarioLogado();
+    const userInfo = currentUser || getUsuarioLogado();
     return userInfo && userInfo.isAdmin === true;
 }
 
 /**
  * Formata um valor numérico para o formato de moeda Real (BRL).
- * @param {number} valor
- * @returns {string} Valor formatado (Ex: R$ 5,00)
  */
 function formatarMoeda(valor) {
-    // Garante que o valor seja um número, com fallback para 0
-    const numericValue = typeof valor === 'number' ? valor : 0;
+    const numericValue = typeof valor === 'number' ? valor : parseFloat(valor) || 0;
     return numericValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
@@ -58,10 +53,9 @@ function checkLoginStatus() {
     const usuarioLogado = localStorage.getItem('usuarioLogado');
     const path = window.location.pathname;
 
-    // Se estiver em telas de AUTH (login/cadastro), redireciona se já estiver logado.
+    // Se estiver em telas de AUTH, redireciona se já estiver logado.
     if (path.includes('login.html') || path.includes('cadastrar-usuario.html')) {
         if (usuarioLogado) {
-            // Pequeno delay para evitar o "flickering"
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 10);
@@ -69,7 +63,7 @@ function checkLoginStatus() {
         return; 
     }
 
-    // Lógica para as páginas PROTEGIDAS (como index.html, painel-admin.html, etc.)
+    // Lógica para as páginas PROTEGIDAS 
     if (!usuarioLogado) {
         console.log("Usuário não logado em página protegida. Redirecionando para login.");
         setTimeout(() => {
@@ -80,17 +74,17 @@ function checkLoginStatus() {
             currentUser = JSON.parse(usuarioLogado);
             console.log("Usuário logado:", currentUser.username, "(Admin:", currentUser.isAdmin, ")");
             
-            // Se estiver no Dashboard, carrega os dados (AJUSTE DE SINCRONIZAÇÃO)
+            // Se estiver no Dashboard, carrega os dados
             if (path.includes('index.html')) {
                 loadDashboardData();
             }
 
-            // Verifica acesso de admin se estiver em uma página de administração
-            if (path.includes('admin') || path.includes('carteira') || path.includes('multas')) {
-                 if (!checkAdminAccess()) {
-                     alert("Acesso restrito a administradores.");
-                     window.location.href = 'index.html';
-                 }
+            // Verifica acesso de admin (ex: painel-admin.html)
+            if (path.includes('painel-admin.html')) {
+                if (!checkAdminAccess()) {
+                    alert("Acesso restrito a administradores.");
+                    window.location.href = 'index.html';
+                }
             }
             
         } catch (e) {
@@ -100,52 +94,70 @@ function checkLoginStatus() {
     }
 }
 
-function logoutUser() {
+async function logoutUser() {
+    // 1. Tenta deslogar do Firebase Auth
+    if (firebaseAuth) {
+        try {
+            await firebaseAuth.signOut();
+            console.log("Logout do Firebase Auth bem-sucedido.");
+        } catch (error) {
+            console.error("Erro ao tentar logout do Firebase:", error);
+        }
+    }
+    
+    // 2. Limpa a sessão local e redireciona
     localStorage.removeItem('usuarioLogado');
     currentUser = null;
     window.location.href = 'login.html';
 }
 
 // =========================================================================
-// 3. FUNÇÕES DE BUSCA DE DADOS (Simulação de Firestore)
+// 3. FUNÇÕES DE BUSCA DE DADOS (Firestore)
 // =========================================================================
 
 /**
- * SIMULAÇÃO: Busca o saldo/pontuação mais recente no Firestore.
- * Em um app real, o 'currentUser' deveria ser atualizado com este dado.
- * @param {string} userId - ID do usuário.
- * @returns {Promise<number>} O saldo atualizado.
+ * Busca o saldo/pontuação mais recente no Firestore.
  */
-async function getSaldoFromFirestore(userId) {
-    // Implementação real do Firestore seria:
-    // const userDoc = await db.collection('users').doc(userId).get();
-    // return userDoc.exists ? userDoc.data().saldo : 0;
+async function getSaldoFromFirestore(userEmailId) {
+    if (!firestore) {
+        console.error("Firestore (db) não está inicializado.");
+        return 0;
+    }
     
-    console.log(`Simulando busca de saldo para o usuário ID: ${userId}...`);
-    
-    // Simula um delay e um retorno de dado (ex: um saldo de 1500)
-    return new Promise(resolve => setTimeout(() => resolve(1500.75), 500)); 
+    try {
+        const userDoc = await firestore.collection('users').doc(userEmailId).get();
+        
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            return userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
+        }
+        return 0;
+    } catch (error) {
+        console.error("Erro ao buscar saldo no Firestore:", error);
+        return 0;
+    }
 }
 
 
 /**
- * Função para carregar dados adicionais do Dashboard que NÃO estão no localStorage.
+ * Função para carregar dados adicionais do Dashboard (Saldo mais recente).
  */
 async function loadDashboardDataFromDatabase() {
-    if (!currentUser || !currentUser.uid) { // Assume que o Firestore usa 'uid'
-        console.warn("Não foi possível carregar dados adicionais: UID do usuário ausente.");
+    // O ID do documento no Firestore é o email mapeado (ex: 'apelido@familiadefault.com')
+    if (!currentUser || !currentUser.username) { 
+        console.warn("Não foi possível carregar dados adicionais: Username ausente.");
         return;
     }
+    const userEmailId = `${currentUser.username}@familiadefault.com`;
 
     try {
-        const saldoAtualizado = await getSaldoFromFirestore(currentUser.uid);
+        const saldoAtualizado = await getSaldoFromFirestore(userEmailId);
         
-        // Atualiza o objeto currentUser e o localStorage APENAS com o saldo (ou outros campos dinâmicos)
+        // Atualiza o objeto currentUser e o localStorage
         currentUser.saldo = saldoAtualizado;
-        // Não é recomendado salvar todo o objeto de volta, mas para manter a consistência...
+        currentUser.pontuacao = saldoAtualizado; 
         localStorage.setItem('usuarioLogado', JSON.stringify(currentUser)); 
         
-        // Chama a função de exibição de dados para renderizar os novos valores
         renderDashboardData(currentUser);
 
     } catch (error) {
@@ -158,18 +170,19 @@ async function loadDashboardDataFromDatabase() {
 // 4. FUNÇÕES DE CARREGAMENTO DO DASHBOARD (index.html)
 // =========================================================================
 
-// Função principal de carregamento que também chama a busca no banco (se necessário)
+const DEFAULT_AVATAR_PATH = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#32c74d"/><text x="50" y="65" font-family="Arial, sans-serif" font-size="50" fill="#ffffff" text-anchor="middle">U</text></svg>';
+
+
 function loadDashboardData() {
     if (!currentUser) return;
 
     // 1. Renderiza os dados INICIAIS (do localStorage)
     renderDashboardData(currentUser);
 
-    // 2. Inicia a busca por dados mais recentes/dinâmicos no "banco de dados"
+    // 2. Inicia a busca por dados mais recentes/dinâmicos no banco de dados
     loadDashboardDataFromDatabase();
 }
 
-// Função de renderização pura (separa lógica de busca da lógica de DOM)
 function renderDashboardData(userData) {
     if (!userData) return;
 
@@ -180,32 +193,22 @@ function renderDashboardData(userData) {
     // 2. Foto do Perfil
     const userPhotoEl = document.getElementById('user-photo');
     if (userPhotoEl) {
-        const defaultPath = 'imagens/default-avatar.png';
-        const fallbackPath = 'default-avatar.png';
-        
-        userPhotoEl.src = userData.foto || defaultPath; 
+        const photoSource = userData.foto && userData.foto.startsWith('data:image/') ? userData.foto : DEFAULT_AVATAR_PATH;
+        userPhotoEl.src = photoSource; 
 
         userPhotoEl.onerror = function() {
-            // Tenta o caminho de fallback
-            if (userPhotoEl.src.endsWith(defaultPath)) {
-                userPhotoEl.src = fallbackPath;
-            } else if (userPhotoEl.src.endsWith(fallbackPath)) {
-                // Se falhar no fallback também, limpa a imagem para evitar loops
-                userPhotoEl.src = ''; 
-                console.error("ERRO 404: Imagem de perfil padrão não encontrada.");
-            }
+            // Se falhar, usa o SVG padrão para evitar erro 404
+            userPhotoEl.src = DEFAULT_AVATAR_PATH;
         };
     }
 
-    // 3. Saldo/Pontuação (Prioriza 'saldo' para consistência com o Banco)
+    // 3. Saldo/Pontuação
     const saldoEl = document.getElementById('user-saldo');
     if (saldoEl) {
-        // Usa 'saldo' (do banco) ou 'pontuacao' (fallback)
         const currentBalance = userData.saldo !== undefined ? userData.saldo : userData.pontuacao || 0;
         
         saldoEl.textContent = formatarMoeda(currentBalance);
         
-        // Aplica classe de cor
         if (currentBalance < 0) {
             saldoEl.classList.add('saldo-negativo');
             saldoEl.classList.remove('saldo-positivo');
@@ -236,7 +239,7 @@ function renderDashboardData(userData) {
         }
     }
 
-    // 5. Configurar botão de Logout (garantindo que seja anexado apenas uma vez)
+    // 5. Configurar botão de Logout
     const logoutButton = document.getElementById('logout-button');
     if (logoutButton && !logoutButton.hasAttribute('data-listener-attached')) {
         logoutButton.addEventListener('click', logoutUser);
@@ -250,20 +253,4 @@ function renderDashboardData(userData) {
 // =========================================================================
 
 // Chama a verificação de status imediatamente ao carregar o script
-// Esta é a primeira ação crucial: verificar autenticação e definir 'currentUser'.
 checkLoginStatus();
-
-// Garante que a lógica do dashboard rode APÓS o DOM ser totalmente carregado.
-// A função 'checkLoginStatus' já fez a maior parte do trabalho, este bloco
-// é mais uma garantia e não será estritamente necessário se o script estiver
-// carregado com 'defer' no HTML, mas é uma boa prática.
-document.addEventListener('DOMContentLoaded', () => {
-    // Se o usuário já estiver logado (e currentUser não for null) e estivermos no index.html,
-    // garantimos o carregamento de dados (incluindo a busca no banco).
-    if (window.location.pathname.includes('index.html') && currentUser) {
-        // loadDashboardData já foi chamado em checkLoginStatus, mas se o script
-        // for carregado *antes* de checkLoginStatus terminar (situação rara com 'defer'),
-        // esta chamada garante que ele rode.
-        // Neste código atual, a chamada em checkLoginStatus é suficiente.
-    }
-});

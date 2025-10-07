@@ -1,52 +1,52 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Plataforma</title>
-    
-    <link rel="stylesheet" href="style.css"> 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
-    
-    <script src="firebase-init.js"></script> 
-    
-    <script src="login.js" defer></script> 
-    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Plataforma</title>
+    
+    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script> 
+    
+    <script src="firebase-init.js"></script> 
+    <script src="script.js"></script>     
+    <script src="login.js" defer></script> 
+    
 </head>
 <body>
-    <div class="center-box">
-        <h1>Entrar na Plataforma</h1>
+    <div class="center-box">
+        <h1>Entrar na Plataforma</h1>
 
-        <form id="login-form">
-            
-            <div class="input-group">
-                <label for="login-username">Apelido / Usuário</label>
-                <input type="text" id="login-username" name="username" required>
-            </div>
+        <form id="login-form">
+            
+            <div class="input-group">
+                <label for="login-username">Apelido / Usuário</label>
+                <input type="text" id="login-username" name="username" required>
+            </div>
 
-            <div class="input-group">
-                <label for="login-password">Senha</label>
-                <input type="password" id="login-password" name="password" required>
-            </div>
+            <div class="input-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" name="password" required>
+            </div>
 
-            <p id="login-message" class="message-feedback hidden-start"></p>
+            <p id="login-message" class="message-feedback hidden-start"></p>
 
-            <button type="submit" class="btn-primary">
-                <i class="fas fa-sign-in-alt"></i> Entrar
-            </button>
-        </form>
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Entrar
+            </button>
+        </form>
 
-        <hr class="divider">
-        
-        <p class="small-text">
-            Ainda não tem uma conta? 
-            <a href="cadastrar-usuario.html">Crie sua conta aqui.</a>
-        </p>
+        <hr class="divider">
+        
+        <p class="small-text">
+            Ainda não tem uma conta? 
+            <a href="cadastrar-usuario.html">Crie sua conta aqui.</a>
+        </p>
 
-    </div>
+    </div>
 </body>
 </html>

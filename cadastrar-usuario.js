@@ -1,108 +1,28 @@
-// Este script é carregado APÓS firebase-init.js, então 'db' (Firestore) estará disponível.
-
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof db === 'undefined') {
-        console.error("ERRO: O Firestore ('db') não está definido. Verifique a ordem dos scripts no HTML.");
-    }
-
+    // Acessa as variáveis globais
     const firestore = typeof db !== 'undefined' ? db : null;
+    const firebaseAuth = typeof auth !== 'undefined' ? auth : null; 
     const USERS_COLLECTION = 'users';
+
+    if (!firestore || !firebaseAuth) {
+        console.error("ERRO CRÍTICO: Firebase (Firestore ou Auth) não está definido. Verifique a ordem dos scripts no HTML.");
+    }
 
     const registerForm = document.getElementById('register-form');
     const messageEl = document.getElementById('register-message');
     
-    if (registerForm) {
-        registerForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            messageEl.classList.add('hidden-start');
-            messageEl.textContent = '';
-            
-            registerUser();
-        });
+    // -------------------------------------------------------------------------
+    // Funções Auxiliares
+    // -------------------------------------------------------------------------
+
+    /**
+     * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
+     */
+    function mapUsernameToEmail(username) {
+        // E-mail fictício usado no cadastro do Firebase Auth (DEVE SER O MESMO DO LOGIN.JS)
+        return `${username.toLowerCase().trim()}@familiadefault.com`;
     }
-
-    async function registerUser() {
-        const username = document.getElementById('register-username').value.trim();
-        const nome = document.getElementById('register-nome').value.trim();
-        const password = document.getElementById('register-password').value.trim();
-        const confirmPassword = document.getElementById('register-confirm-password').value.trim();
-        const fotoInput = document.getElementById('register-foto-perfil');
-        
-        if (!firestore) {
-            messageEl.textContent = 'Erro de inicialização do Firebase. Verifique o console.';
-            messageEl.classList.remove('hidden-start');
-            return;
-        }
-
-        if (!username || !nome || !password || !confirmPassword) {
-            messageEl.textContent = 'Por favor, preencha todos os campos obrigatórios.';
-            messageEl.classList.remove('hidden-start');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            messageEl.textContent = 'As senhas não coincidem.';
-            messageEl.classList.remove('hidden-start');
-            return;
-        }
-        
-        if (username.includes(' ')) {
-            messageEl.textContent = 'O nome de usuário não pode conter espaços.';
-            messageEl.classList.remove('hidden-start');
-            return;
-        }
-
-        try {
-            const userDoc = await firestore.collection(USERS_COLLECTION).doc(username).get();
-
-            if (userDoc.exists) {
-                messageEl.textContent = `O nome de usuário "${username}" já está em uso.`;
-                messageEl.classList.remove('hidden-start');
-                return;
-            }
-
-            let fotoBase64 = null;
-            if (fotoInput.files.length > 0) {
-                fotoBase64 = await convertFileToBase64(fotoInput.files[0]);
-            }
-            
-            // CRÍTICO: Incluir o campo isAdmin como false por padrão
-            const newUser = {
-                nome: nome,
-                username: username,
-                password: password, 
-                foto: fotoBase64,
-                perfil: 'usuario', 
-                pontuacao: 0,
-                isAdmin: false, // Adiciona o campo de permissão
-            };
-
-            await firestore.collection(USERS_COLLECTION).doc(username).set(newUser);
-
-            console.log("Usuário cadastrado com sucesso:", username);
-            
-            messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
-            messageEl.style.color = 'var(--success-color)';
-            messageEl.classList.remove('hidden-start');
-
-            setTimeout(() => {
-                window.location.href = 'login.html'; 
-            }, 1500);
-
-        } catch (error) {
-            console.error("Erro no cadastro:", error);
-            
-            let errorMessage = `Erro ao cadastrar: ${error.message || 'Verifique o console.'}`;
-            if (error.message && error.message.includes('permission denied')) {
-                 errorMessage = "Erro de permissão. Verifique suas regras do Firestore (Security Rules).";
-            }
-            
-            messageEl.textContent = errorMessage;
-            messageEl.classList.remove('hidden-start');
-        }
-    }
-
+    
     /**
      * Função auxiliar para converter o arquivo de foto em Base64
      */
@@ -120,5 +40,117 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
         });
+    }
+
+    // -------------------------------------------------------------------------
+    // Lógica Principal de Cadastro
+    // -------------------------------------------------------------------------
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            messageEl.classList.add('hidden-start');
+            messageEl.textContent = '';
+            
+            registerUser();
+        });
+    }
+
+    async function registerUser() {
+        // 1. Coleta e Validação Básica
+        const username = document.getElementById('register-username').value.trim();
+        const nome = document.getElementById('register-nome').value.trim();
+        const password = document.getElementById('register-password').value.trim();
+        const confirmPassword = document.getElementById('register-confirm-password').value.trim();
+        const fotoInput = document.getElementById('register-foto-perfil');
+        
+        if (!firestore || !firebaseAuth) {
+            messageEl.textContent = 'Erro de inicialização do Firebase. Verifique firebase-init.js.';
+            messageEl.classList.remove('hidden-start');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            messageEl.textContent = 'As senhas não coincidem.';
+            messageEl.classList.remove('hidden-start');
+            return;
+        }
+        
+        if (username.includes(' ')) {
+            messageEl.textContent = 'O nome de usuário não pode conter espaços.';
+            messageEl.classList.remove('hidden-start');
+            return;
+        }
+
+        // Mapeia o apelido para o formato de e-mail
+        const emailToRegister = mapUsernameToEmail(username);
+
+        try {
+            
+            // 2. VERIFICAÇÃO DE DUPLICIDADE (Opcional, mas útil para apelido)
+            // Tenta buscar o documento para garantir que o apelido (ID) não está em uso
+            const userDocCheck = await firestore.collection(USERS_COLLECTION).doc(emailToRegister).get();
+
+            if (userDocCheck.exists) {
+                // Se existir no Firestore, assume que a conta já foi criada no Auth também.
+                messageEl.textContent = `O nome de usuário "${username}" já está em uso.`;
+                messageEl.classList.remove('hidden-start');
+                return;
+            }
+
+            // 3. CRIAÇÃO DE CONTA NO FIREBASE AUTH
+            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(emailToRegister, password);
+            const firebaseUser = userCredential.user;
+            console.log("Conta Auth criada com sucesso para:", emailToRegister);
+            
+            // 4. PREPARAÇÃO DA FOTO
+            let fotoBase64 = null;
+            if (fotoInput.files.length > 0) {
+                fotoBase64 = await convertFileToBase64(fotoInput.files[0]);
+            }
+            
+            // 5. CRIAÇÃO DO DOCUMENTO NO FIRESTORE
+            const newUserDoc = {
+                uid: firebaseUser.uid,
+                nome: nome,
+                username: username, // Apelido
+                foto: fotoBase64,
+                pontuacao: 0,
+                isAdmin: false, 
+                // A senha NÃO é salva no Firestore!
+            };
+
+            // ID do documento: o email completo mapeado
+            await firestore.collection(USERS_COLLECTION).doc(emailToRegister).set(newUserDoc);
+            console.log("Documento Firestore criado com sucesso para:", emailToRegister);
+
+            // 6. SUCCESSO
+            messageEl.textContent = 'Cadastro realizado com sucesso! Redirecionando para o login...';
+            messageEl.classList.remove('hidden-start');
+            messageEl.classList.remove('error-message');
+            messageEl.style.color = 'var(--success-color, green)'; 
+
+            setTimeout(() => {
+                window.location.href = 'login.html'; 
+            }, 2000);
+
+        } catch (error) {
+            console.error("Erro no cadastro:", error);
+            
+            let errorMessage = `Erro ao cadastrar: ${error.message || 'Verifique o console.'}`;
+            
+            if (error.code === 'auth/email-already-in-use' || error.message.includes('already in use')) {
+                errorMessage = "Este apelido já está em uso.";
+            } else if (error.code === 'auth/weak-password') {
+                 errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+            } else if (error.message && error.message.includes('permission denied')) {
+                 errorMessage = "Erro de permissão. Verifique suas regras do Firestore.";
+            }
+            
+            messageEl.textContent = errorMessage;
+            messageEl.classList.add('error-message');
+            messageEl.classList.remove('hidden-start');
+        }
     }
 });

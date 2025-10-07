@@ -4,11 +4,9 @@
  * Depende de: firebase-init.js (para 'auth' e 'db')
  */
 
-// Acessa as variáveis globais (db, auth) injetadas por firebase-init.js. 
 const firestore = typeof db !== 'undefined' ? db : null;
 const firebaseAuth = typeof auth !== 'undefined' ? auth : null;
 
-// Restante do código
 const loginForm = document.getElementById('login-form');
 const usernameInput = document.getElementById('login-username');
 const passwordInput = document.getElementById('login-password');
@@ -38,14 +36,12 @@ function resetMessage() {
 
 /**
  * Mapeia o Apelido/Usuário para o formato de e-mail que o Firebase Auth requer.
- * Se o usuário digitar 'Thiago', ele tenta 'thiago@familiadefault.com'.
- * Se digitar o e-mail completo, usa o e-mail completo.
  */
 function mapUsernameToEmail(username) {
     if (username.includes('@')) {
         return username.toLowerCase().trim();
     }
-    // E-mail fictício usado no cadastro do Firebase Auth
+    // E-mail fictício usado no cadastro do Firebase Auth (DEVE SER O MESMO DO CADASTRAR-USUARIO.JS)
     return `${username.toLowerCase().trim()}@familiadefault.com`;
 }
 
@@ -57,7 +53,6 @@ async function handleLogin(e) {
     e.preventDefault();
     resetMessage();
 
-    // Verificação de inicialização CRÍTICA
     if (!firebaseAuth || !firestore) {
         showMessage('Erro crítico: Firebase não inicializado. Verifique firebase-init.js.', 'error');
         return;
@@ -84,15 +79,12 @@ async function handleLogin(e) {
         const firebaseUser = userCredential.user;
         
         // ETAPA 2: Busca os dados adicionais do usuário no Firestore
-        // UTILIZA O EMAIL COMPLETO DO USUÁRIO LOGADO, que é o ID do documento.
-        // Se o login foi feito com o apelido (ex: 'Thiago'), o email será 'thiago@familiadefault.com'.
-        // Se o login foi feito com o email completo, o email será 'thiagoferreira2flores@gmail.com'.
+        // O ID do documento é o email completo do usuário logado.
         const userDocRef = firestore.collection('users').doc(firebaseUser.email);
         
         const userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
-            // Se o documento Firestore não existir, desloga o Auth.
             await firebaseAuth.signOut();
             showMessage('Perfil de usuário não encontrado no banco de dados. Contate o administrador.', 'error');
             return;
@@ -103,11 +95,12 @@ async function handleLogin(e) {
         // Constrói o objeto de sessão
         const userSession = {
             uid: firebaseUser.uid, 
-            username: userDoc.id, 
-            nome: userData.nome || userDoc.id,
+            username: userData.username || userDoc.id, // Usa o username do Firestore
+            nome: userData.nome || 'Usuário',
             foto: userData.foto || null,
             isAdmin: userData.isAdmin || false,
-            pontuacao: userData.pontuacao || userData.saldo || 0,
+            // Prioriza 'saldo' se disponível, senão usa 'pontuacao'
+            pontuacao: userData.saldo || userData.pontuacao || 0, 
             saldo: userData.saldo || userData.pontuacao || 0,
         };
         
@@ -131,15 +124,8 @@ async function handleLogin(e) {
             errorMessage = 'O formato do Apelido/Usuário é inválido.';
         } else if (error.code === 'auth/network-request-failed') {
             errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
-        } else if (error.code === 'auth/internal-error' || error.message.includes('API key not valid') || error.message.includes('CONFIGURATION_NOT_FOUND')) {
-            errorMessage = 'Erro interno do servidor (400 Bad Request). Verifique se a **API Key** no `firebase-init.js` está correta.';
-            console.error("Erro Firebase de Chave de API CRÍTICO:", error.message);
-        } else if (error.message.includes('Missing or insufficient permissions')) {
-            errorMessage = 'Permissão negada ao buscar o perfil. Verifique as **Regras do Firestore** (Coleção users).';
-            console.error("Erro Firebase de Permissão CRÍTICO:", error.message);
-        } else {
-            errorMessage = `Erro desconhecido: ${error.message}`;
-            console.error("Erro de Login Desconhecido:", error);
+        } else if (error.message.includes('API key not valid')) {
+            errorMessage = 'Erro interno do servidor. Verifique se a API Key no `firebase-init.js` está correta.';
         }
         
         showMessage(errorMessage, 'error');
